@@ -7,26 +7,6 @@ import { ILead } from "@/types/leads";
 export const getAllLeads = async () => {
   console.log("Inside getAllLeads function");
   try {
-    // const leads = await Lead.find({ assigned: false });
-    // .populate([
-    //   {
-    //     path: "free_signup",
-    //     model: "Customer",
-    //   },
-    //   {
-    //     path: "contact_us",
-    //     model: "Contact",
-    //   },
-    //   {
-    //     path: "abandoned_cart",
-    //     model: "AbandonedCart",
-    //     match: { _id: { $ne: null } }
-    //   },
-    //   {
-    //     path: "scholarship",
-    //     model: "Scholarship",
-    //   },
-    // ]);
     const populations = [];
     if (await Lead.exists({ free_signup: { $ne: null } })) {
       populations.push({ path: "free_signup", model: "Customer" });

@@ -1,7 +1,6 @@
 // src/lib/server.ts
-import dbConnect from "./db.js";
+import dbConnect from "./db";
 import { watchCollections } from "./mongoListener";
-// const { watchCollections } = require("./mongoListener");
 
 let isInitialized = false;
 async function initServer() {
@@ -13,6 +12,7 @@ async function initServer() {
   try {
     await watchCollections();
     console.log("MongoDB change streams initialized");
+    await dbConnect();
 
     isInitialized = true;
   } catch (error) {

@@ -4,7 +4,8 @@ export interface ILog extends Document {
   sourceDbId: mongoose.Types.ObjectId; 
   syncedId: mongoose.Types.ObjectId;
   sourceDomain: string;
-  synced: string; 
+  description: string;
+  synced: string;
 }
 
 const LogSchema = new Schema<ILog>(
@@ -12,10 +13,11 @@ const LogSchema = new Schema<ILog>(
     sourceDbId: { type: Schema.Types.ObjectId, required: true },
     syncedId: { type: Schema.Types.ObjectId, required: true },
     sourceDomain: { type: String, required: true },
+    description: { type: String, required: false},
     synced: { type: String, default: "success" },
   },
   { timestamps: true }
 );
 
-const Log = mongoose.model<ILog>("Log", LogSchema);
+const Log = mongoose.models.Log || mongoose.model<ILog>("Log", LogSchema);
 export default Log

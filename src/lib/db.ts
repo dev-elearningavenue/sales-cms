@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { watchCollections } from "./mongoListener";
 
 let isConnected = false;
 const dbConnect = async () => {
@@ -10,15 +9,15 @@ const dbConnect = async () => {
     );
     return;
   }
-  const dbUri = process.env.MONGODB_URI || "your_mongo_connection_string";
-
+  
   try {
+    const dbUri = process.env.MONGODB_URI || "your_mongo_connection_string";
     await mongoose.connect(dbUri);
     isConnected = true;
     console.log("MongoDB connected successfully.");
-    // watchCollections();
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
+    isConnected = false;
     throw new Error("MongoDB connection failed");
   }
 };

@@ -20,6 +20,7 @@ export async function watchCollections() {
     return;
   }
   stopAllStreams();
+  console.log("Active Streams: ", activeChangeStreams.length);
   console.log("Before setting isWatcherInitialized:", isWatcherInitialized);
   isWatcherInitialized = true;
   console.log("After setting isWatcherInitialized:", isWatcherInitialized);
@@ -53,20 +54,31 @@ export async function watchCollections() {
         collection: oes_db.collection("users"),
         domain: "Osha Education School - OES",
       },
-      { collection: oor_db.collection("users"), domain: "OSHA Outreach - OOR" },
+      { collection: oor_db.collection("users"), domain: "Osha Outreach - OOR" },
     ];
 
     userCollections.forEach(({ collection, domain }) => {
-      setupUserCollectionWatch(
-        collection,
-        domain,
-        customersCollection,
-        logsCollection,
-        contactUsCollection
-        // leadsCollection
-      );
+      setupUserCollectionWatch(collection, domain, customersCollection);
     });
 
+    const cartCollections = [
+      {
+        collection: ooc_db.collection("orders"),
+        domain: "Osha Online Center - OOC",
+      },
+      {
+        collection: oes_db.collection("orders"),
+        domain: "Osha Education School - OES",
+      },
+      {
+        collection: oor_db.collection("orders"),
+        domain: "Osha Outreach - OOR",
+      },
+    ];
+
+    cartCollections.forEach(({ collection, domain }) => {
+      setupOrderCollectionWatch(collection, domain, customersCollection);
+    });
     /*
     // Watch user collections from different databases for freeSignup=true
     setupUserCollectionWatch(
@@ -107,15 +119,15 @@ export async function watchCollections() {
 function setupUserCollectionWatch(
   sourceDbCollection: Collection,
   domain: string,
-  customersCollection: Collection,
-  logsCollection: Collection,
-  leadsCollection: Collection
+  customersCollection: Collection
+  // logsCollection: Collection,
+  // leadsCollection: Collection
 ) {
   const changeStream = sourceDbCollection.watch();
   activeChangeStreams.push(changeStream);
 
   changeStream.on("change", async (change) => {
-    console.log(`New change event received for ${domain}:`, change);
+    console.log(`Change event for ${domain.split(" - ")[1]}:`, change);
     if (change.operationType === "insert") {
       const newUser = change.fullDocument;
 
@@ -124,34 +136,39 @@ function setupUserCollectionWatch(
         await syncToTargetCollection(
           newUser,
           `${domain}`,
-          customersCollection,
-          logsCollection,
-          leadsCollection
+          customersCollection
+          // logsCollection,
+          // leadsCollection
         );
       } else {
         console.log(
-          `Skipping user from ${domain}, free_signup is not true `,
+          `Skipping ${domain.split(" - ")[1]} user, because of non free_signup`,
           newUser
         );
       }
     }
   });
   changeStream.on("error", (err) => {
-    console.error(`Change Stream Error in ${domain}:`, err);
+    console.error(
+      `Change Stream Error in ${domain.split(" - ")[1]}:`,
+      err.message
+    );
     setTimeout(
       () =>
         setupUserCollectionWatch(
           sourceDbCollection,
           domain,
-          customersCollection,
-          logsCollection,
-          leadsCollection
+          customersCollection
+          // logsCollection,
+          // leadsCollection
         ),
-      5000
+      3000
     );
   });
 
-  console.log(`Watching ${domain} users collection for free signups`);
+  console.log(
+    `Watching ${domain.split(" - ")[1]} users collection for free signups`
+  );
   return changeStream;
 }
 
@@ -159,15 +176,16 @@ function setupUserCollectionWatch(
 function setupOrderCollectionWatch(
   collection: Collection,
   domain: string,
-  abandonedCartsCollection: Collection,
-  logsCollection: Collection,
-  leadsCollection: Collection
+  abandonedCartsCollection: Collection
 ) {
   const changeStream = collection.watch();
   activeChangeStreams.push(changeStream);
 
   changeStream.on("change", async (change) => {
-    if (change.operationType === "insert") {
+    if (
+      change.operationType === "insert" ||
+      change.operationType === "update"
+    ) {
       const newOrder = change.fullDocument;
 
       // For unpaid orders - check if 20 minutes passed
@@ -182,9 +200,9 @@ function setupOrderCollectionWatch(
         await syncToTargetCollection(
           newOrder,
           `${domain} (Unpaid)`,
-          abandonedCartsCollection,
-          logsCollection,
-          leadsCollection
+          abandonedCartsCollection
+          // logsCollection,
+          // leadsCollection
         );
         // } else {
         //   console.log(
@@ -198,15 +216,17 @@ function setupOrderCollectionWatch(
         await syncToTargetCollection(
           newOrder,
           `${domain} (Paid)`,
-          abandonedCartsCollection,
-          logsCollection,
-          leadsCollection
+          abandonedCartsCollection
         );
       }
     }
   });
 
-  console.log(`Watching ${domain} orders collection for paid/unpaid orders`);
+  console.log(
+    `Watching ${
+      domain.split(" - ")[1]
+    } orders collection for paid/unpaid orders`
+  );
   return changeStream;
 }
 
@@ -214,18 +234,19 @@ function setupOrderCollectionWatch(
 async function syncToTargetCollection(
   document: any,
   domain: string,
-  targetCollection: Collection,
-  logsCollection: Collection,
-  leadsCollection: Collection
+  targetCollection: Collection
 ) {
-  console.log(`New document on ${domain} detected:`, document);
+  console.log(`New document on ${domain.split(" - ")[1]} detected:`);
 
   const exists = await targetCollection.findOne({
-    originId: new ObjectId(document._id),
+    originId: new ObjectId(document._id.toString()),
   });
 
   if (exists) {
-    console.log(`Skipping duplicate entry from ${domain}`, document);
+    console.log(
+      `Skipping duplicate entry from ${domain.split(" - ")[1]}`,
+      document._id
+    );
     return;
   }
 
@@ -240,38 +261,28 @@ async function syncToTargetCollection(
     delete syncedData._id;
 
     const insertResult = await targetCollection.insertOne(syncedData);
-    console.log(`Data synced to customers from ${domain}`, insertResult);
-
     if (!insertResult || !insertResult.insertedId) {
-      throw new Error("Failed to insert into customers collection");
+      throw new Error("Failed to insert into customers.");
     }
 
-    // Log Sync Status
-    const logData = {
+    const logData = new Log({
       sourceDbId: new ObjectId(document._id.toString()),
-      syncedId: insertResult.insertedId,
+      syncedId: insertResult?.insertedId,
       sourceDomain: domain,
+      description: `Log created for sync from ${domain} to target collection.`,
       synced: "success",
-    };
-   
-    const logResult =  await logsCollection.insertOne(logData);
-
-    console.log(
-      `Log created for sync from ${domain} to target database`,
-      logResult
-    );
-    // Prevent Duplicate Entry in leadsCollection
-    const leadExists = await Lead.findOne({
-      free_signup: insertResult.insertedId,
     });
 
-    if (leadExists) {
-      console.log(`Lead already exists for customer from ${domain}`);
-      return;
-    }
+    const logResult = await logData.save();
+    if (!logResult) throw new Error("Failed to insert into Logs.");
+
+    const getRandomCategory = () => {
+      return Math.random() < 0.5 ? "Free SignUp" : "Free Study Guide";
+    };
 
     // Now create a lead entry with custom data
     const leadData = new Lead({
+      category: getRandomCategory(),
       free_signup: insertResult.insertedId,
       contact_us: null,
       scholarship: null,
@@ -287,7 +298,7 @@ async function syncToTargetCollection(
     // const leadResult = await leadsCollection.insertOne(leadData);
     const leadResult = await leadData.save();
 
-    console.log(`Lead created for customer from ${domain}`, leadResult);
+    console.log(`Lead created: `, leadResult);
   } catch (error: any) {
     console.error(`Error syncing data from ${domain}:`, error);
     throw error;

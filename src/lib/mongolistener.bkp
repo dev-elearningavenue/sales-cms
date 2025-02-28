@@ -1,0 +1,88 @@
+export async function watchCollections() {
+  if (isListenerActive) {
+    console.log("Listener is already running.");
+    return;
+  }
+  // Clean up any existing streams first
+  stopAllStreams();
+  isListenerActive = true;
+
+  try {
+    const master_client = new MongoClient(mongoUri_Master);
+    const outreach_client = new MongoClient(mongoUri_Outreach);
+
+    await master_client.connect();
+    await outreach_client.connect();
+
+    const leads_db = master_client.db("lead-management");
+    const oes_db = master_client.db("oes");
+    const ooc_db = master_client.db("oshaonlinecenter");
+    const oor_db = outreach_client.db("osha-outreach-lms");
+
+    // Target Collections
+    const customersCollection = leads_db.collection("customers");
+    const logsCollection = leads_db.collection("logs"); // For tracking inserts
+
+    // Source Collections
+    const usersCollection = ooc_db.collection("users");
+    const ordersCollection = oes_db.collection("orders");
+
+    console.log("Watching for changes in multiple collections...");
+
+    const watchList = [
+      { collection: usersCollection, domain: "Osha Online Center - OOC" },
+      { collection: ordersCollection, domain: "Osha Education School - OES" },
+    ];
+
+    watchList.forEach(({ collection, domain }) => {
+      const changeStream = collection.watch();
+
+      changeStream.on("change", async (change) => {
+        if (change.operationType === "insert") {
+          const newUser = change.fullDocument;
+
+          // Check if free_signup field exists and is true
+          if (newUser?.freeSignUp === true) {
+            console.log("New free signup detected:", newUser);
+
+            // Add domain field
+            const syncedData: { _id?: any; domain?: string; syncedAt?: Date } =
+              {
+                ...newUser,
+                domain,
+                syncedAt: new Date(),
+              };
+            delete syncedData._id;
+
+            // Insert into `customersCollection`
+            const insertResult = await customersCollection.insertOne(
+              syncedData
+            );
+            console.log(
+              `Data synced to customersCollection from ${domain}`,
+              insertResult
+            );
+
+            await logsCollection.insertOne({
+              originalId: new ObjectId(newUser._id),
+              syncedId: insertResult.insertedId,
+              sourceDomain: domain,
+              syncedAt: new Date(),
+            });
+            // Sync data to database2
+            console.log(
+              `Log created for sync from ${domain} to target database`
+            );
+            // Notify UI
+            // notifyUI(change.fullDocument);
+          } else {
+            console.log("Skipping user, free_signup is not true:", newUser);
+            isListenerActive = false;
+          }
+        }
+      });
+    });
+  } catch (error) {
+    console.error("Error in Change Stream:", error);
+  }
+}

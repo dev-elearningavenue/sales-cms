@@ -1,4 +1,5 @@
 import { MongoClient, ObjectId, Collection, ChangeStream } from "mongodb";
+import mongoose from "mongoose";
 import Log from "@/models/log";
 import Lead from "@/models/lead";
 
@@ -36,9 +37,10 @@ export async function watchCollections() {
 
     // Target Collections
     const customersCollection = leads_db.collection("customers");
-    const abandonedCartsCollection = leads_db.collection("abandonedcarts");
-    const logsCollection = leads_db.collection("logs");
     const contactUsCollection = leads_db.collection("contacts");
+    const abandonedCartsCollection = leads_db.collection("abandonedcarts");
+    const ordersCollection = leads_db.collection("paidorders");
+    // const logsCollection = leads_db.collection("logs");
     // const leadsCollection = leads_db.collection("leads");
 
     console.log("Watching for changes in multiple collections...");
@@ -61,6 +63,25 @@ export async function watchCollections() {
       setupUserCollectionWatch(collection, domain, customersCollection);
     });
 
+    const contactUsCollections = [
+      {
+        collection: ooc_db.collection("contacts"),
+        domain: "Osha Online Center - OOC",
+      },
+      {
+        collection: oes_db.collection("contacts"),
+        domain: "Osha Education School - OES",
+      },
+      {
+        collection: oor_db.collection("contacts"),
+        domain: "Osha Outreach - OOR",
+      },
+    ];
+
+    contactUsCollections.forEach(({ collection, domain }) => {
+      setupContactUsCollectionWatch(collection, domain, contactUsCollection);
+    });
+
     const cartCollections = [
       {
         collection: ooc_db.collection("orders"),
@@ -77,7 +98,12 @@ export async function watchCollections() {
     ];
 
     cartCollections.forEach(({ collection, domain }) => {
-      setupOrderCollectionWatch(collection, domain, customersCollection);
+      setupOrderCollectionWatch(
+        collection,
+        domain,
+        abandonedCartsCollection,
+        ordersCollection
+      );
     });
     /*
     // Watch user collections from different databases for freeSignup=true
@@ -120,25 +146,26 @@ function setupUserCollectionWatch(
   sourceDbCollection: Collection,
   domain: string,
   customersCollection: Collection
-  // logsCollection: Collection,
-  // leadsCollection: Collection
 ) {
   const changeStream = sourceDbCollection.watch();
   activeChangeStreams.push(changeStream);
 
+  console.log("Active Streams: ", activeChangeStreams.length);
   changeStream.on("change", async (change) => {
-    console.log(`Change event for ${domain.split(" - ")[1]}:`, change);
+    console.log(
+      `Change event in User's collection of ${domain.split(" - ")[1]}:`,
+      change
+    );
     if (change.operationType === "insert") {
       const newUser = change.fullDocument;
 
-      // Free signup check
       if (newUser?.freeSignUp === true) {
+        const type = "Free SignUp";
         await syncToTargetCollection(
           newUser,
           `${domain}`,
-          customersCollection
-          // logsCollection,
-          // leadsCollection
+          customersCollection,
+          type
         );
       } else {
         console.log(
@@ -148,19 +175,24 @@ function setupUserCollectionWatch(
       }
     }
   });
+
   changeStream.on("error", (err) => {
     console.error(
       `Change Stream Error in ${domain.split(" - ")[1]}:`,
       err.message
     );
+    // Remove this stream from activeChangeStreams
+    const index = activeChangeStreams.indexOf(changeStream);
+    if (index !== -1) {
+      activeChangeStreams.splice(index, 1); // Remove from array
+    }
+    changeStream.close().catch((e) => console.error("Error closing stream:", e));
     setTimeout(
       () =>
         setupUserCollectionWatch(
           sourceDbCollection,
           domain,
           customersCollection
-          // logsCollection,
-          // leadsCollection
         ),
       3000
     );
@@ -172,51 +204,118 @@ function setupUserCollectionWatch(
   return changeStream;
 }
 
+function setupContactUsCollectionWatch(
+  sourceDbCollection: Collection,
+  domain: string,
+  ContactUsCollection: Collection
+) {
+  const changeStream = sourceDbCollection.watch();
+  activeChangeStreams.push(changeStream);
+
+  console.log(
+    "Active Streams in setUp Contact Us: ",
+    activeChangeStreams.length
+  );
+
+  changeStream.on("change", async (change) => {
+    console.log(
+      `Change event in Contact us collection of ${domain.split(" - ")[1]}:`,
+      change
+    );
+    if (change.operationType === "insert") {
+      const newContact = change.fullDocument;
+      const type = "Contact Us";
+      await syncToTargetCollection(
+        newContact,
+        `${domain}`,
+        ContactUsCollection,
+        type
+      );
+    }
+  });
+
+  changeStream.on("error", (err) => {
+    console.error(
+      `Change Stream Error in ${domain.split(" - ")[1]}:`,
+      err.message
+    );
+    setTimeout(
+      () =>
+        setupContactUsCollectionWatch(
+          sourceDbCollection,
+          domain,
+          ContactUsCollection
+        ),
+      3000
+    );
+  });
+}
+
 // Setup function for orders collections
 function setupOrderCollectionWatch(
   collection: Collection,
   domain: string,
-  abandonedCartsCollection: Collection
+  abandonedCartsCollection: Collection,
+  ordersCollection: Collection
 ) {
   const changeStream = collection.watch();
   activeChangeStreams.push(changeStream);
 
   changeStream.on("change", async (change) => {
-    if (
-      change.operationType === "insert" ||
-      change.operationType === "update"
-    ) {
+    if (change.operationType === "insert") {
       const newOrder = change.fullDocument;
 
-      // For unpaid orders - check if 20 minutes passed
       if (newOrder?.isPaid === false) {
-        const createdAt =
-          newOrder.createdAt || new Date(newOrder._id.getTimestamp());
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
-        const timeSinceCreation = new Date().getTime() - createdAt.getTime();
-        const twentyMinutesInMs = 20 * 60 * 1000;
+        try {
+          setTimeout(async () => {
+            const orderStatus = await collection.findOne(
+              { _id: newOrder._id },
+              { session }
+            );
 
-        // if (timeSinceCreation >= twentyMinutesInMs) {
-        await syncToTargetCollection(
-          newOrder,
-          `${domain} (Unpaid)`,
-          abandonedCartsCollection
-          // logsCollection,
-          // leadsCollection
-        );
-        // } else {
-        //   console.log(
-        //     `Skipping order from ${domain}, less than 20 minutes old:`,
-        //     newOrder
-        //   );
-        // }
+            if (orderStatus?.isPaid === false) {
+              await syncToTargetCollection(
+                newOrder,
+                `${domain} (Unpaid)`,
+                abandonedCartsCollection,
+                "Abandoned Cart",
+                session
+              );
+              await session.commitTransaction();
+            } else {
+              // ✅ `isPaid = true` ho gaya, rollback transaction
+              await session.abortTransaction();
+            }
+            session.endSession();
+          }, 1 * 60 * 1000); //delay time: 1 min
+        } catch (error) {
+          console.error("Transaction failed", error);
+          await session.abortTransaction();
+          session.endSession();
+        }
       }
-      // For paid orders - no additional check
-      else if (newOrder?.isPaid === true) {
+    } else if (change.operationType === "update") {
+      const updatedOrder = await collection.findOne({
+        _id: change.documentKey._id,
+      });
+
+      const isPaidNow = updatedOrder?.isPaid;
+      const wasPaidBefore =
+        change.updateDescription?.updatedFields?.isPaid !== undefined
+          ? !change.updateDescription.updatedFields.isPaid
+          : updatedOrder?.isPaid;
+
+      if (wasPaidBefore === false && isPaidNow === true) {
+        await abandonedCartsCollection.deleteOne({ _id: updatedOrder._id });
+
         await syncToTargetCollection(
-          newOrder,
+          updatedOrder,
           `${domain} (Paid)`,
-          abandonedCartsCollection
+          ordersCollection,
+          "Order Creation"
         );
       }
     }
@@ -230,17 +329,19 @@ function setupOrderCollectionWatch(
   return changeStream;
 }
 
-// Helper function to sync data to customers collection
 async function syncToTargetCollection(
   document: any,
   domain: string,
-  targetCollection: Collection
+  targetCollection: Collection,
+  type: string,
+  session?: mongoose.ClientSession
 ) {
   console.log(`New document on ${domain.split(" - ")[1]} detected:`);
 
-  const exists = await targetCollection.findOne({
-    originId: new ObjectId(document._id.toString()),
-  });
+  const exists = await targetCollection.findOne(
+    { originId: new ObjectId(document._id.toString()) },
+    { session: session || undefined }
+  );
 
   if (exists) {
     console.log(
@@ -260,34 +361,37 @@ async function syncToTargetCollection(
     };
     delete syncedData._id;
 
-    const insertResult = await targetCollection.insertOne(syncedData);
-    if (!insertResult || !insertResult.insertedId) {
-      throw new Error("Failed to insert into customers.");
-    }
+    const insertResult = await targetCollection.insertOne(syncedData, {
+      session: session || undefined,
+    });
+
+    if (!insertResult || !insertResult.insertedId)
+      throw new Error(`Failed to insert into ${targetCollection}`);
 
     const logData = new Log({
       sourceDbId: new ObjectId(document._id.toString()),
-      syncedId: insertResult?.insertedId,
+      syncedId: insertResult.insertedId,
       sourceDomain: domain,
       description: `Log created for sync from ${domain} to target collection.`,
       synced: "success",
     });
 
-    const logResult = await logData.save();
+    const logResult = session
+      ? await logData.save({ session })
+      : await logData.save();
+
     if (!logResult) throw new Error("Failed to insert into Logs.");
 
-    const getRandomCategory = () => {
-      return Math.random() < 0.5 ? "Free SignUp" : "Free Study Guide";
-    };
-
+    const { category, leadFields, formattedDomain } = getLeadDetails(
+      type,
+      insertResult.insertedId,
+      domain
+    );
     // Now create a lead entry with custom data
     const leadData = new Lead({
-      category: getRandomCategory(),
-      free_signup: insertResult.insertedId,
-      contact_us: null,
-      scholarship: null,
-      abandoned_cart: null,
-      domain: domain.split(" - ")[1],
+      category: category,
+      ...leadFields,
+      domain: formattedDomain,
       status: "Pending",
       resolve_status: "Pending",
       assigned: false,
@@ -295,14 +399,52 @@ async function syncToTargetCollection(
       next_follow_up_date: null,
       conversion_value: null,
     });
-    // const leadResult = await leadsCollection.insertOne(leadData);
-    const leadResult = await leadData.save();
+
+    const leadResult = session
+      ? await leadData.save({ session })
+      : await leadData.save();
 
     console.log(`Lead created: `, leadResult);
   } catch (error: any) {
     console.error(`Error syncing data from ${domain}:`, error);
     throw error;
   }
+}
+
+function getLeadDetails(type: string, insertedId: ObjectId, domain: string) {
+  const getRandomCategory = () => {
+    return Math.random() < 0.5 ? "Free SignUp" : "Free Study Guide";
+  };
+
+  let category: string = "";
+  switch (type) {
+    case "Free SignUp":
+      category = getRandomCategory();
+      break;
+    case "Abandoned Cart":
+    case "Order Creation":
+    case "Contact Us":
+    case "Scholarship":
+      category = type;
+      break;
+    default:
+      category = "Unknown";
+  }
+
+  const leadFields = {
+    free_signup: type === "Free SignUp" ? insertedId : null,
+    contact_us: type === "Contact Us" ? insertedId : null,
+    scholarship: type === "Scholarship" ? insertedId : null,
+    abandoned_cart: type === "Abandoned Cart" ? insertedId : null,
+    order_creation: type === "Order Creation" ? insertedId : null,
+  };
+
+  const formattedDomain =
+    type === "Order Creation" || type === "Abandoned Cart"
+      ? domain.split(" - ")[1].split(" ")[0]
+      : domain.split(" - ")[1];
+
+  return { category, leadFields, formattedDomain };
 }
 
 // Function to stop all active change streams
@@ -331,6 +473,6 @@ export async function stopWatching() {
 function restartWatchers() {
   console.log("Restarting watchers in 5 seconds...");
   setTimeout(() => {
-    watchCollections();
+    // watchCollections();
   }, 5000);
 }

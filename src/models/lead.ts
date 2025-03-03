@@ -9,6 +9,7 @@ const lead_category_enum = [
   "Contact Us",
   "Scholarship",
   "Custom Lead",
+  "Unknown"
 ] as const;
 const status_enum = [
   "Follow Up",
@@ -36,7 +37,7 @@ const leadSchema = new Schema<ILead>(
       ref: "Scholarship",
       required: false,
     },
-    // Free Signups, Free Studyguide
+    // Free Signups, Free Study Guide
     free_signup: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Customer",
@@ -46,6 +47,11 @@ const leadSchema = new Schema<ILead>(
     abandoned_cart: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "AbandonedCart",
+      required: false,
+    },
+    order_creation: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "OrderCreation",
       required: false,
     },
     status: {

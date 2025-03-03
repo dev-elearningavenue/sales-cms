@@ -21,7 +21,6 @@ import {
   DialogClose,
 } from "@/components/Dialog";
 
-// Status options for dropdown
 const STATUS_OPTIONS = [
   "Follow Up",
   "Solved",
@@ -41,7 +40,7 @@ const MyLeads = () => {
   // State management
   const [userLeads, setUserLeads] = useState<ILead[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(50);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const [loading, setLoading] = useState(true);
   const { session, fetchSession } = useApp();
 
@@ -64,7 +63,6 @@ const MyLeads = () => {
   const [selectedLead, setSelectedLead] = useState<ILead | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Fetch session on component mount
   useEffect(() => {
     fetchSession();
   }, []);
@@ -77,13 +75,6 @@ const MyLeads = () => {
 
         const res = await fetch(`/api/my-leads?userId=${session._id}`);
         const data = await res.json();
-
-        if (!Array.isArray(data.leads)) {
-          console.error("Invalid leads data format:", data);
-          setUserLeads([]);
-          return;
-        }
-
         setUserLeads(data.leads);
       } catch (error) {
         console.error("Error fetching leads:", error);
@@ -191,10 +182,9 @@ const MyLeads = () => {
       ...prev,
       [filterType]: value,
     }));
-    setCurrentPage(1); // Reset to first page when filter changes
+    setCurrentPage(1);
   };
 
-  // Clear all filters
   const clearFilters = () => {
     setFilters({
       domain: "",
@@ -290,7 +280,7 @@ const MyLeads = () => {
             {showFiltersPanel && (
               <div className="bg-gray-50 p-4 rounded-md mb-4 border border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-normal text-gray-700 mb-1">
                     Domain
                   </label>
                   <select
@@ -301,9 +291,9 @@ const MyLeads = () => {
                     }
                   >
                     <option value="">All Domains</option>
+                    <option value="OOR">Osha Outreach</option>
                     <option value="OOC">Osha Online Center</option>
                     <option value="OES">Osha Education School</option>
-                    <option value="OOR">Osha Outreach</option>
                   </select>
                 </div>
 

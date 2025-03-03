@@ -10,7 +10,7 @@ connectDatabase();
 
 // GET method for fetching all leads
 export async function GET() {
-  console.log("GET All Leads Api");
+  // console.log("GET All Leads Api");
   const leads = await getAllLeads();
   if (leads.error) return NextResponse.json(leads, { status: 500 });
 

@@ -85,7 +85,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   const getDomainLabel = (domain: string) => {
     switch (domain) {
       case "OOR":
-        return "Osha Out Reach";
+        return "Osha Outreach";
       case "OOC":
         return "Osha Online Center";
       case "OES":
@@ -101,9 +101,9 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   };
 
   const getLeadSourceInfo = (lead: ILead) => {
-    if (lead.contact_us) return "Contact Us Form";
-    if (lead.scholarship) return "Scholarship Application";
-    if (lead.free_signup) return "Free Signup";
+    if (lead.contact_us) return "Contact Us";
+    if (lead.scholarship) return "Scholarship";
+    if (lead.free_signup) return "Free SignUp";
     if (lead.abandoned_cart) return "Abandoned Cart";
     return "Direct";
   };
@@ -369,7 +369,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
         )}
 
         {/* Table */}
-        <div className="overflow-y-auto" style={{ height: "500px" }}>
+        <div className="overflow-y-auto" style={{ height: "600px" }}>
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="sticky top-0 text-sm bg-white shadow-md z-10">
               <tr>

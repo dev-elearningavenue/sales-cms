@@ -80,7 +80,10 @@ const CustomerSchema = new Schema({}, { strict: false });
 export const Customer = mongoose.models.Customer || mongoose.model("Customer", CustomerSchema, "customers");
 
 const AbandonedCartSchema = new Schema({}, { strict: false });
-export const AbandonedCart = mongoose.models.Customer || mongoose.model("AbandonedCart", AbandonedCartSchema, "abandonedcarts");
+export const AbandonedCart = mongoose.models.AbandonedCart || mongoose.model("AbandonedCart", AbandonedCartSchema, "abandonedcarts");
 
-export const Contact = mongoose.models.Contact || mongoose.model("Contact", new mongoose.Schema({}, { strict: false }), "contact");
+const OrderSchema = new Schema({}, { strict: false });
+export const OrderCreation = mongoose.models.Order || mongoose.model("OrderCreation", OrderSchema, "paidorders");
+
+export const Contact = mongoose.models.Contact || mongoose.model("Contact", new mongoose.Schema({}, { strict: false }), "contacts");
 export const Scholarship = mongoose.models.Scholarship || mongoose.model("Scholarship", new mongoose.Schema({}, { strict: false }), "scholarships");

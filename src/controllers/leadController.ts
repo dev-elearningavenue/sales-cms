@@ -5,7 +5,7 @@ import { ILead } from "@/types/leads";
 // Agar aapko similar logic multiple jagah pe chahiye ho, toh aap controller functions ko import karke reuse kar sakte hain.
 
 export const getAllLeads = async () => {
-  console.log("Inside getAllLeads function");
+  // console.log("Inside getAllLeads function");
   try {
     const populations = [];
     if (await Lead.exists({ free_signup: { $ne: null } })) {
@@ -23,7 +23,8 @@ export const getAllLeads = async () => {
 
     const leads = await Lead.find({
       assigned: false,
-    }).populate(populations);
+    }).sort({createdAt: -1})
+      .populate(populations);
 
     if (!leads || leads.length === 0) {
       return { message: "No leads found", leads: [] };

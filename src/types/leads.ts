@@ -8,6 +8,7 @@ export interface ILead extends Document {
     scholarship?: mongoose.Types.ObjectId;
     free_signup?: mongoose.Types.ObjectId;
     abandoned_cart?: mongoose.Types.ObjectId;
+    order_creation?: mongoose.Types.ObjectId;
     status?: string;
     assigned?: Boolean;
     resolve_status?: string;

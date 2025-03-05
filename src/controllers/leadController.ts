@@ -20,10 +20,14 @@ export const getAllLeads = async () => {
     if (await Lead.exists({ scholarship: { $ne: null } })) {
       populations.push({ path: "scholarship", model: "Scholarship" });
     }
+    if (await Lead.exists({ order_creation: { $ne: null } })) {
+      populations.push({ path: "order_creation", model: "OrderCreation" });
+    }
 
     const leads = await Lead.find({
       assigned: false,
-    }).sort({createdAt: -1})
+    })
+      .sort({ createdAt: -1 })
       .populate(populations);
 
     if (!leads || leads.length === 0) {
@@ -123,17 +127,31 @@ export const createLead = async (
 export const getLeadsByUser = async (userId: string) => {
   try {
     // console.log("UserId: ", userId);
-    const leads = await Lead.find({ assigned_to: userId });
-    // .populate({
-    //   path: "free_signup"
-    // })
-    // .populate("Scholarship")
-    // .populate("AbandonedCarts");
+    const populations = [];
+    if (await Lead.exists({ free_signup: { $ne: null } })) {
+      populations.push({ path: "free_signup", model: "Customer" });
+    }
+    if (await Lead.exists({ contact_us: { $ne: null } })) {
+      populations.push({ path: "contact_us", model: "Contact" });
+    }
+    if (await Lead.exists({ abandoned_cart: { $ne: null } })) {
+      populations.push({ path: "abandoned_cart", model: "AbandonedCart" });
+    }
+    if (await Lead.exists({ scholarship: { $ne: null } })) {
+      populations.push({ path: "scholarship", model: "Scholarship" });
+    }
+    if (await Lead.exists({ order_creation: { $ne: null } })) {
+      populations.push({ path: "order_creation", model: "OrderCreation" });
+    }
+
+    const leads = await Lead.find({
+      assigned_to: userId,
+    }).populate(populations);
 
     if (!leads || leads.length === 0) {
       return { message: "No leads found for this user", leads: [] };
     }
-    // console.log(leads);
+    console.log("User Leads: ",leads);
 
     return { message: "Leads fetched successfully", leads };
   } catch (error: any) {

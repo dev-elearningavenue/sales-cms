@@ -20,6 +20,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/Dialog";
+import { Customer, Field } from "../components/Customer";
 
 const STATUS_OPTIONS = [
   "Follow Up",
@@ -231,6 +232,12 @@ const MyLeads = () => {
       currentPage + 1,
       currentPage + 2,
     ];
+  };
+
+  const categoryFieldMapping = {
+    "Order Creation": ["firstName", "lastName", "email", "phone"],
+    "Abandoned Cart": ["name", "customerEmail", "customerPhone"],
+    "Free SignUp": ["firstName", "lastName", "email"],
   };
 
   return (
@@ -593,51 +600,16 @@ const MyLeads = () => {
 
               <div className="px-6 py-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">
-                      Domain
-                    </h3>
-                    <p className="mt-1 text-gray-900">
-                      {getDomainLabel(selectedLead.domain || "")}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">
-                      Category
-                    </h3>
-                    <p className="mt-1 text-gray-900">
-                      {selectedLead.category || "N/A"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">
-                      Status
-                    </h3>
-                    <p className="mt-1">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          selectedLead.status === "Converted"
-                            ? "bg-green-100 text-green-800"
-                            : selectedLead.status === "Follow Up"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : selectedLead.status === "Pending"
-                            ? "bg-gray-100 text-gray-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
-                        {selectedLead.status || "N/A"}
-                      </span>
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">
-                      Date Created
-                    </h3>
-                    <p className="mt-1 text-gray-900">
-                      {selectedLead.createdAt
+                  <Field
+                    label="Domain"
+                    value={getDomainLabel(selectedLead.domain || "")}
+                  />
+                  <Field label="Category" value={selectedLead.category} />
+                  <Field label="Status" value={selectedLead.resolve_status} />
+                  <Field
+                    label="Date Created"
+                    value={
+                      selectedLead.createdAt
                         ? new Date(selectedLead.createdAt).toLocaleString(
                             "en-US",
                             {
@@ -648,84 +620,54 @@ const MyLeads = () => {
                               minute: "2-digit",
                             }
                           )
-                        : "N/A"}
-                    </p>
-                  </div>
+                        : "N/A"
+                    }
+                  />
                 </div>
 
                 {/* Customer Information */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">
-                    Customer Information
-                  </h3>
-                  <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* <div>
-                        <h4 className="text-sm font-medium text-gray-500">
-                          Name
-                        </h4>
-                        <p className="mt-1 text-gray-900">
-                          {selectedLead.name || "N/A"}
-                        </p>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500">
-                          Email
-                        </h4>
-                        <p className="mt-1 text-gray-900">
-                          {selectedLead.customerEmail || "N/A"}
-                        </p>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500">
-                          Phone
-                        </h4>
-                        <p className="mt-1 text-gray-900">
-                          {selectedLead.customerPhone || "N/A"}
-                        </p>
-                      </div> */}
-                    </div>
-                  </div>
-                </div>
+                <Customer selectedLead={selectedLead} />
 
                 {/* Lead Details */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">
-                    Additional Details
-                  </h3>
-                  <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                    <div className="grid grid-cols-1 gap-4">
-                      {Object.entries(selectedLead)
-                        .filter(
-                          ([key]) =>
-                            ![
-                              "_id",
-                              "customerName",
-                              "customerEmail",
-                              "customerPhone",
-                              "domain",
-                              "category",
-                              "status",
-                              "createdAt",
-                            ].includes(key)
-                        )
-                        .map(([key, value]) => (
-                          <div key={key}>
-                            <h4 className="text-sm font-medium text-gray-500">
-                              {key
-                                .replace(/([A-Z])/g, " $1")
-                                .replace(/^./, (str) => str.toUpperCase())}
-                            </h4>
-                            <p className="mt-1 text-gray-900 break-words">
-                              {typeof value === "object"
-                                ? JSON.stringify(value)
-                                : String(value || "N/A")}
-                            </p>
-                          </div>
-                        ))}
+                {/*
+                  <div className="mb-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">
+                      Additional Details
+                    </h3>
+                    <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                      <div className="grid grid-cols-1 gap-4">
+                        {Object.entries(selectedLead)
+                          .filter(
+                            ([key]) =>
+                              ![
+                                "_id",
+                                "customerName",
+                                "customerEmail",
+                                "customerPhone",
+                                "domain",
+                                "category",
+                                "status",
+                                "createdAt",
+                              ].includes(key)
+                          )
+                          .map(([key, value]) => (
+                            <div key={key}>
+                              <h4 className="text-sm font-medium text-gray-500">
+                                {key
+                                  .replace(/([A-Z])/g, " $1")
+                                  .replace(/^./, (str) => str.toUpperCase())}
+                              </h4>
+                              <p className="mt-1 text-gray-900 break-words">
+                                {typeof value === "object"
+                                  ? JSON.stringify(value)
+                                  : String(value || "N/A")}
+                              </p>
+                            </div>
+                          ))}
+                      </div>
                     </div>
                   </div>
-                </div>
+                */}
 
                 {/* Actions */}
                 <div className="flex justify-end gap-3 mt-6">

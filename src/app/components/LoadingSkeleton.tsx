@@ -1,6 +1,6 @@
 // src/components/LoadingSkeleton.tsx
 export function LoadingSkeleton({ component = "profile" }) {
-  return component === "profile" ? (
+  return component === "profile" || component === "my leads" ? (
     <div className="animate-pulse">
       <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
     </div>

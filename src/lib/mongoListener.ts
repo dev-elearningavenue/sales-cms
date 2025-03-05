@@ -251,7 +251,6 @@ function setupContactUsCollectionWatch(
   });
 }
 
-// Setup function for orders collections
 function setupOrderCollectionWatch(
   collection: Collection,
   domain: string,

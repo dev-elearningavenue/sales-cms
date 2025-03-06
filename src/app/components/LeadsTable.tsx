@@ -437,12 +437,20 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                       {lead?.category}
                       <div className="text-sm text-gray-600">
                         {(lead.contact_us as any)?.name ||
-                          ((lead.free_signup as any)?.firstName
-                            ? `${(lead.free_signup as any)?.firstName} ${
-                                (lead.free_signup as any)?.lastName
-                              }`
-                            : "") ||
-                          (lead.scholarship as any)?.name ||
+                          [
+                            lead.free_signup,
+                            lead.order_creation,
+                            lead.scholarship,
+                          ]
+                            .map((entry) =>
+                              entry &&
+                              typeof entry === "object" &&
+                              "firstName" in entry &&
+                              "lastName" in entry
+                                ? `${entry.firstName} ${entry.lastName ?? ""}`
+                                : null
+                            )
+                            .filter(Boolean)[0] ||
                           "No Data Available"}
                       </div>
                     </div>

@@ -20,11 +20,12 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/Dialog";
-import { Customer, Field } from "../components/Customer";
+import { Customer, Field } from "@/components/Customer";
+import CourseInfo from "@/components/CourseInfo";
 
 const STATUS_OPTIONS = [
   "Follow Up",
-  "Solved",
+  "Resolved",
   "Pending",
   "Converted",
   "Assigned Orders",
@@ -624,6 +625,11 @@ const MyLeads = () => {
                     }
                   />
                 </div>
+
+                {/* Course Information */}
+                {selectedLead?.category === "Order Creation" && (
+                  <CourseInfo selectedLead={selectedLead} />
+                )}
 
                 {/* Customer Information */}
                 <Customer selectedLead={selectedLead} />

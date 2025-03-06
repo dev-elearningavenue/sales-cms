@@ -13,7 +13,7 @@ const lead_category_enum = [
 ] as const;
 const status_enum = [
   "Follow Up",
-  "Solved",
+  "Resolved",
   "Pending",
   "Converted",
   "Assigned Orders",

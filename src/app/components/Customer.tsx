@@ -1,15 +1,13 @@
 import * as React from "react";
 import { ILead } from "@/types/leads";
-import ICustomer from "@/types/customer";
-
-interface OrderCreation extends ICustomer {
-  transaction_id?: string;
-  order_id?: string;
-}
+import { ICustomer } from "@/types/customer";
+import { OrderCreation } from "@/types/customer";
 
 interface ContactUs {
   name?: string;
   email?: string;
+  contactNo?: string;
+  companyName?: string;
   form?: number;
   message?: string;
   replies?: string[];
@@ -54,15 +52,20 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
             leadData &&
             isOrderCreation(leadData) && (
               <>
-                <Field label="First Name" value={leadData?.firstName} />
-                <Field label="Last Name" value={leadData?.lastName} />
+                <Field
+                  label="Full Name"
+                  value={`${leadData?.firstName ?? ""} ${
+                    leadData?.lastName ?? ""
+                  }`}
+                />
+                {/* <Field label="Last Name" value={leadData?.lastName} /> */}
                 <Field label="Order Id" value={leadData?.order_id} />
                 <Field label="Email" value={leadData?.email} />
                 <Field label="Contact No" value={leadData?.contactNo} />
-                <Field label="Address" value={leadData?.address} />
-                <Field label="City" value={leadData?.city} />
+                {/* <Field label="Address" value={leadData?.address} /> */}
                 <Field label="State" value={leadData?.state} />
-                <Field label="Zip Code" value={leadData?.zipCode} />
+                <Field label="City" value={leadData?.city} />
+                {/* <Field label="Zip Code" value={leadData?.zipCode} /> */}
               </>
             )}
 
@@ -72,6 +75,8 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
               <>
                 <Field label="Name" value={leadData?.name} />
                 <Field label="Email" value={leadData?.email} />
+                <Field label="Contact Number" value={leadData?.contactNo} />
+                <Field label="Company Name" value={leadData?.companyName} />
                 {leadData?.form === 1 && (
                   <Field label="Message" value={leadData?.message} />
                 )}
@@ -110,7 +115,7 @@ export const Field: React.FC<FieldProps> = ({ label, value }) => (
   </div>
 );
 
-// Type Guards for ICustomer (checks if leadData has firstName property)
+// Type Guards
 function isCustomer(data: LeadData): data is ICustomer | OrderCreation {
   return data !== null && typeof data === "object" && "firstName" in data;
 }

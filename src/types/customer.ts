@@ -1,6 +1,6 @@
-import { Document } from "mongoose";
+import mongoose, { Document } from "mongoose";
 
-interface ICustomer extends Document {
+export interface ICustomer extends Document {
   firstName?: string;
   lastName?: string;
   userName: string;
@@ -27,4 +27,25 @@ interface ICustomer extends Document {
   freeStudyGuide?: boolean;
 }
 
-export default ICustomer;
+export interface OrderItem {
+  course_id: {
+    type: mongoose.Schema.Types.ObjectId;
+  };
+  portal_type: number;
+  title: string;
+  category: string;
+  description: string;
+  price: number;
+  actual_price: number;
+  sku: number;
+  quantity: number;
+  discount: number;
+}
+
+export interface OrderCreation extends ICustomer {
+  transaction_id?: string;
+  order_id?: string;
+  items: OrderItem[];
+}
+
+// export default ICustomer;

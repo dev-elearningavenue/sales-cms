@@ -43,10 +43,7 @@ export async function watchCollections() {
     // const logsCollection = leads_db.collection("logs");
     // const leadsCollection = leads_db.collection("leads");
 
-    console.log("Watching for changes in multiple collections...");
-
     // Define Source collections for users and orders
-
     const userCollections = [
       {
         collection: ooc_db.collection("users"),

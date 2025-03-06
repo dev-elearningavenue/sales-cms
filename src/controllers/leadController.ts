@@ -36,7 +36,8 @@ export const getAllLeads = async () => {
     // console.log("Lead: ", leads[leads.length - 2]);
     return { message: "All leads fetched successfully", leads };
   } catch (error: any) {
-    return { error: "Failed to fetch leads", details: error.message };
+    console.error("Error caught: ", error)
+    return { error: "Failed to fetch leads", details: error.message, leads: [] };
   }
 };
 
@@ -156,7 +157,7 @@ export const getLeadsByUser = async (userId: string) => {
     return { message: "Leads fetched successfully", leads };
   } catch (error: any) {
     console.error("Error fetching getLeadsByUser", error);
-    return { error: "Failed to fetch My Leads", details: error.message };
+    return { error: "Failed to fetch My Leads", details: error.message, leads: [] };
   }
 };
 

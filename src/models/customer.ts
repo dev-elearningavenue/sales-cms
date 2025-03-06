@@ -1,8 +1,8 @@
 import mongoose, { Schema, Model } from "mongoose";
 import { ICustomer } from "@/types/customer";
-import { strict } from "assert";
 
-const CustomerSchema = new Schema(
+
+const CustomerSchemaa = new Schema(
   {
     firstName: {
       type: String,
@@ -32,15 +32,85 @@ const CustomerSchema = new Schema(
   }
 );
 
-export const Customer =
-  mongoose.models.Customer ||
-  mongoose.model("Customer", CustomerSchema, "customers");
+/*
+const CustomerSchemaa = new Schema(
+  {
+    firstName: {
+      type: String,
+    },
+    lastName: {
+      type: String,
+    },
+    userName: {
+      type: String,
+      unique: true,
+    },
+    email: {
+      type: String,
+    },
+    contactNo: {
+      type: String,
+    },
+    address: {
+      type: String,
+    },
+    city: {
+      type: String,
+    },
+    state: {
+      type: String,
+    },
+    zipCode: {
+      type: String,
+    },
+    country: {
+      type: String,
+    },
+    companyName: {
+      type: String,
+    },
+    companyType: {
+      type: String,
+    },
+    companyEmail: {
+      type: String,
+    },
+    enrollEmail: {
+      type: String,
+    },
+    designation: String,
+    courses: [Object],
+    purchased_courses: [Object],
+    free_course_tot_qty: {
+      type: Number,
+    },
+    free_course_assign_qty: {
+      type: Number,
+    },
+    userType: {
+      type: Number,
+    },
+    is_account_enabled: {
+      type: Boolean,
+    },
+    is_blocked: {
+      type: Boolean,
+    },
+    freeSignUp: Boolean,
+    freeStudyGuide: Boolean,
+  },
+  {
+    timestamps: true,
+  }
+);
+*/
+
+// export const Customerr: Model<ICustomer> =
+//   mongoose.models.Lead || mongoose.model<ICustomer>("Lead", CustomerSchemaa);
 
 // export default Customer;
-// const CustomerSchemas = new Schema({}, { strict: false });
-// export const Customerr =
-//   mongoose.models.Customer ||
-//   mongoose.model("Customer", CustomerSchema, "customers");
+const CustomerSchema = new Schema({}, { strict: false });
+export const Customer = mongoose.models.Customer || mongoose.model("Customer", CustomerSchemaa, "customers");
 
 const AbandonedCartSchema = new Schema({}, { strict: false });
 export const AbandonedCart =
@@ -59,7 +129,6 @@ export const Contact =
     new mongoose.Schema({}, { strict: false }),
     "contacts"
   );
-
 export const Scholarship =
   mongoose.models.Scholarship ||
   mongoose.model(

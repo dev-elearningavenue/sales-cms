@@ -17,7 +17,7 @@ export interface ICustomer extends Document {
   enrollEmail?: string;
   designation?: string;
   courses: Record<string, any>[];
-  purchased_courses: Record<string, any>[]; // Assuming purchased_courses are objects, adjust as needed
+  purchased_courses: Record<string, any>[];
   free_course_tot_qty?: number;
   free_course_assign_qty?: number;
   userType?: number;
@@ -47,5 +47,3 @@ export interface OrderCreation extends ICustomer {
   order_id?: string;
   items: OrderItem[];
 }
-
-// export default ICustomer;

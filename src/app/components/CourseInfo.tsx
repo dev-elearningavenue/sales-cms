@@ -8,6 +8,8 @@ interface CourseInfoProps {
 }
 
 const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
+  console.log("Selected Lead: ", selectedLead);
+
   if (!isOrderCreation(selectedLead)) {
     return <p className="text-gray-500">No course information available.</p>;
   }

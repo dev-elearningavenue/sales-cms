@@ -3,32 +3,40 @@ import mongoose from "mongoose";
 import Log from "@/models/log";
 import Lead from "@/models/lead";
 
-// const { MongoClient } = pkg;
 console.log("mongoListener.ts loaded");
 const mongoUri_Master = process.env.CLUSTER_MASTER as string;
 const mongoUri_Outreach = process.env.CLUSTER_OUTREACH as string;
 
-let master_client = new MongoClient(mongoUri_Master);
-let outreach_client = new MongoClient(mongoUri_Outreach);
+// let master_client = new MongoClient(mongoUri_Master);
+// let outreach_client = new MongoClient(mongoUri_Outreach);
+let master_client: MongoClient | null = null;
+let outreach_client: MongoClient | null = null;
 
 let activeChangeStreams: ChangeStream[] = [];
-// let isListenerActive = false; // To prevent multiple instances
-let isWatcherInitialized = false;
+let isListenerActive = false;
 
 export async function watchCollections() {
-  if (isWatcherInitialized) {
-    console.log("Change Stream is already running!", isWatcherInitialized);
+  if (isListenerActive) {
+    console.log("Change Stream is already running!", isListenerActive);
     return;
   }
-  stopAllStreams();
+  await stopWatching();
   console.log("Active Streams: ", activeChangeStreams.length);
-  console.log("Before setting isWatcherInitialized:", isWatcherInitialized);
-  isWatcherInitialized = true;
-  console.log("After setting isWatcherInitialized:", isWatcherInitialized);
 
   try {
+    master_client = new MongoClient(mongoUri_Master, {
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 10000,
+    });
+    outreach_client = new MongoClient(mongoUri_Outreach, {
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 10000,
+    });
     await master_client.connect();
     await outreach_client.connect();
+
+    isListenerActive = true;
+    console.log("Connected to MongoDB clusters");
 
     const leads_db = master_client.db("lead-management");
     const oes_db = master_client.db("oes");
@@ -102,39 +110,30 @@ export async function watchCollections() {
         ordersCollection
       );
     });
-    /*
-    // Watch user collections from different databases for freeSignup=true
-    setupUserCollectionWatch(
-      ooc_db.collection("users"),
-      "Osha Online Center - OOC",
-      customersCollection,
-      logsCollection,
-      leadsCollection
-    );
-
-    setupUserCollectionWatch(
-      oes_db.collection("users"),
-      "Osha Education School - OES",
-      customersCollection,
-      logsCollection,
-      leadsCollection
-    );
-
-    setupUserCollectionWatch(
-      oor_db.collection("users"),
-      "Osha Outreach - OOR",
-      customersCollection,
-      logsCollection,
-      leadsCollection
-    );
-    */
-
+   
     // You could add more specialized watchers here for contact forms, scholarship etc.
 
+    setupConnectionMonitoring();
     console.log("watchCollection function is running");
-  } catch (error) {
+  } catch (error: any) {
+
     console.error("Error in Change Stream:", error);
-    isWatcherInitialized = false;
+    await stopWatching();
+    if (error.name === "MongoNetworkError") {
+      console.error("Network error details:", {
+        message: error.message,
+        cause: error.cause,
+        stack: error.stack
+      });
+      
+      if (error.message.includes("connection")) {
+        console.error("This appears to be a connection issue");
+      } else if (error.message.includes("timeout")) {
+        console.error("This appears to be a timeout issue");
+      }
+    }
+
+    setTimeout(() => watchCollections(), 10000);
   }
 }
 
@@ -183,7 +182,9 @@ function setupUserCollectionWatch(
     if (index !== -1) {
       activeChangeStreams.splice(index, 1); // Remove from array
     }
-    changeStream.close().catch((e) => console.error("Error closing stream:", e));
+    changeStream
+      .close()
+      .catch((e) => console.error("Error closing stream:", e));
     setTimeout(
       () =>
         setupUserCollectionWatch(
@@ -262,15 +263,11 @@ function setupOrderCollectionWatch(
       const newOrder = change.fullDocument;
 
       if (newOrder?.isPaid === false) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
-
-        try {
-          setTimeout(async () => {
-            const orderStatus = await collection.findOne(
-              { _id: newOrder._id },
-              { session }
-            );
+        setTimeout(async () => {
+          const session = await mongoose.startSession();
+          session.startTransaction();
+          try {
+            const orderStatus = await collection.findOne({ _id: newOrder._id });
 
             if (orderStatus?.isPaid === false) {
               await syncToTargetCollection(
@@ -280,18 +277,23 @@ function setupOrderCollectionWatch(
                 "Abandoned Cart",
                 session
               );
-              await session.commitTransaction();
-            } else {
-              // ✅ `isPaid = true` ho gaya, rollback transaction
-              await session.abortTransaction();
+              console.log(
+                `Inserted unpaid order from ${domain} to abandoned carts`
+              );
             }
+            await session.commitTransaction();
             session.endSession();
-          }, 1 * 60 * 1000); //delay time: 1 min
-        } catch (error) {
-          console.error("Transaction failed", error);
-          await session.abortTransaction();
-          session.endSession();
-        }
+          } catch (error) {
+            console.error("Transaction failed", error);
+            await session.abortTransaction();
+            session.endSession();
+          }
+          // else {
+          //   ✅ `isPaid = true` ho gaya, rollback transaction
+          //   await session.abortTransaction();
+          // }
+          // session.endSession();
+        }, 1 * 60 * 1000); //delay time: 1 min
       }
     } else if (change.operationType === "update") {
       const updatedOrder = await collection.findOne({
@@ -317,6 +319,27 @@ function setupOrderCollectionWatch(
     }
   });
 
+  changeStream.on("error", (err) => {
+    console.error(`Change Stream Error in Orders ${domain}:`, err.message);
+    const index = activeChangeStreams.indexOf(changeStream);
+    if (index !== -1) {
+      activeChangeStreams.splice(index, 1);
+    }
+    changeStream
+      .close()
+      .catch((e) => console.error("Error closing stream:", e));
+    setTimeout(
+      () =>
+        setupOrderCollectionWatch(
+          collection,
+          domain,
+          abandonedCartsCollection,
+          ordersCollection
+        ),
+      3000
+    );
+  });
+
   console.log(
     `Watching ${
       domain.split(" - ")[1]
@@ -332,11 +355,10 @@ async function syncToTargetCollection(
   type: string,
   session?: mongoose.ClientSession
 ) {
-  console.log(`New document on ${domain.split(" - ")[1]} detected:`);
+  console.log(`New document on ${domain.split(" - ")[1]} detected`);
 
   const exists = await targetCollection.findOne(
     { originId: new ObjectId(document._id.toString()) },
-    { session: session || undefined }
   );
 
   if (exists) {
@@ -443,32 +465,74 @@ function getLeadDetails(type: string, insertedId: ObjectId, domain: string) {
   return { category, leadFields, formattedDomain };
 }
 
+// Add this function to periodically check connection health
+function setupConnectionMonitoring() {
+  const CHECK_INTERVAL = 15 * 60 * 1000;
+
+  setInterval(async () => {
+    try {
+      if (!master_client || !outreach_client) {
+        console.warn("One or both clients are null.");
+        await restartWatchers();
+        return;
+      }
+      // Ping the databases to check connection
+      const masterPing = await master_client.db("admin").command({ ping: 1 });
+      const outreachPing = await outreach_client
+        .db("admin")
+        .command({ ping: 1 });
+
+      if (!masterPing || !outreachPing) {
+        console.warn(
+          "Database connection health check failed, restarting watchers"
+        );
+        await restartWatchers();
+      }
+
+      console.log(`Health check: ${activeChangeStreams.length} active streams`);
+    } catch (error) {
+      console.error("Connection health check failed:", error);
+      await restartWatchers();
+    }
+  }, CHECK_INTERVAL);
+}
 // Function to stop all active change streams
-function stopAllStreams() {
+export async function stopWatching() {
   activeChangeStreams.forEach((stream) => {
     try {
       stream.close();
-      console.log("Closed the change stream.", stream);
     } catch (err) {
       console.error("Error closing change stream: ", err);
     }
   });
-
   activeChangeStreams = [];
-  isWatcherInitialized = false;
+  isListenerActive = false;
+
+  if (master_client) {
+    try {
+      await master_client.close();
+      master_client = null;
+    } catch (err) {
+      console.error("Error closing master client:", err);
+    }
+  }
+
+  if (outreach_client) {
+    try {
+      await outreach_client.close();
+      outreach_client = null;
+    } catch (err) {
+      console.error("Error closing outreach client:", err);
+    }
+  }
+  console.log("All resources cleaned up ... ");
 }
 
-// Add a function to explicitly stop watching
-export async function stopWatching() {
-  stopAllStreams();
-  console.log("All change streams stopped");
-  await master_client.close();
-  await outreach_client.close();
-}
-
-function restartWatchers() {
+async function restartWatchers() {
   console.log("Restarting watchers in 5 seconds...");
+  await stopWatching();
+  // await watchCollections();
   setTimeout(() => {
-    // watchCollections();
+    watchCollections();
   }, 5000);
 }

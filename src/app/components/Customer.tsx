@@ -62,10 +62,11 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
                 <Field label="Order Id" value={leadData?.order_id} />
                 <Field label="Email" value={leadData?.email} />
                 <Field label="Contact No" value={leadData?.contactNo} />
-                {/* <Field label="Address" value={leadData?.address} /> */}
+                <Field label="Address" value={leadData?.address} />
                 <Field label="State" value={leadData?.state} />
                 <Field label="City" value={leadData?.city} />
-                {/* <Field label="Zip Code" value={leadData?.zipCode} /> */}
+                <Field label="Country" value={leadData?.country} />
+                <Field label="Zip Code" value={leadData?.zipCode} />
               </>
             )}
 

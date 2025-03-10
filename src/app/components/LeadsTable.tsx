@@ -393,17 +393,21 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                     >
                       Reset
                     </button>
-                    {["Contact Us", "Free SignUp", "Free Study Guide"].map(
-                      (option) => (
-                        <button
-                          key={option}
-                          onClick={() => handleFilterChange("type", option)}
-                          className="w-full text-left px-2 py-1 hover:bg-gray-100 text-sm"
-                        >
-                          {option}
-                        </button>
-                      )
-                    )}
+                    {[
+                      "Abandoned Cart",
+                      "Order Creation",
+                      "Contact Us",
+                      "Free SignUp",
+                      "Free Study Guide",
+                    ].map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => handleFilterChange("type", option)}
+                        className="w-full text-left px-2 py-1 hover:bg-gray-100 text-sm"
+                      >
+                        {option}
+                      </button>
+                    ))}
                   </div>
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">
@@ -441,6 +445,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                             lead.free_signup,
                             lead.order_creation,
                             lead.scholarship,
+                            lead.abandoned_cart,
                           ]
                             .map((entry) =>
                               entry &&
@@ -462,20 +467,13 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                         <div className="px-3 py-1 inline-block rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           {getDomainLabel(lead.domain)}
                         </div>
-                        {/* <div className="text-sm font-medium">{lead.domain}</div> */}
-                        {/* {lead.conversion_value && (
-                          <div className="text-sm text-gray-600">
-                            Potential Value: ${lead.conversion_value.toFixed(2)}
-                          </div>
-                        )} */}
-                        {/* <div className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                          {getStatusLabel(lead.status)}
-                        </div> */}
                       </div>
                     }
                   </td>
                   {/* INTERESTED IN */}
-                  <td className="px-4 py-4"></td>
+                  <td className="px-4 py-4">
+                    <div className="px-3 py-4 font-medium"></div>
+                  </td>
                   {/* CREATED AT */}
                   <td className="px-4 py-4 text-sm whitespace-nowrap">
                     {lead.createdAt

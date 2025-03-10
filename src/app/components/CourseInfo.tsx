@@ -9,18 +9,26 @@ interface CourseInfoProps {
 
 const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
   console.log("Selected Lead: ", selectedLead);
+  //   const orderLead =
+  //     selectedLead.order_creation &&
+  //     typeof selectedLead.order_creation === "object"
+  //       ? (selectedLead.order_creation as OrderCreation)
+  //       : null;
 
-  if (!isOrderCreation(selectedLead)) {
+  const orderLead = isOrderCreation(selectedLead.order_creation)
+    ? selectedLead.order_creation
+    : null;
+
+  if (!orderLead || !Array.isArray(orderLead.items)) {
     return <p className="text-gray-500">No course information available.</p>;
   }
 
-  const orderLead = selectedLead as OrderCreation;
   return (
     <>
       <div className="mt-4">
         <h4 className="text-sm font-medium text-gray-800 mb-2">Courses</h4>
-        {orderLead.items?.length > 0 ? (
-          orderLead.items.map((item, idx) => (
+        {orderLead?.items?.length > 0 ? (
+          orderLead?.items.map((item, idx) => (
             <div
               key={idx}
               className="p-3 mb-2 border border-gray-200 rounded-md"
@@ -40,7 +48,13 @@ const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
 };
 
 function isOrderCreation(data: any): data is OrderCreation {
-  return data && typeof data === "object" && "items" in data;
+  return (
+    data &&
+    typeof data === "object" &&
+    "_id" in data &&
+    "items" in data &&
+    Array.isArray(data.items)
+  );
 }
 
 export default CourseInfo;

@@ -28,6 +28,7 @@ export interface ICustomer extends Document {
 }
 
 export interface OrderItem {
+  _id: mongoose.Schema.Types.ObjectId;
   course_id: {
     type: mongoose.Schema.Types.ObjectId;
   };

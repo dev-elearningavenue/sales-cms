@@ -152,7 +152,7 @@ export const getLeadsByUser = async (userId: string) => {
     if (!leads || leads.length === 0) {
       return { message: "No leads found for this user", leads: [] };
     }
-    console.log("User Leads: ",leads);
+    // console.log("User Leads: ",leads);
 
     return { message: "Leads fetched successfully", leads };
   } catch (error: any) {

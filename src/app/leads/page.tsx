@@ -27,7 +27,7 @@ const Leads = () => {
       try {
         const res = await fetch("/api/leads");
         const data = await res.json();
-        console.log("Leads: ", data);
+        // console.log("Leads: ", data);
         if (!Array.isArray(data.leads)) {
           console.error(data);
           setLeads([]);

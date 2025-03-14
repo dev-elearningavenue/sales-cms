@@ -6,20 +6,14 @@ import { User, Moon, Sun } from "lucide-react";
 import { LoadingSkeleton } from "./LoadingSkeleton";
 
 export const Navbar = () => {
-  const { session, logout, fetchSession, loading, theme, toggleTheme } =
-    useApp();
+  const { session, logout, loading, theme, toggleTheme } = useApp();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async () => {
     await logout();
-    fetchSession();
   };
-
-  useEffect(() => {
-    fetchSession();
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -35,7 +29,6 @@ export const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // console.log("Navbar session: ", session);
   return (
     <nav className="flex justify-between p-2 bg-white dark:bg-gray-800 transition-colors">
       <div className="flex p-2 justify-between items-center space-x-4">
@@ -47,7 +40,11 @@ export const Navbar = () => {
       <div className="flex p-2 items-center space-x-4">
         <button
           onClick={toggleTheme}
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-white flex items-center justify-center"
+          className={`p-2 rounded-full transition-colors ${
+            theme === "dark"
+              ? "bg-gray-700 hover:bg-gray-600 text-white"
+              : "bg-gray-100 hover:bg-gray-200 text-gray-800"
+          } flex items-center justify-center`}
         >
           {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>
@@ -82,7 +79,7 @@ export const Navbar = () => {
         ) : (
           <button
             onClick={() => router.push("/login")}
-            className="bg-blue-500 px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
           >
             Login
           </button>

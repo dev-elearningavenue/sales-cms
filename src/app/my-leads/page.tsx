@@ -627,9 +627,10 @@ const MyLeads = () => {
                 </div>
 
                 {/* Course Information */}
-                {selectedLead?.category === "Order Creation" && (
-                  <CourseInfo selectedLead={selectedLead} />
-                )}
+                {selectedLead?.category === "Order Creation" ||
+                  (selectedLead?.category === "Abandoned Cart" && (
+                    <CourseInfo selectedLead={selectedLead} />
+                  ))}
 
                 {/* Customer Information */}
                 <Customer selectedLead={selectedLead} />

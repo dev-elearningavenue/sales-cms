@@ -24,6 +24,7 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
     "free_signup",
     "order_creation",
     "abandoned_cart",
+    "scholarship",
   ].find((key) => selectedLead[key as keyof ILead]);
 
   const leadData: LeadData = populatedKey

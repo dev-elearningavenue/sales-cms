@@ -23,10 +23,10 @@ export const getAllLeads = async () => {
     if (await Lead.exists({ order_creation: { $ne: null } })) {
       populations.push({ path: "order_creation", model: "OrderCreation" });
     }
+    // Add assigned_to population
+    populations.push({ path: "assigned_to", model: "User", select: "full_name user_name" });
 
-    const leads = await Lead.find({
-      assigned: false,
-    })
+    const leads = await Lead.find()
       .sort({ createdAt: -1 })
       .populate(populations);
 

@@ -6,24 +6,27 @@ import connectDB from "@/lib/db";
 import { verifyToken } from "@/utils/auth";
 import Lead from "@/models/lead";
 
-async function connectDatabase() {
-  await connectDB();
-}
-connectDatabase();
+// Connect to database at route initialization
+connectDB().catch(console.error);
 
 export async function GET(request: Request) {
-  //   const { searchParams } = new URL(request.url);
-  //   const userId = searchParams.get("userId");
+  try {
+    const tokenData = await getDataFromToken();
+    if (!tokenData) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+    const userId = tokenData._id;
+    const myLeads = await getLeadsByUser(userId as string);
+    if (myLeads.error) return NextResponse.json(myLeads, { status: 500 });
 
-  const tokenData = await getDataFromToken();
-  if (!tokenData) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(myLeads, { status: 200 });
+  } catch (error) {
+    console.error("Error in GET /api/my-leads:", error);
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 }
+    );
   }
-  const userId = tokenData._id;
-  const myLeads = await getLeadsByUser(userId as string);
-  if (myLeads.error) return NextResponse.json(myLeads, { status: 500 });
-
-  return NextResponse.json(myLeads, { status: 200 });
 }
 
 // Not of any use for now

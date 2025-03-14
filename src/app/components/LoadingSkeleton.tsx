@@ -1,8 +1,15 @@
 // src/components/LoadingSkeleton.tsx
 export function LoadingSkeleton({ component = "profile" }) {
-  return component === "profile" || component === "my leads" ? (
+  return component === "profile" ? (
     <div className="animate-pulse">
       <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+    </div>
+  ) : component === "All Leads" ? (
+    <div className="flex flex-col justify-center items-center h-64 space-y-4">
+      <div className="animate-spin h-10 w-10 border-4 border-indigo-500 rounded-full border-t-transparent"></div>
+      <span className="text-lg font-medium text-gray-700">
+        Fetching the Results...
+      </span>
     </div>
   ) : (
     <div className="mx-auto max-w-2xl rounded-md border border-blue-300 p-4">

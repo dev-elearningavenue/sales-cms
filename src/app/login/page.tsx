@@ -42,8 +42,8 @@ const LoginPage = () => {
         response
       );
       if (response.ok) {
-        setSession(data);
-        router.push("/dashboard");
+        // Only fetch session and let the useEffect handle redirect
+        await fetchSession();
       } else {
         alert(data.error || "Login failed");
       }

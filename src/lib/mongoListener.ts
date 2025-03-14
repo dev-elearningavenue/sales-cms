@@ -7,19 +7,24 @@ console.log("mongoListener.ts loaded");
 const mongoUri_Master = process.env.CLUSTER_MASTER as string;
 const mongoUri_Outreach = process.env.CLUSTER_OUTREACH as string;
 
-// let master_client = new MongoClient(mongoUri_Master);
-// let outreach_client = new MongoClient(mongoUri_Outreach);
 let master_client: MongoClient | null = null;
 let outreach_client: MongoClient | null = null;
 
 let activeChangeStreams: ChangeStream[] = [];
 let isListenerActive = false;
+let initializationCount = 0;
+const pendingOrders = new Map();
 
 export async function watchCollections() {
+  initializationCount++;
+  console.log(`Initialization attempt #${initializationCount}`);
+
   if (isListenerActive) {
     console.log("Change Stream is already running!", isListenerActive);
     return;
   }
+
+  // Clean up any existing connections before starting
   await stopWatching();
   console.log("Active Streams: ", activeChangeStreams.length);
 
@@ -32,6 +37,7 @@ export async function watchCollections() {
       serverSelectionTimeoutMS: 5000,
       connectTimeoutMS: 10000,
     });
+
     await master_client.connect();
     await outreach_client.connect();
 
@@ -110,22 +116,21 @@ export async function watchCollections() {
         ordersCollection
       );
     });
-   
+
     // You could add more specialized watchers here for contact forms, scholarship etc.
 
     setupConnectionMonitoring();
     console.log("watchCollection function is running");
   } catch (error: any) {
-
     console.error("Error in Change Stream:", error);
     await stopWatching();
     if (error.name === "MongoNetworkError") {
       console.error("Network error details:", {
         message: error.message,
         cause: error.cause,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       if (error.message.includes("connection")) {
         console.error("This appears to be a connection issue");
       } else if (error.message.includes("timeout")) {
@@ -137,7 +142,6 @@ export async function watchCollections() {
   }
 }
 
-// Setup function for user collections with free signup check
 function setupUserCollectionWatch(
   sourceDbCollection: Collection,
   domain: string,
@@ -263,43 +267,63 @@ function setupOrderCollectionWatch(
       const newOrder = change.fullDocument;
 
       if (newOrder?.isPaid === false) {
-        setTimeout(async () => {
-          const session = await mongoose.startSession();
-          session.startTransaction();
-          try {
-            const orderStatus = await collection.findOne({ _id: newOrder._id });
+        console.log(
+          `New Unpaid order from (${domain.split(" - ")[1]}) detected:`,
+          newOrder._id
+        );
 
-            if (orderStatus?.isPaid === false) {
+        // Store the order ID in a temporary map with a timestamp
+        const orderId = newOrder._id.toString();
+        pendingOrders.set(orderId, {
+          timestamp: Date.now(),
+          processed: false,
+        });
+
+        setTimeout(() => {
+          (async () => {
+            try {
+              const pendingInfo = pendingOrders.get(orderId);
+              if (!pendingInfo || pendingInfo.processed) return;
+
+              // Check if order is still unpaid after delay
+              const orderStatus = await collection.findOne({
+                _id: newOrder._id,
+              });
+
+              if (!orderStatus || orderStatus.isPaid === true) {
+                pendingOrders.delete(orderId);
+                return;
+              }
+              // avoid double processing
+              pendingInfo.processed = true;
+
               await syncToTargetCollection(
                 newOrder,
                 `${domain} (Unpaid)`,
                 abandonedCartsCollection,
-                "Abandoned Cart",
-                session
+                "Abandoned Cart"
               );
               console.log(
-                `Inserted unpaid order from ${domain} to abandoned carts`
+                `Successfully processed abandoned cart for order ${newOrder._id}`
               );
+
+              if (orderStatus?.isPaid === false) {
+                // Use the same client for all operations
+              }
+            } catch (error) {
+              console.error("Error processing abandoned cart:", error);
+              pendingOrders.delete(orderId);
             }
-            await session.commitTransaction();
-            session.endSession();
-          } catch (error) {
-            console.error("Transaction failed", error);
-            await session.abortTransaction();
-            session.endSession();
-          }
-          // else {
-          //   ✅ `isPaid = true` ho gaya, rollback transaction
-          //   await session.abortTransaction();
-          // }
-          // session.endSession();
-        }, 1 * 60 * 1000); //delay time: 1 min
+          })();
+        }, 1 * 60 * 1000);
       }
     } else if (change.operationType === "update") {
+     
       const updatedOrder = await collection.findOne({
         _id: change.documentKey._id,
       });
 
+      const orderId = change.documentKey._id.toString();
       const isPaidNow = updatedOrder?.isPaid;
       const wasPaidBefore =
         change.updateDescription?.updatedFields?.isPaid !== undefined
@@ -307,14 +331,70 @@ function setupOrderCollectionWatch(
           : updatedOrder?.isPaid;
 
       if (wasPaidBefore === false && isPaidNow === true) {
-        await abandonedCartsCollection.deleteOne({ _id: updatedOrder._id });
-
-        await syncToTargetCollection(
-          updatedOrder,
-          `${domain} (Paid)`,
-          ordersCollection,
-          "Order Creation"
+        console.log(
+          `Order payment is now paid on ${domain.split(" - ")[1]}:`,
+          orderId
         );
+        pendingOrders.delete(orderId);
+
+        const cartDeleted = await abandonedCartsCollection.deleteOne({ 
+          originId: new ObjectId(orderId) 
+        });
+
+        if (cartDeleted.deletedCount > 0) {
+          console.log(`Removed abandoned cart for order ${orderId} that was subsequently paid`);
+          
+          // Optionally, clean up the associated logs and leads
+          // This can be done by finding and deleting them
+          // Or you can add a flag in the schema that marks them as "converted"
+
+          await Log.findOneAndUpdate(
+            { syncedId: new ObjectId(orderId) },
+            { 
+              $set: {
+                synced: "unpaid to paid & discarded abandoned cart",
+              }
+            }
+          );
+
+          await Lead.findOneAndUpdate(
+            { abandoned_cart: new ObjectId(orderId) },
+            { 
+              $set: {
+                status: "Paid",
+                resolve_status: "Paid",
+                abandoned_cart: null,
+                assigned: null,
+              }
+            }
+          );
+        }
+
+        try {
+          // Create new paid order entry
+          const orderResult = await syncToTargetCollection(
+            updatedOrder,
+            `${domain} (Paid)`,
+            ordersCollection,
+            "Order Creation"
+          );
+          console.log(`Successfully processed paid order ${updatedOrder._id}`);
+
+          // If we have the order result, update the lead with the new order reference
+          if (orderResult?.insertedId) {
+            await Lead.findOneAndUpdate(
+              { abandoned_cart: new ObjectId(orderId) },
+              { 
+                $set: {
+                  order_creation: orderResult.insertedId,
+                  category: "Order Creation" // Update category to reflect the conversion
+                }
+              }
+            );
+          }
+        } catch (error) {
+          console.error("Error processing paid order:", error);
+        }
       }
     }
   });
@@ -328,22 +408,24 @@ function setupOrderCollectionWatch(
     changeStream
       .close()
       .catch((e) => console.error("Error closing stream:", e));
-    setTimeout(
-      () =>
+
+    // Only restart if the listener is still active
+    if (isListenerActive) {
+      setTimeout(() => {
         setupOrderCollectionWatch(
           collection,
           domain,
           abandonedCartsCollection,
           ordersCollection
-        ),
-      3000
-    );
+        );
+      }, 5000);
+    }
   });
 
   console.log(
-    `Watching ${
-      domain.split(" - ")[1]
-    } orders collection for paid/unpaid orders`
+    `Watching ${domain.split(" - ")[1]} orders collection. Active streams: ${
+      activeChangeStreams.length
+    }`
   );
   return changeStream;
 }
@@ -353,20 +435,20 @@ async function syncToTargetCollection(
   domain: string,
   targetCollection: Collection,
   type: string,
-  session?: mongoose.ClientSession
+  session?: any
 ) {
-  console.log(`New document on ${domain.split(" - ")[1]} detected`);
+  console.log(`${type} on ${domain.split(" - ")[1]}`);
 
-  const exists = await targetCollection.findOne(
-    { originId: new ObjectId(document._id.toString()) },
-  );
+  const exists = await targetCollection.findOne({
+    originId: new ObjectId(document._id.toString()),
+  });
 
   if (exists) {
     console.log(
       `Skipping duplicate entry from ${domain.split(" - ")[1]}`,
       document._id
     );
-    return;
+    return null;
   }
 
   try {
@@ -379,24 +461,25 @@ async function syncToTargetCollection(
     };
     delete syncedData._id;
 
-    const insertResult = await targetCollection.insertOne(syncedData, {
-      session: session || undefined,
-    });
+    const insertResult = await targetCollection.insertOne(syncedData);
 
     if (!insertResult || !insertResult.insertedId)
       throw new Error(`Failed to insert into ${targetCollection}`);
+
+    console.log(
+      `Successfully inserted into ${targetCollection} collection: ${insertResult.insertedId}`
+    );
 
     const logData = new Log({
       sourceDbId: new ObjectId(document._id.toString()),
       syncedId: insertResult.insertedId,
       sourceDomain: domain,
-      description: `Log created for sync from ${domain} to target collection.`,
+      description: `Log created of ${type} from ${domain.split(" - ")[1]}`,
       synced: "success",
     });
 
-    const logResult = session
-      ? await logData.save({ session })
-      : await logData.save();
+    // Use the MongoDB session with Mongoose save
+    const logResult = await logData.save();
 
     if (!logResult) throw new Error("Failed to insert into Logs.");
 
@@ -418,11 +501,13 @@ async function syncToTargetCollection(
       conversion_value: null,
     });
 
-    const leadResult = session
-      ? await leadData.save({ session })
-      : await leadData.save();
+    // Use the MongoDB session with Mongoose save
+    const leadResult = await leadData.save();
 
-    console.log(`Lead created: `, leadResult);
+    console.log(`Lead created with ID: ${leadResult._id}`);
+    
+    // Return the insert result
+    return insertResult;
   } catch (error: any) {
     console.error(`Error syncing data from ${domain}:`, error);
     throw error;
@@ -467,7 +552,7 @@ function getLeadDetails(type: string, insertedId: ObjectId, domain: string) {
 
 // Add this function to periodically check connection health
 function setupConnectionMonitoring() {
-  const CHECK_INTERVAL = 15 * 60 * 1000;
+  const CHECK_INTERVAL = 5 * 60 * 1000;
 
   setInterval(async () => {
     try {
@@ -476,22 +561,31 @@ function setupConnectionMonitoring() {
         await restartWatchers();
         return;
       }
-      // Ping the databases to check connection
-      const masterPing = await master_client.db("admin").command({ ping: 1 });
-      const outreachPing = await outreach_client
-        .db("admin")
-        .command({ ping: 1 });
+
+      // Test both connections
+      const [masterPing, outreachPing] = await Promise.all([
+        master_client
+          .db("admin")
+          .command({ ping: 1 })
+          .catch(() => null),
+        outreach_client
+          .db("admin")
+          .command({ ping: 1 })
+          .catch(() => null),
+      ]);
 
       if (!masterPing || !outreachPing) {
         console.warn(
           "Database connection health check failed, restarting watchers"
         );
         await restartWatchers();
+      } else {
+        console.log(
+          `Health check: ${activeChangeStreams.length} active streams`
+        );
       }
-
-      console.log(`Health check: ${activeChangeStreams.length} active streams`);
     } catch (error) {
-      console.error("Connection health check failed:", error);
+      console.error("Health check failed:", error);
       await restartWatchers();
     }
   }, CHECK_INTERVAL);

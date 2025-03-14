@@ -513,15 +513,27 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   {/* ACTION */}
                   <td className="px-4 py-4">
                     <div className="flex flex-col gap-2">
-                      <button
-                        onClick={() => {
-                          if (lead._id) onAssign(lead._id);
-                        }}
-                        className="flex items-center justify-center w-full px-3 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50"
-                      >
-                        <UserPlus className="h-4 w-4 mr-1" />
-                        Assign Me
-                      </button>
+                      {lead.assigned ? (
+                        <div className="flex items-center justify-center w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600">
+                          <span className="text-sm">
+                            Assigned to{" "}
+                            {lead.assigned_to &&
+                            typeof lead.assigned_to === "object"
+                              ? (lead.assigned_to as any).full_name
+                              : "Unknown User"}
+                          </span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (lead._id) onAssign(lead._id);
+                          }}
+                          className="flex items-center justify-center w-full px-3 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50"
+                        >
+                          <UserPlus className="h-4 w-4 mr-1" />
+                          Assign Me
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

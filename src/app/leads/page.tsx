@@ -74,10 +74,7 @@ const Leads = () => {
 
       <div className="min-h-screen bg-gray-50 p-4 md:p-6">
         {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin h-10 w-10 border-4 border-indigo-500 rounded-full border-t-transparent ..."></div>
-            Fetching the Results..
-          </div>
+          <LoadingSkeleton component="All Leads" />
         ) : (
           <LeadsTable leads={leads} onAssign={handleAssign} title="ALL LEADS" />
         )}

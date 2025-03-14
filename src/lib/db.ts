@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
+import { ensureModelsAreRegistered } from "./models";
 
 let isConnected = false;
-const dbConnect = async () => {
+
+const connectDB = async () => {
   if (isConnected || mongoose.connections[0].readyState) {
     console.log(
       "Already connected to MongoDB",
@@ -9,8 +11,11 @@ const dbConnect = async () => {
     );
     return;
   }
-  
+
   try {
+    // Ensure models are registered before connecting
+    ensureModelsAreRegistered();
+    
     const dbUri = process.env.MONGODB_URI || "your_mongo_connection_string";
     await mongoose.connect(dbUri);
     isConnected = true;
@@ -22,4 +27,4 @@ const dbConnect = async () => {
   }
 };
 
-export default dbConnect;
+export default connectDB;

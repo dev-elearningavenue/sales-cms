@@ -17,6 +17,7 @@ const status_enum = [
   "Pending",
   "Converted",
   "Assigned Orders",
+  "Paid",
 ] as const;
 
 // Define Lead Schema

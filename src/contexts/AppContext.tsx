@@ -31,9 +31,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Session states
   const [session, setSession] = useState<UserSession | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Fetch session on mount
   useEffect(() => {
@@ -42,26 +43,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setTheme(savedTheme);
       document.documentElement.classList.toggle("dark", savedTheme === "dark");
     }
-  }, []);
-
-  useEffect(() => {
-    fetchSession();
-  }, []);
+    // Initial session fetch
+    if (!isInitialized) {
+      fetchSession();
+      setIsInitialized(true);
+    }
+  }, [isInitialized]);
 
   const fetchSession = async () => {
     try {
+      setLoading(true);
       const response = await axios.get("/api/auth/session");
-      // console.log("Session fetched in app context: ", response.data);
       setSession(response.data);
       setError(null);
+      // Force a router refresh to ensure all components update
+      router.refresh();
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
-        // Don't set error for expected non-authenticated state
+        // Expected state for non-authenticated users
+        setSession(null);
         setError(null);
       } else {
         setError("Failed to load session");
+        setSession(null);
       }
-      setSession(null);
     } finally {
       setLoading(false);
     }
@@ -74,15 +79,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setSession(null);
       setError(null);
       router.push("/login");
-      router.refresh();
     } catch (err) {
       console.error("Logout failed:", err);
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        setError("Logout failed");
-      } else {
-        setError("Failed to load session");
-      }
-      setSession(null);
+      setError("Logout failed");
     } finally {
       setLoading(false);
     }

@@ -241,6 +241,14 @@ const MyLeads = () => {
     "Free SignUp": ["firstName", "lastName", "email"],
   };
 
+  const categoryColors: Record<string, string> = {
+    "Abandoned Cart": "bg-red-500",
+    "Order Creation": "bg-blue-500",
+    "Contact Us": "bg-green-500",
+    "Free SignUp": "bg-purple-500",
+    "Free Study Guide": "bg-yellow-500",
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-4">
       {loading ? (
@@ -413,8 +421,13 @@ const MyLeads = () => {
                             </div>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">
-                              {lead.category}
+                            <div
+                              className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
+                                categoryColors[lead?.category ?? " "] ||
+                                "bg-gray-500"
+                              }`}
+                            >
+                              {lead?.category}
                             </div>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
@@ -627,10 +640,10 @@ const MyLeads = () => {
                 </div>
 
                 {/* Course Information */}
-                {selectedLead?.category === "Order Creation" ||
-                  (selectedLead?.category === "Abandoned Cart" && (
-                    <CourseInfo selectedLead={selectedLead} />
-                  ))}
+                {(selectedLead?.category === "Order Creation" ||
+                  selectedLead?.category === "Abandoned Cart") && (
+                  <CourseInfo selectedLead={selectedLead} />
+                )}
 
                 {/* Customer Information */}
                 <Customer selectedLead={selectedLead} />

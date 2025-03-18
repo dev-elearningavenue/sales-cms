@@ -27,7 +27,6 @@ const Leads = () => {
       try {
         const res = await fetch("/api/leads");
         const data = await res.json();
-        // console.log("Leads: ", data);
         if (!Array.isArray(data.leads)) {
           console.error(data);
           setLeads([]);
@@ -52,13 +51,28 @@ const Leads = () => {
         body: JSON.stringify({ leadId }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
         alert("Lead assigned successfully!");
         setLeads((prevLeads) =>
-          prevLeads.filter((lead) => lead._id !== leadId)
+          prevLeads.map((lead) => {
+            if (lead._id === leadId) {
+              const updatedLead = {
+                ...lead,
+                assigned: true,
+              };
+              // Only update assigned_to if we have session data
+              if (session?._id) {
+                updatedLead.assigned_to = data.assignedTo || null;
+              }
+              return updatedLead;
+            }
+            return lead;
+          })
         );
       } else {
-        alert("Failed to assign lead.");
+        alert(data.message || "Failed to assign lead.");
       }
     } catch (error) {
       console.error("Error while assigning lead:", error);

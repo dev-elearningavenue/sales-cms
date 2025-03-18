@@ -15,11 +15,17 @@ export async function GET(request: Request) {
     if (!tokenData) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-    const userId = tokenData._id;
-    const myLeads = await getLeadsByUser(userId as string);
-    if (myLeads.error) return NextResponse.json(myLeads, { status: 500 });
 
-    return NextResponse.json(myLeads, { status: 200 });
+    // Type check and extract user ID
+    if (typeof tokenData === 'object' && tokenData._id) {
+      const userId = tokenData._id.toString();
+      const myLeads = await getLeadsByUser(userId);
+      if (myLeads.error) return NextResponse.json(myLeads, { status: 500 });
+
+      return NextResponse.json(myLeads, { status: 200 });
+    } else {
+      return NextResponse.json({ message: "Invalid token data" }, { status: 401 });
+    }
   } catch (error) {
     console.error("Error in GET /api/my-leads:", error);
     return NextResponse.json(

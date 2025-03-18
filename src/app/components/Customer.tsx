@@ -31,6 +31,9 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
     ? (selectedLead[populatedKey as keyof ILead] as LeadData)
     : null;
 
+  // console.log("Customer Component - Lead Data:", leadData);
+  // console.log("Customer Component - Populated Key:", populatedKey);
+
   return (
     <div className="mb-6">
       <h3 className="text-lg font-medium text-gray-900 mb-3">
@@ -49,7 +52,8 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
               </>
             )}
 
-          {populatedKey === "order_creation" &&
+          {(populatedKey === "order_creation" ||
+            populatedKey === "abandoned_cart") &&
             leadData &&
             isOrderCreation(leadData) && (
               <>
@@ -123,7 +127,11 @@ function isCustomer(data: LeadData): data is ICustomer | OrderCreation {
 }
 
 function isOrderCreation(data: LeadData): data is OrderCreation {
-  return data !== null && typeof data === "object" && "order_id" in data;
+  return (
+    data !== null &&
+    typeof data === "object" &&
+    ("order_id" in data || "items" in data)
+  );
 }
 
 function isContactUs(data: LeadData): data is ContactUs {

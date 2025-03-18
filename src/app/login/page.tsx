@@ -9,21 +9,20 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const { session, setSession, fetchSession } = useApp();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { session, loading, fetchSession } = useApp();
   const router = useRouter();
 
   // Handle automatic redirect after successful login
   useEffect(() => {
     if (session) {
-      console.log("Login Page: ", session);
       router.push("/dashboard");
     }
   }, [session, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -35,24 +34,28 @@ const LoginPage = () => {
       });
 
       const data = await response.json();
-      console.log(
-        "Data returned from login API:",
-        data,
-        "\nResponse: ",
-        response
-      );
+
       if (response.ok) {
-        // Only fetch session and let the useEffect handle redirect
+        // Only fetch session, let the useEffect handle redirect
         await fetchSession();
       } else {
         alert(data.error || "Login failed");
       }
     } catch (error) {
       alert("An error occurred during login");
+      console.error("Login error:", error);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
+
+  // Allow password toggle even during session loading
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  // If already logged in, show a loading indicator but keep the form accessible
+  const isFormDisabled = isSubmitting;
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-teal-400 via-cyan-500 to-blue-600">
@@ -73,6 +76,7 @@ const LoginPage = () => {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full p-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
               required
+              disabled={isFormDisabled}
             />
           </div>
 
@@ -84,11 +88,13 @@ const LoginPage = () => {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full p-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
               required
+              disabled={isFormDisabled}
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={togglePasswordVisibility}
               className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white"
+              disabled={isFormDisabled}
             >
               {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
             </button>
@@ -97,10 +103,10 @@ const LoginPage = () => {
 
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isFormDisabled}
           className="w-full bg-white/20 text-white py-3 rounded-lg hover:bg-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
         >
-          {isLoading ? "Logging in..." : "Sign In"}
+          {isSubmitting ? "Logging in..." : "Sign In"}
         </button>
 
         <p className="text-center text-white/80 text-sm">

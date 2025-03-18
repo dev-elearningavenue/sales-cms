@@ -11,10 +11,6 @@ export const Navbar = () => {
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleLogout = async () => {
-    await logout();
-  };
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (

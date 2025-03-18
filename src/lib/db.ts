@@ -13,9 +13,7 @@ const connectDB = async () => {
   }
 
   try {
-    // Ensure models are registered before connecting
     ensureModelsAreRegistered();
-    
     const dbUri = process.env.MONGODB_URI || "your_mongo_connection_string";
     await mongoose.connect(dbUri);
     isConnected = true;

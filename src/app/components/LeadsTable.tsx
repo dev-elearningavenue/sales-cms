@@ -108,6 +108,14 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     return "Direct";
   };
 
+  const categoryColors: Record<string, string> = {
+    "Abandoned Cart": "bg-red-500",
+    "Order Creation": "bg-blue-500",
+    "Contact Us": "bg-green-500",
+    "Free SignUp": "bg-purple-500",
+    "Free Study Guide": "bg-yellow-500",
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <div className="p-6">
@@ -411,10 +419,10 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   </div>
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">
-                  {isMyLeads ? "LEAD SOURCE" : "DOMAIN"}
+                  FULL NAME
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">
-                  INTERESTED IN
+                  {isMyLeads ? "LEAD SOURCE" : "DOMAIN"}
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">
                   CREATED AT
@@ -437,45 +445,48 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   </td>
                   {/* TYPE */}
                   <td className="px-4 py-4">
-                    <div className="px-3 py-4 font-medium">
+                    <div
+                      className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
+                        categoryColors[lead?.category ?? " "] || "bg-gray-500"
+                      }`}
+                    >
                       {lead?.category}
-                      <div className="text-sm text-gray-600">
-                        {(lead.contact_us as any)?.name ||
-                          [
-                            lead.free_signup,
-                            lead.order_creation,
-                            lead.scholarship,
-                            lead.abandoned_cart,
-                          ]
-                            .map((entry) =>
-                              entry &&
-                              typeof entry === "object" &&
-                              "firstName" in entry &&
-                              "lastName" in entry
-                                ? `${entry.firstName} ${entry.lastName ?? ""}`
-                                : null
-                            )
-                            .filter(Boolean)[0] ||
-                          "No Data Available"}
-                      </div>
+                    </div>
+                  </td>
+                  {/* Full Name */}
+                  <td className="px-4 py-4">
+                    <div className="py-4 text-sm font-medium text-gray-600">
+                      {(lead.contact_us as any)?.name ||
+                        [
+                          lead.free_signup,
+                          lead.order_creation,
+                          lead.scholarship,
+                          lead.abandoned_cart,
+                        ]
+                          .map((entry) =>
+                            entry &&
+                            typeof entry === "object" &&
+                            "firstName" in entry &&
+                            "lastName" in entry
+                              ? `${entry.firstName} ${entry.lastName ?? ""}`
+                              : null
+                          )
+                          .filter(Boolean)[0] ||
+                        "No Data Available"}
                     </div>
                   </td>
                   {/* DOMAIN (LEAD SOURCE) */}
-                  <td className="px-4 py-4">
+                  <td className="py-4">
                     {
                       <div className="space-y-2">
-                        <div className="px-3 py-1 inline-block rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <div className="px-2 py-2 inline-block rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           {getDomainLabel(lead.domain)}
                         </div>
                       </div>
                     }
                   </td>
-                  {/* INTERESTED IN */}
-                  <td className="px-4 py-4">
-                    <div className="px-3 py-4 font-medium"></div>
-                  </td>
                   {/* CREATED AT */}
-                  <td className="px-4 py-4 text-sm whitespace-nowrap">
+                  <td className="py-4 text-sm whitespace-nowrap">
                     {lead.createdAt
                       ? new Date(lead.createdAt).toLocaleString()
                       : "N/A"}
@@ -511,7 +522,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                     </div> */}
                   </td>
                   {/* ACTION */}
-                  <td className="px-4 py-4">
+                  <td className="py-4">
                     <div className="flex flex-col gap-2">
                       {lead.assigned ? (
                         <div className="flex items-center justify-center w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600">

@@ -535,14 +535,7 @@ const TeamMemberCard = ({ member, darkMode }: TeamMemberCardProps) => {
 // Main Dashboard Component
 export default function DashboardPage() {
   const router = useRouter();
-  const {
-    session,
-    error: sessionError,
-    loading: sessionLoading,
-    theme,
-    toggleTheme,
-  } = useApp();
-  // const { darkMode, toggleDarkMode } = useDarkMode();
+  const { session, error: sessionError, loading: sessionLoading } = useApp();
   const { darkMode } = useThemeFromContext();
   const {
     data,
@@ -554,13 +547,15 @@ export default function DashboardPage() {
   // Combined loading state
   const isLoading = sessionLoading || dataLoading;
 
+  // If loading, show a full-page loading skeleton
   if (isLoading) {
-    return <LoadingSkeleton />;
+    return <LoadingSkeleton component="page" />;
   }
 
   if (sessionError) return <div>Error: {sessionError}</div>;
   if (dataError) return <div>Error loading data: {dataError}</div>;
 
+  // Only proceed if we have a valid session
   if (!session) {
     router.push("/login");
     return null;
@@ -571,6 +566,20 @@ export default function DashboardPage() {
     ? "bg-gradient-to-br from-gray-900 to-gray-800 text-white"
     : "bg-gradient-to-br from-gray-50 to-white";
 
+  // Sales Boy view
+  if (session?.user_type === 3) {
+    return (
+      <div className={`p-6 ${bgClass}`}>
+        <h1 className="text-2xl font-semibold">
+          Welcome, ${session.full_name} || {"Sales Boy"}
+        </h1>
+        <p className={darkMode ? "text-gray-300" : "text-gray-500"}>
+          Leads Management Dashboard
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className={`min-h-screen ${bgClass} transition-colors duration-300`}>
       <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -578,7 +587,7 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
           <div>
             <h1 className="text-2xl font-semibold">
-              Welcome, {session.full_name || "Mustafa"}
+              Welcome, {session.full_name || "Admin"}
             </h1>
             <p className={darkMode ? "text-gray-300" : "text-gray-500"}>
               Leads Management Dashboard

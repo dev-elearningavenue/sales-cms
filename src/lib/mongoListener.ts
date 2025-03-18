@@ -1,4 +1,4 @@
-import { MongoClient, ObjectId, Collection, ChangeStream } from "mongodb";
+import { MongoClient, ObjectId, Collection, ChangeStream, ReadPreference  } from "mongodb";
 import mongoose from "mongoose";
 import Log from "@/models/log";
 import Lead from "@/models/lead";
@@ -6,6 +6,21 @@ import Lead from "@/models/lead";
 console.log("mongoListener.ts loaded");
 const mongoUri_Master = process.env.CLUSTER_MASTER as string;
 const mongoUri_Outreach = process.env.CLUSTER_OUTREACH as string;
+
+// Connection options with better timeout and retry settings
+const CONNECTION_OPTIONS = {
+  serverSelectionTimeoutMS: 30000,
+  connectTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+  maxPoolSize: 50,
+  minPoolSize: 10,
+  maxIdleTimeMS: 60000,
+  retryWrites: true,
+  retryReads: true,
+  heartbeatFrequencyMS: 10000,    // Keep connection alive with heartbeats
+  w: 'majority' as const,          // Write concern for better consistency
+  readPreference: ReadPreference.SECONDARY_PREFERRED // Read from secondary nodes when possible
+};
 
 let master_client: MongoClient | null = null;
 let outreach_client: MongoClient | null = null;
@@ -15,12 +30,42 @@ let isListenerActive = false;
 let initializationCount = 0;
 const pendingOrders = new Map();
 
+// Add reconnection logic
+async function ensureConnection(client: MongoClient | null, uri: string, name: string): Promise<MongoClient> {
+  try {
+    if (!client) {
+      // console.log(`Establishing new ${name} connection...`);
+      client = new MongoClient(uri, CONNECTION_OPTIONS);
+      await client.connect();
+      console.log(`${name} connection established successfully`);
+    } else {
+      // Test if the connection is alive
+      try {
+        await client.db("admin").command({ ping: 1 });
+      } catch (err) {
+        console.log(`${name} connection lost, reconnecting...`);
+        try {
+          await client.close(true);
+        } catch (closeErr) {
+          console.error(`Error closing existing ${name} client:`, closeErr);
+        }
+        client = new MongoClient(uri, CONNECTION_OPTIONS);
+        await client.connect();
+      }
+    }
+    return client;
+  } catch (error) {
+    console.error(`Error ensuring ${name} connection:`, error);
+    throw error;
+  }
+}
+
 export async function watchCollections() {
   initializationCount++;
   console.log(`Initialization attempt #${initializationCount}`);
 
   if (isListenerActive) {
-    console.log("Change Stream is already running!", isListenerActive);
+    console.log("Change Stream is already running!");
     return;
   }
 
@@ -28,117 +73,120 @@ export async function watchCollections() {
   await stopWatching();
   console.log("Active Streams: ", activeChangeStreams.length);
 
-  try {
-    master_client = new MongoClient(mongoUri_Master, {
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 10000,
-    });
-    outreach_client = new MongoClient(mongoUri_Outreach, {
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 10000,
-    });
+  let retryCount = 0;
+  const maxRetries = 5;
 
-    await master_client.connect();
-    await outreach_client.connect();
+  while (retryCount < maxRetries) {
+    try {
+      // Establish connections with retry logic
+      master_client = await ensureConnection(master_client, mongoUri_Master, "Master");
+      outreach_client = await ensureConnection(outreach_client, mongoUri_Outreach, "Outreach");
 
-    isListenerActive = true;
-    console.log("Connected to MongoDB clusters");
+      isListenerActive = true;
+      console.log("Connected to MongoDB clusters successfully");
 
-    const leads_db = master_client.db("lead-management");
-    const oes_db = master_client.db("oes");
-    const ooc_db = master_client.db("oshaonlinecenter");
-    const oor_db = outreach_client.db("osha-outreach-lms");
+      const leads_db = master_client.db("lead-management");
+      const oes_db = master_client.db("oes");
+      const ooc_db = master_client.db("oshaonlinecenter");
+      const oor_db = outreach_client.db("osha-outreach-lms");
 
-    // Target Collections
-    const customersCollection = leads_db.collection("customers");
-    const contactUsCollection = leads_db.collection("contacts");
-    const abandonedCartsCollection = leads_db.collection("abandonedcarts");
-    const ordersCollection = leads_db.collection("paidorders");
-    // const logsCollection = leads_db.collection("logs");
-    // const leadsCollection = leads_db.collection("leads");
+      // Target Collections
+      const customersCollection = leads_db.collection("customers");
+      const contactUsCollection = leads_db.collection("contacts");
+      const abandonedCartsCollection = leads_db.collection("abandonedcarts");
+      const ordersCollection = leads_db.collection("paidorders");
+      // const logsCollection = leads_db.collection("logs");
+      // const leadsCollection = leads_db.collection("leads");
 
-    // Define Source collections for users and orders
-    const userCollections = [
-      {
-        collection: ooc_db.collection("users"),
-        domain: "Osha Online Center - OOC",
-      },
-      {
-        collection: oes_db.collection("users"),
-        domain: "Osha Education School - OES",
-      },
-      { collection: oor_db.collection("users"), domain: "Osha Outreach - OOR" },
-    ];
+      // Define Source collections for users and orders
+      const userCollections = [
+        {
+          collection: ooc_db.collection("users"),
+          domain: "Osha Online Center - OOC",
+        },
+        {
+          collection: oes_db.collection("users"),
+          domain: "Osha Education School - OES",
+        },
+        { collection: oor_db.collection("users"), domain: "Osha Outreach - OOR" },
+      ];
 
-    userCollections.forEach(({ collection, domain }) => {
-      setupUserCollectionWatch(collection, domain, customersCollection);
-    });
-
-    const contactUsCollections = [
-      {
-        collection: ooc_db.collection("contacts"),
-        domain: "Osha Online Center - OOC",
-      },
-      {
-        collection: oes_db.collection("contacts"),
-        domain: "Osha Education School - OES",
-      },
-      {
-        collection: oor_db.collection("contacts"),
-        domain: "Osha Outreach - OOR",
-      },
-    ];
-
-    contactUsCollections.forEach(({ collection, domain }) => {
-      setupContactUsCollectionWatch(collection, domain, contactUsCollection);
-    });
-
-    const cartCollections = [
-      {
-        collection: ooc_db.collection("orders"),
-        domain: "Osha Online Center - OOC",
-      },
-      {
-        collection: oes_db.collection("orders"),
-        domain: "Osha Education School - OES",
-      },
-      {
-        collection: oor_db.collection("orders"),
-        domain: "Osha Outreach - OOR",
-      },
-    ];
-
-    cartCollections.forEach(({ collection, domain }) => {
-      setupOrderCollectionWatch(
-        collection,
-        domain,
-        abandonedCartsCollection,
-        ordersCollection
-      );
-    });
-
-    // You could add more specialized watchers here for contact forms, scholarship etc.
-
-    setupConnectionMonitoring();
-    console.log("watchCollection function is running");
-  } catch (error: any) {
-    console.error("Error in Change Stream:", error);
-    await stopWatching();
-    if (error.name === "MongoNetworkError") {
-      console.error("Network error details:", {
-        message: error.message,
-        cause: error.cause,
-        stack: error.stack,
+      userCollections.forEach(({ collection, domain }) => {
+        setupUserCollectionWatch(collection, domain, customersCollection);
       });
 
-      if (error.message.includes("connection")) {
-        console.error("This appears to be a connection issue");
-      } else if (error.message.includes("timeout")) {
-        console.error("This appears to be a timeout issue");
-      }
-    }
+      const contactUsCollections = [
+        {
+          collection: ooc_db.collection("contacts"),
+          domain: "Osha Online Center - OOC",
+        },
+        {
+          collection: oes_db.collection("contacts"),
+          domain: "Osha Education School - OES",
+        },
+        {
+          collection: oor_db.collection("contacts"),
+          domain: "Osha Outreach - OOR",
+        },
+      ];
 
-    setTimeout(() => watchCollections(), 10000);
+      contactUsCollections.forEach(({ collection, domain }) => {
+        setupContactUsCollectionWatch(collection, domain, contactUsCollection);
+      });
+
+      const cartCollections = [
+        {
+          collection: ooc_db.collection("orders"),
+          domain: "Osha Online Center - OOC",
+        },
+        {
+          collection: oes_db.collection("orders"),
+          domain: "Osha Education School - OES",
+        },
+        {
+          collection: oor_db.collection("orders"),
+          domain: "Osha Outreach - OOR",
+        },
+      ];
+
+      cartCollections.forEach(({ collection, domain }) => {
+        setupOrderCollectionWatch(
+          collection,
+          domain,
+          abandonedCartsCollection,
+          ordersCollection
+        );
+      });
+
+      // You could add more specialized watchers here for contact forms, scholarship etc.
+
+      setupConnectionMonitoring();
+      break;
+
+    } catch (error: any) {
+      retryCount++;
+      console.error(`Connection attempt ${retryCount} failed:`, {
+        message: error.message,
+        name: error.name,
+        code: error.code
+      });
+
+      if (error.name === "MongoNetworkError" || error.name === "MongoServerSelectionError") {
+        const backoffTime = Math.min(1000 * Math.pow(2, retryCount), 30000);
+        console.log(`Retrying in ${backoffTime/1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, backoffTime));
+        continue;
+      }
+
+      // If we've exhausted retries or it's a different type of error
+      await stopWatching();
+      throw error;
+    }
+  }
+
+  if (retryCount === maxRetries) {
+    console.error("Failed to establish connection after maximum retries");
+    setTimeout(() => watchCollections(), 60000); // Try again in 1 minute
   }
 }
 
@@ -550,46 +598,63 @@ function getLeadDetails(type: string, insertedId: ObjectId, domain: string) {
   return { category, leadFields, formattedDomain };
 }
 
-// Add this function to periodically check connection health
+// Improve connection monitoring
 function setupConnectionMonitoring() {
-  const CHECK_INTERVAL = 5 * 60 * 1000;
+  const CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
+  const HEALTH_CHECK_TIMEOUT = 60000;     // 1 min timeout for health checks
 
   setInterval(async () => {
     try {
       if (!master_client || !outreach_client) {
-        console.warn("One or both clients are null.");
+        console.warn("One or both clients are null, initiating reconnection...");
         await restartWatchers();
         return;
       }
 
-      // Test both connections
-      const [masterPing, outreachPing] = await Promise.all([
-        master_client
-          .db("admin")
-          .command({ ping: 1 })
-          .catch(() => null),
-        outreach_client
-          .db("admin")
-          .command({ ping: 1 })
-          .catch(() => null),
+      const healthChecks = await Promise.all([
+        Promise.race([
+          master_client.db("admin").command({ ping: 1 }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("Master health check timeout")), HEALTH_CHECK_TIMEOUT)
+          )
+        ]).catch(() => null),
+        Promise.race([
+          outreach_client.db("admin").command({ ping: 1 }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("Outreach health check timeout")), HEALTH_CHECK_TIMEOUT)
+          )
+        ]).catch(() => null)
       ]);
 
-      if (!masterPing || !outreachPing) {
-        console.warn(
-          "Database connection health check failed, restarting watchers"
-        );
+      if (!healthChecks[0] || !healthChecks[1]) {
+        console.warn("Health check failed, restarting watchers...");
         await restartWatchers();
       } else {
-        console.log(
-          `Health check: ${activeChangeStreams.length} active streams`
-        );
+        console.log(`Health check passed: ${activeChangeStreams.length} active streams`);
       }
     } catch (error) {
-      console.error("Health check failed:", error);
+      console.error("Health check failed with error:", error);
       await restartWatchers();
     }
   }, CHECK_INTERVAL);
 }
+
+// Improve restart logic
+async function restartWatchers() {
+  console.log("Initiating watcher restart sequence...");
+  await stopWatching();
+  
+  // Add exponential backoff for restart
+  const backoffTime = Math.min(1000 * Math.pow(2, initializationCount), 30000);
+  console.log(`Restarting watchers in ${backoffTime/1000} seconds...`);
+  
+  setTimeout(() => {
+    watchCollections().catch(err => {
+      console.error("Error during watcher restart:", err);
+    });
+  }, backoffTime);
+}
+
 // Function to stop all active change streams
 export async function stopWatching() {
   activeChangeStreams.forEach((stream) => {
@@ -620,13 +685,4 @@ export async function stopWatching() {
     }
   }
   console.log("All resources cleaned up ... ");
-}
-
-async function restartWatchers() {
-  console.log("Restarting watchers in 5 seconds...");
-  await stopWatching();
-  // await watchCollections();
-  setTimeout(() => {
-    watchCollections();
-  }, 5000);
 }

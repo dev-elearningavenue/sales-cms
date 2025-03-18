@@ -23,26 +23,59 @@ export const generateToken = async (user: IUser): Promise<string> => {
 };
 
 export const verifyToken = async (token: string) => {
-  // const secret = process.env.JWT_SECRET;
-
-  try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
-
-    if (!secret)
-      return {
-        success: false,
-        message: "JWT_SECRET not found.",
-      };
-    return {
-      success: true,
-      data: payload,
-    };
-  } catch (error: any) {
-    console.log("Error in decoding token: ", error.message);
+  if (!process.env.JWT_SECRET) {
+    console.error("JWT_SECRET not found in environment variables");
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
+      message: "JWT_SECRET not found in server configuration",
+    };
+  }
+
+  if (!token || typeof token !== 'string' || token.trim() === '') {
+    console.error("Invalid token format provided");
+    return {
+      success: false,
+      message: "Invalid token format",
+    };
+  }
+
+  try {
+    // Try to verify with jose first
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+      const { payload } = await jwtVerify(token, secret);
+      
+      return {
+        success: true,
+        data: payload,
+      };
+    } catch (joseError) {
+      // Fall back to jsonwebtoken if jose fails
+      console.log("Jose verification failed, trying jsonwebtoken fallback");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      
+      return {
+        success: true,
+        data: decoded,
+      };
+    }
+  } catch (error: any) {
+    console.error("Token verification error:", error.message);
+    
+    // Return more descriptive error
+    let errorMessage = "Unknown error occurred";
+    
+    if (error.name === "TokenExpiredError") {
+      errorMessage = "Token has expired";
+    } else if (error.name === "JsonWebTokenError") {
+      errorMessage = "Invalid token signature";
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    
+    return {
+      success: false,
+      error: errorMessage,
     };
   }
 };

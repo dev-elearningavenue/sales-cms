@@ -570,9 +570,7 @@ export default function DashboardPage() {
   if (session?.user_type === 3) {
     return (
       <div className={`p-6 ${bgClass}`}>
-        <h1 className="text-2xl font-semibold">
-          Welcome, ${session.full_name} || {"Sales Boy"}
-        </h1>
+        <h1 className="text-2xl font-semibold">Welcome, {session.full_name}</h1>
         <p className={darkMode ? "text-gray-300" : "text-gray-500"}>
           Leads Management Dashboard
         </p>

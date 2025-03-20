@@ -13,7 +13,17 @@ interface ContactUs {
   replies?: string[];
 }
 
-type LeadData = ContactUs | ICustomer | OrderCreation | null;
+interface Scholarship {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  category?: string;
+  US_citizen?: boolean;
+  training?: string[];
+}
+
+type LeadData = ContactUs | ICustomer | OrderCreation | Scholarship | null;
 
 export const Customer: React.FC<{ selectedLead: ILead }> = ({
   selectedLead,
@@ -99,6 +109,40 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
               </>
             )}
 
+          {populatedKey === "scholarship" &&
+            leadData &&
+            isScholarship(leadData) && (
+              <>
+                <Field
+                  label="Full Name"
+                  value={`${leadData?.firstName ?? ""} ${
+                    leadData?.lastName ?? ""
+                  }`}
+                />
+                <Field label="Email" value={leadData?.email} />
+                <Field label="Contact Number" value={leadData?.phone} />
+                <Field label="Category" value={leadData?.category} />
+                <Field
+                  label="Trainings"
+                  value={
+                    Array.isArray(leadData?.training) ? (
+                      <ul className="list-disc pl-5">
+                        {leadData.training.map((t, index) => (
+                          <li key={index}>{t}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      "N/A"
+                    )
+                  }
+                />
+                <Field
+                  label="US Citizen"
+                  value={leadData?.US_citizen ? "Yes" : "No"}
+                />
+              </>
+            )}
+
           {!populatedKey && (
             <p className="text-gray-500">No customer information available.</p>
           )}
@@ -110,7 +154,7 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
 
 interface FieldProps {
   label: string;
-  value: string | number | null | undefined;
+  value: string | number | null | string[] | undefined | React.ReactNode;
 }
 
 // Field Component with Proper Types
@@ -140,5 +184,14 @@ function isContactUs(data: LeadData): data is ContactUs {
     typeof data === "object" &&
     !("firstName" in data) &&
     "form" in data
+  );
+}
+
+function isScholarship(data: LeadData): data is Scholarship {
+  return (
+    data !== null &&
+    typeof data === "object" &&
+    "firstName" in data &&
+    "training" in data
   );
 }

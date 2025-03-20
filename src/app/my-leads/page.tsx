@@ -381,6 +381,19 @@ const MyLeads = () => {
                         onClick={() => handleSortChange("category")}
                       >
                         <div className="flex items-center">
+                          Full Name
+                          {sort.field === "category" && (
+                            <span className="ml-1">
+                              {sort.direction === "desc" ? "↓" : "↑"}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        onClick={() => handleSortChange("category")}
+                      >
+                        <div className="flex items-center">
                           Category
                           {sort.field === "category" && (
                             <span className="ml-1">
@@ -420,6 +433,16 @@ const MyLeads = () => {
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
                               {getDomainLabel(lead.domain || "")}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div
+                              className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
+                                categoryColors[lead?.category ?? " "] ||
+                                "bg-gray-500"
+                              }`}
+                            >
+                              {lead?.category}
                             </div>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">

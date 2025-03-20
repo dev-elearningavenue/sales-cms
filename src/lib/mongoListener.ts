@@ -1,4 +1,10 @@
-import { MongoClient, ObjectId, Collection, ChangeStream, ReadPreference  } from "mongodb";
+import {
+  MongoClient,
+  ObjectId,
+  Collection,
+  ChangeStream,
+  ReadPreference,
+} from "mongodb";
 import mongoose from "mongoose";
 import Log from "@/models/log";
 import Lead from "@/models/lead";
@@ -17,9 +23,9 @@ const CONNECTION_OPTIONS = {
   maxIdleTimeMS: 60000,
   retryWrites: true,
   retryReads: true,
-  heartbeatFrequencyMS: 10000,    // Keep connection alive with heartbeats
-  w: 'majority' as const,          // Write concern for better consistency
-  readPreference: ReadPreference.SECONDARY_PREFERRED // Read from secondary nodes when possible
+  heartbeatFrequencyMS: 10000, // Keep connection alive with heartbeats
+  w: "majority" as const, // Write concern for better consistency
+  readPreference: ReadPreference.SECONDARY_PREFERRED, // Read from secondary nodes when possible
 };
 
 let master_client: MongoClient | null = null;
@@ -31,7 +37,11 @@ let initializationCount = 0;
 const pendingOrders = new Map();
 
 // Add reconnection logic
-async function ensureConnection(client: MongoClient | null, uri: string, name: string): Promise<MongoClient> {
+async function ensureConnection(
+  client: MongoClient | null,
+  uri: string,
+  name: string
+): Promise<MongoClient> {
   try {
     if (!client) {
       // console.log(`Establishing new ${name} connection...`);
@@ -79,8 +89,16 @@ export async function watchCollections() {
   while (retryCount < maxRetries) {
     try {
       // Establish connections with retry logic
-      master_client = await ensureConnection(master_client, mongoUri_Master, "Master");
-      outreach_client = await ensureConnection(outreach_client, mongoUri_Outreach, "Outreach");
+      master_client = await ensureConnection(
+        master_client,
+        mongoUri_Master,
+        "Master"
+      );
+      outreach_client = await ensureConnection(
+        outreach_client,
+        mongoUri_Outreach,
+        "Outreach"
+      );
 
       isListenerActive = true;
       console.log("Connected to MongoDB clusters successfully");
@@ -95,6 +113,7 @@ export async function watchCollections() {
       const contactUsCollection = leads_db.collection("contacts");
       const abandonedCartsCollection = leads_db.collection("abandonedcarts");
       const ordersCollection = leads_db.collection("paidorders");
+      const scholarshipCollection = leads_db.collection("scholarships");
       // const logsCollection = leads_db.collection("logs");
       // const leadsCollection = leads_db.collection("leads");
 
@@ -108,7 +127,10 @@ export async function watchCollections() {
           collection: oes_db.collection("users"),
           domain: "Osha Education School - OES",
         },
-        { collection: oor_db.collection("users"), domain: "Osha Outreach - OOR" },
+        {
+          collection: oor_db.collection("users"),
+          domain: "Osha Outreach - OOR",
+        },
       ];
 
       userCollections.forEach(({ collection, domain }) => {
@@ -158,27 +180,34 @@ export async function watchCollections() {
         );
       });
 
+      setupScholarshipCollectionWatch(
+        oor_db.collection("scholarships"),
+        "Osha Outreach - OOR",
+        scholarshipCollection
+      );
+
       // You could add more specialized watchers here for contact forms, scholarship etc.
 
       setupConnectionMonitoring();
       break;
-
     } catch (error: any) {
       retryCount++;
       console.error(`Connection attempt ${retryCount} failed:`, {
         message: error.message,
         name: error.name,
-        code: error.code
+        code: error.code,
       });
 
-      if (error.name === "MongoNetworkError" || error.name === "MongoServerSelectionError") {
+      if (
+        error.name === "MongoNetworkError" ||
+        error.name === "MongoServerSelectionError"
+      ) {
         const backoffTime = Math.min(1000 * Math.pow(2, retryCount), 30000);
-        console.log(`Retrying in ${backoffTime/1000} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, backoffTime));
+        console.log(`Retrying in ${backoffTime / 1000} seconds...`);
+        await new Promise((resolve) => setTimeout(resolve, backoffTime));
         continue;
       }
 
-      // If we've exhausted retries or it's a different type of error
       await stopWatching();
       throw error;
     }
@@ -188,6 +217,61 @@ export async function watchCollections() {
     console.error("Failed to establish connection after maximum retries");
     setTimeout(() => watchCollections(), 60000); // Try again in 1 minute
   }
+}
+function setupScholarshipCollectionWatch(
+  sourceDbCollection: Collection,
+  domain: string,
+  scholarshipCollection: Collection
+) {
+  const changeStream = sourceDbCollection.watch();
+  activeChangeStreams.push(changeStream);
+
+  console.log("Active Streams: ", activeChangeStreams.length);
+
+  changeStream.on("change", async (change) => {
+    console.log(
+      `Change event in Scholarship's collection of ${domain.split(" - ")[1]}:`,
+      change
+    );
+    if (change.operationType === "insert") {
+      const newUser = change.fullDocument;
+      const type = "Scholarship";
+      await syncToTargetCollection(
+        newUser,
+        `${domain}`,
+        scholarshipCollection,
+        type
+      );
+    }
+  });
+
+  changeStream.on("error", (err) => {
+    console.error(
+      `Change Stream Error in ${domain.split(" - ")[1]}:`,
+      err.message
+    );
+    const index = activeChangeStreams.indexOf(changeStream);
+    if (index !== -1) {
+      activeChangeStreams.splice(index, 1);
+    }
+    changeStream
+      .close()
+      .catch((e) => console.error("Error closing stream:", e));
+    setTimeout(
+      () =>
+        setupScholarshipCollectionWatch(
+          sourceDbCollection,
+          domain,
+          scholarshipCollection
+        ),
+      3000
+    );
+  });
+
+  console.log(
+    `Watching ${domain.split(" - ")[1]} Scholarship collection`
+  );
+  return changeStream;
 }
 
 function setupUserCollectionWatch(
@@ -366,7 +450,6 @@ function setupOrderCollectionWatch(
         }, 1 * 60 * 1000);
       }
     } else if (change.operationType === "update") {
-     
       const updatedOrder = await collection.findOne({
         _id: change.documentKey._id,
       });
@@ -385,35 +468,37 @@ function setupOrderCollectionWatch(
         );
         pendingOrders.delete(orderId);
 
-        const cartDeleted = await abandonedCartsCollection.deleteOne({ 
-          originId: new ObjectId(orderId) 
+        const cartDeleted = await abandonedCartsCollection.deleteOne({
+          originId: new ObjectId(orderId),
         });
 
         if (cartDeleted.deletedCount > 0) {
-          console.log(`Removed abandoned cart for order ${orderId} that was subsequently paid`);
-          
+          console.log(
+            `Removed abandoned cart for order ${orderId} that was subsequently paid`
+          );
+
           // Optionally, clean up the associated logs and leads
           // This can be done by finding and deleting them
           // Or you can add a flag in the schema that marks them as "converted"
 
           await Log.findOneAndUpdate(
             { syncedId: new ObjectId(orderId) },
-            { 
+            {
               $set: {
                 synced: "unpaid to paid & discarded abandoned cart",
-              }
+              },
             }
           );
 
           await Lead.findOneAndUpdate(
             { abandoned_cart: new ObjectId(orderId) },
-            { 
+            {
               $set: {
                 status: "Paid",
                 resolve_status: "Paid",
                 abandoned_cart: null,
                 assigned: null,
-              }
+              },
             }
           );
         }
@@ -432,11 +517,11 @@ function setupOrderCollectionWatch(
           if (orderResult?.insertedId) {
             await Lead.findOneAndUpdate(
               { abandoned_cart: new ObjectId(orderId) },
-              { 
+              {
                 $set: {
                   order_creation: orderResult.insertedId,
-                  category: "Order Creation" // Update category to reflect the conversion
-                }
+                  category: "Order Creation", // Update category to reflect the conversion
+                },
               }
             );
           }
@@ -500,7 +585,6 @@ async function syncToTargetCollection(
   }
 
   try {
-    // Insert into targetCollection
     const syncedData = {
       ...document,
       originId: document._id,
@@ -553,7 +637,7 @@ async function syncToTargetCollection(
     const leadResult = await leadData.save();
 
     console.log(`Lead created with ID: ${leadResult._id}`);
-    
+
     // Return the insert result
     return insertResult;
   } catch (error: any) {
@@ -601,12 +685,14 @@ function getLeadDetails(type: string, insertedId: ObjectId, domain: string) {
 // Improve connection monitoring
 function setupConnectionMonitoring() {
   const CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
-  const HEALTH_CHECK_TIMEOUT = 60000;     // 1 min timeout for health checks
+  const HEALTH_CHECK_TIMEOUT = 60000; // 1 min timeout for health checks
 
   setInterval(async () => {
     try {
       if (!master_client || !outreach_client) {
-        console.warn("One or both clients are null, initiating reconnection...");
+        console.warn(
+          "One or both clients are null, initiating reconnection..."
+        );
         await restartWatchers();
         return;
       }
@@ -614,23 +700,31 @@ function setupConnectionMonitoring() {
       const healthChecks = await Promise.all([
         Promise.race([
           master_client.db("admin").command({ ping: 1 }),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error("Master health check timeout")), HEALTH_CHECK_TIMEOUT)
-          )
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error("Master health check timeout")),
+              HEALTH_CHECK_TIMEOUT
+            )
+          ),
         ]).catch(() => null),
         Promise.race([
           outreach_client.db("admin").command({ ping: 1 }),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error("Outreach health check timeout")), HEALTH_CHECK_TIMEOUT)
-          )
-        ]).catch(() => null)
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error("Outreach health check timeout")),
+              HEALTH_CHECK_TIMEOUT
+            )
+          ),
+        ]).catch(() => null),
       ]);
 
       if (!healthChecks[0] || !healthChecks[1]) {
         console.warn("Health check failed, restarting watchers...");
         await restartWatchers();
       } else {
-        console.log(`Health check passed: ${activeChangeStreams.length} active streams`);
+        console.log(
+          `Health check passed: ${activeChangeStreams.length} active streams`
+        );
       }
     } catch (error) {
       console.error("Health check failed with error:", error);
@@ -643,13 +737,13 @@ function setupConnectionMonitoring() {
 async function restartWatchers() {
   console.log("Initiating watcher restart sequence...");
   await stopWatching();
-  
+
   // Add exponential backoff for restart
   const backoffTime = Math.min(1000 * Math.pow(2, initializationCount), 30000);
-  console.log(`Restarting watchers in ${backoffTime/1000} seconds...`);
-  
+  console.log(`Restarting watchers in ${backoffTime / 1000} seconds...`);
+
   setTimeout(() => {
-    watchCollections().catch(err => {
+    watchCollections().catch((err) => {
       console.error("Error during watcher restart:", err);
     });
   }, backoffTime);

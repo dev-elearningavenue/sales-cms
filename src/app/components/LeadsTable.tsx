@@ -114,6 +114,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     "Contact Us": "bg-green-500",
     "Free SignUp": "bg-purple-500",
     "Free Study Guide": "bg-yellow-500",
+    Scholarship: "bg-amber-500",
   };
 
   return (
@@ -324,6 +325,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                     "Free Study Guide",
                     "Scholarship",
                     "Abandoned Cart",
+                    "Scholarship",
                   ].map((category) => (
                     <label
                       key={category}
@@ -407,6 +409,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                       "Contact Us",
                       "Free SignUp",
                       "Free Study Guide",
+                      "Scholarship",
                     ].map((option) => (
                       <button
                         key={option}

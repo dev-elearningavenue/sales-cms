@@ -239,6 +239,7 @@ const MyLeads = () => {
     "Order Creation": ["firstName", "lastName", "email", "phone"],
     "Abandoned Cart": ["name", "customerEmail", "customerPhone"],
     "Free SignUp": ["firstName", "lastName", "email"],
+    Scholarship: ["firstName", "lastName", "email"],
   };
 
   const categoryColors: Record<string, string> = {
@@ -247,6 +248,7 @@ const MyLeads = () => {
     "Contact Us": "bg-green-500",
     "Free SignUp": "bg-purple-500",
     "Free Study Guide": "bg-yellow-500",
+    Scholarship: "bg-amber-500",
   };
 
   return (

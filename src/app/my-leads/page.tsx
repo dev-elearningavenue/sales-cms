@@ -22,6 +22,7 @@ import {
 } from "@/components/Dialog";
 import { Customer, Field } from "@/components/Customer";
 import CourseInfo from "@/components/CourseInfo";
+import Lead from "@/models/lead";
 
 const STATUS_OPTIONS = [
   "Follow Up",
@@ -252,13 +253,13 @@ const MyLeads = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
+    <div className="w-full p-4">
       {loading ? (
         <LoadingSkeleton component="my leads" />
       ) : (
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-          <div className="p-6">
-            <h1 className="text-2xl font-bold mb-6 text-gray-800">My Leads</h1>
+        <div className="bg-white w-full rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+          <div className="p-4 w-full">
+            <h1 className="text-2xl font-bold mb-4 text-gray-800">My Leads</h1>
 
             {/* Filters and Pagination Row */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
@@ -365,19 +366,6 @@ const MyLeads = () => {
                     <tr>
                       <th
                         className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                        onClick={() => handleSortChange("domain")}
-                      >
-                        <div className="flex items-center">
-                          Domain
-                          {sort.field === "domain" && (
-                            <span className="ml-1">
-                              {sort.direction === "desc" ? "↓" : "↑"}
-                            </span>
-                          )}
-                        </div>
-                      </th>
-                      <th
-                        className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSortChange("category")}
                       >
                         <div className="flex items-center">
@@ -396,6 +384,19 @@ const MyLeads = () => {
                         <div className="flex items-center">
                           Category
                           {sort.field === "category" && (
+                            <span className="ml-1">
+                              {sort.direction === "desc" ? "↓" : "↑"}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        onClick={() => handleSortChange("domain")}
+                      >
+                        <div className="flex items-center">
+                          Domain
+                          {sort.field === "domain" && (
                             <span className="ml-1">
                               {sort.direction === "desc" ? "↓" : "↑"}
                             </span>
@@ -431,41 +432,75 @@ const MyLeads = () => {
                           className="hover:bg-gray-50 transition-colors"
                         >
                           <td className="px-4 py-3 whitespace-nowrap">
+                            <div
+                              className={`py-1 px-2 inline-block rounded-lg font-medium text-gray`}
+                            >
+                              {(() => {
+                                const populatedKey = [
+                                  "contact_us",
+                                  "free_signup",
+                                  "order_creation",
+                                  "abandoned_cart",
+                                  "scholarship",
+                                ].find((key) => lead[key as keyof ILead]);
+
+                                if (!populatedKey) return "Unknown";
+
+                                const leadData =
+                                  lead[populatedKey as keyof ILead];
+
+                                // Handle name formatting based on the populated key
+                                if (populatedKey === "contact_us") {
+                                  return (leadData as any)?.name || "Unknown";
+                                }
+
+                                if (
+                                  populatedKey === "order_creation" ||
+                                  populatedKey === "abandoned_cart" ||
+                                  populatedKey === "free_signup" ||
+                                  populatedKey === "scholarship"
+                                ) {
+                                  return (
+                                    `${(leadData as any)?.firstName ?? ""} ${
+                                      (leadData as any)?.lastName ?? ""
+                                    }`.trim() || "Unknown"
+                                  );
+                                }
+
+                                return "Unknown";
+                              })()}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div
+                              className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
+                                categoryColors[lead?.category ?? " "] ||
+                                "bg-gray-500"
+                              }`}
+                            >
+                              {lead?.category}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
                               {getDomainLabel(lead.domain || "")}
                             </div>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <div
-                              className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
-                                categoryColors[lead?.category ?? " "] ||
-                                "bg-gray-500"
-                              }`}
-                            >
-                              {lead?.category}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div
-                              className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
-                                categoryColors[lead?.category ?? " "] ||
-                                "bg-gray-500"
-                              }`}
-                            >
-                              {lead?.category}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
                             <div className="text-sm text-gray-500">
                               {lead.createdAt
-                                ? new Date(lead.createdAt).toLocaleDateString(
+                                ? new Date(lead.createdAt).toLocaleString(
                                     "en-US",
                                     {
+                                      timeZone: "America/New_York",
                                       year: "numeric",
                                       month: "short",
                                       day: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      hour12: false,
                                     }
-                                  )
+                                  ) + " EST"
                                 : "N/A"}
                             </div>
                           </td>
@@ -672,48 +707,6 @@ const MyLeads = () => {
 
                 {/* Customer Information */}
                 <Customer selectedLead={selectedLead} />
-
-                {/* Lead Details */}
-                {/*
-                  <div className="mb-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-3">
-                      Additional Details
-                    </h3>
-                    <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                      <div className="grid grid-cols-1 gap-4">
-                        {Object.entries(selectedLead)
-                          .filter(
-                            ([key]) =>
-                              ![
-                                "_id",
-                                "customerName",
-                                "customerEmail",
-                                "customerPhone",
-                                "domain",
-                                "category",
-                                "status",
-                                "createdAt",
-                              ].includes(key)
-                          )
-                          .map(([key, value]) => (
-                            <div key={key}>
-                              <h4 className="text-sm font-medium text-gray-500">
-                                {key
-                                  .replace(/([A-Z])/g, " $1")
-                                  .replace(/^./, (str) => str.toUpperCase())}
-                              </h4>
-                              <p className="mt-1 text-gray-900 break-words">
-                                {typeof value === "object"
-                                  ? JSON.stringify(value)
-                                  : String(value || "N/A")}
-                              </p>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  </div>
-                */}
-
                 {/* Actions */}
                 <div className="flex justify-end gap-3 mt-6">
                   <button

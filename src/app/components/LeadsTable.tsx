@@ -38,19 +38,27 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     endDate: "",
     category: [] as string[],
     type: "",
+    domain: "",
   });
 
   const filteredLeads = leads.filter((lead) => {
     if (filters.type && lead.category !== filters.type) return false;
+    if (filters.domain && lead.domain !== filters.domain) return false;
     // Agar aur filters add karne hon to yahan check karein
     return true;
   });
 
   // Pagination calculation
-  const totalPages = Math.ceil(leads.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredLeads.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, leads.length);
+  const endIndex = Math.min(startIndex + itemsPerPage, filteredLeads.length);
   const currentLeads = filteredLeads.slice(startIndex, endIndex);
+
+  const domainMapping: Record<string, string> = {
+    "Osha Outreach": "OOR",
+    "Osha Online Center": "OOC",
+    "Osha Education School": "OES",
+  };
 
   const handleFilterChange = (category: string, value: string) => {
     setFilters((prev) => {
@@ -74,6 +82,8 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
         }
       } else if (category === "type") {
         newFilters.type = value;
+      } else if (category === "domain") {
+        newFilters.domain = domainMapping[value] || "";
       } else {
         (newFilters as any)[category] = value;
       }
@@ -119,7 +129,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <div className="p-6">
+      <div className="p-4">
         <h1 className="text-base font-medium text-gray-700 mb-4">{title}</h1>
 
         {/* Search and Date Filters Row */}
@@ -394,7 +404,6 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   <button className="ml-1">
                     <Filter className="h-4 w-4 text-gray-500" />
                   </button>
-                  {/* Dropdown menu (show on hover of header) */}
                   <div className="absolute left-0 mt-1 w-40 bg-white border border-gray-200 rounded shadow-lg z-30 hidden group-hover:block">
                     {/* Reset option */}
                     <button
@@ -424,8 +433,32 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                 <th className="px-4 py-3 text-left font-medium text-gray-600">
                   FULL NAME
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">
-                  {isMyLeads ? "LEAD SOURCE" : "DOMAIN"}
+                <th className="px-2 py-2 text-left font-medium text-gray-600 relative group">
+                  <span>DOMAIN</span>
+                  <button className="ml-1">
+                    <Filter className="h-4 w-4 text-gray-500" />
+                  </button>
+                  <div className="absolute right-4 mt-1 w-52 bg-white border border-gray-200 rounded shadow-lg z-30 hidden group-hover:block">
+                    <button
+                      onClick={() => handleFilterChange("domain", "")}
+                      className="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
+                    >
+                      Reset
+                    </button>
+                    {[
+                      "Osha Outreach",
+                      "Osha Online Center",
+                      "Osha Education School",
+                    ].map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => handleFilterChange("domain", option)}
+                        className="w-full text-left px-2 py-1 hover:bg-gray-100 text-sm"
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">
                   CREATED AT
@@ -491,16 +524,16 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   {/* CREATED AT */}
                   <td className="py-4 text-sm whitespace-nowrap">
                     {lead.createdAt
-                      ? new Date(lead.createdAt).toLocaleString()
+                      ? new Date(lead.createdAt).toLocaleString("en-US", {
+                          timeZone: "America/New_York",
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                        }) + " EST"
                       : "N/A"}
-                    {/* {lead.next_follow_up_date && (
-                      <div className="mt-1 text-xs text-gray-500">
-                        Next Follow-up:{" "}
-                        {new Date(
-                          lead.next_follow_up_date
-                        ).toLocaleDateString()}
-                      </div>
-                    )} */}
                     {/* <div className="space-y-1">
                       <div>
                         Lead ID:{" "}

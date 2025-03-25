@@ -10,7 +10,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { session, loading, fetchSession } = useApp();
+  const { session, setSession, loading, fetchSession } = useApp();
   const router = useRouter();
 
   // Handle automatic redirect after successful login
@@ -32,12 +32,15 @@ const LoginPage = () => {
         },
         body: JSON.stringify({ email, password }),
       });
-
       const data = await response.json();
 
       if (response.ok) {
         // Only fetch session, let the useEffect handle redirect
-        await fetchSession();
+        // await fetchSession();
+
+        setSession(data);
+        // router.push("/dashboard");
+        router.replace("/dashboard");
       } else {
         alert(data.error || "Login failed");
       }

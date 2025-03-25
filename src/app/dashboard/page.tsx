@@ -535,7 +535,13 @@ const TeamMemberCard = ({ member, darkMode }: TeamMemberCardProps) => {
 // Main Dashboard Component
 export default function DashboardPage() {
   const router = useRouter();
-  const { session, error: sessionError, loading: sessionLoading } = useApp();
+  const {
+    session,
+    fetchSession,
+    error: sessionError,
+    loading: sessionLoading,
+  } = useApp();
+  // const { darkMode, toggleDarkMode } = useDarkMode();
   const { darkMode } = useThemeFromContext();
   const {
     data,
@@ -547,6 +553,16 @@ export default function DashboardPage() {
   // Combined loading state
   const isLoading = sessionLoading || dataLoading;
 
+  // useEffect(() => {
+  //   fetchSession();
+  // }, []);
+
+  useEffect(() => {
+    if (!session && !isLoading) {
+      fetchSession();
+    }
+  }, [session, isLoading]);
+
   // If loading, show a full-page loading skeleton
   if (isLoading) {
     return <LoadingSkeleton component="page" />;
@@ -557,7 +573,7 @@ export default function DashboardPage() {
 
   // Only proceed if we have a valid session
   if (!session) {
-    router.push("/login");
+    // router.push("/login");
     return null;
   }
 

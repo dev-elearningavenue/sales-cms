@@ -32,7 +32,22 @@ const Leads = () => {
           setLeads([]);
           return;
         }
-        setLeads(data.leads);
+
+        // Filter out contact_us leads with form=2
+        const filteredLeads = data.leads.filter((lead: ILead) => {
+          // Exclude leads that are Contact Us category with form=2
+          if (
+            lead.category === "Contact Us" &&
+            lead.contact_us &&
+            typeof lead.contact_us === "object" &&
+            (lead.contact_us as any).form === 2
+          ) {
+            return false; // Skip these leads
+          }
+          return true; // Include all other leads
+        });
+
+        setLeads(filteredLeads);
       } catch (error) {
         console.error("Error fetching leads:", error);
       } finally {
@@ -53,24 +68,32 @@ const Leads = () => {
 
       const data = await res.json();
 
-      if (res.ok) {
-        alert("Lead assigned successfully!");
-        setLeads((prevLeads) =>
-          prevLeads.map((lead) => {
+      if (res.ok && data.success) {
+        // Update the leads state to show the lead as assigned
+        setLeads((prevLeads) => {
+          return prevLeads.map((lead) => {
             if (lead._id === leadId) {
-              const updatedLead = {
-                ...lead,
-                assigned: true,
-              };
-              // Only update assigned_to if we have session data
-              if (session?._id) {
-                updatedLead.assigned_to = data.assignedTo || null;
+              // Create a copy of the lead to modify
+              const updatedLead = { ...lead };
+              // Set assigned status
+              updatedLead.assigned = true;
+              // Use the returned user data from the API
+              if (data.assignedTo) {
+                // Type assertion to any to avoid TypeScript errors
+                (updatedLead as any).assigned_to = data.assignedTo;
+              } else if (session?._id) {
+                // Fallback to session data if API doesn't return user details
+                (updatedLead as any).assigned_to = {
+                  _id: session._id,
+                  full_name: session.full_name || "User",
+                  user_name: session.user_name || "User",
+                };
               }
               return updatedLead;
             }
             return lead;
-          })
-        );
+          });
+        });
       } else {
         alert(data.message || "Failed to assign lead.");
       }
@@ -86,7 +109,7 @@ const Leads = () => {
         <title>All Leads | Dashboard</title>
       </Head>
 
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="min-h-screen bg-gray-50 p-4 md:p-6">
         {loading ? (
           <LoadingSkeleton component="All Leads" />
         ) : (

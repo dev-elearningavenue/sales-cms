@@ -9,7 +9,6 @@ export default function Home() {
   const { session, loading } = useApp();
 
   useEffect(() => {
-    // If session is loaded and exists, redirect to dashboard
     // If session is loaded and doesn't exist, redirect to login
     if (!loading) {
       if (session) {

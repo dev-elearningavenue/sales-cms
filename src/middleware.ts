@@ -12,8 +12,8 @@ export async function middleware(req: NextRequest) {
   // Next.js middleware mein req object modify nahi kar sakte
   // Yahan req.user set nahi kar sakte
   const token = req.cookies.get("token")?.value;
-  // console.log("Token: ", token)
   const isAuthPage = req.nextUrl.pathname.startsWith("/login");
+  
   if (isAuthPage && token) {
     console.log("login successful.");
     return NextResponse.redirect(new URL("/dashboard", req.url));

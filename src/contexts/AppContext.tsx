@@ -20,21 +20,23 @@ interface AppContextType {
   logout: () => Promise<void>;
   fetchSession: () => Promise<void>;
   // Theme related
-  theme: "light" | "dark";
+  theme: string | "light" | "dark";
   toggleTheme: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+// Client-side session management
+// Handles session state and authentication flows
 export function AppProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
 
   // Session states
   const [session, setSession] = useState<UserSession | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<string | "light" | "dark">("light");
+
   const [isInitialized, setIsInitialized] = useState(false);
   const [sessionCheckInterval, setSessionCheckInterval] =
     useState<NodeJS.Timeout | null>(null);
@@ -42,134 +44,129 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Fetch session on mount and set up periodic checks
   useEffect(() => {
     // Theme initialization
-    const initTheme = () => {
-      try {
-        const savedTheme = localStorage.getItem("theme") as "light" | "dark";
-        if (savedTheme) {
-          setTheme(savedTheme);
-          document.documentElement.classList.toggle(
-            "dark",
-            savedTheme === "dark"
-          );
-        }
-      } catch (err) {
-        console.error("Error initializing theme:", err);
-      }
-    };
-
-    initTheme();
-
-    // Initial session fetch - with a small delay to allow the page to render first
-    if (!isInitialized) {
-      const timer = setTimeout(() => {
-        fetchSession().finally(() => {
-          setIsInitialized(true);
-        });
-      }, 100);
-
-      return () => clearTimeout(timer);
+    const savedTheme = localStorage.getItem("theme") as "light" | "dark";
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.classList.toggle("dark", savedTheme === "dark");
+    } else {
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      setTheme(isDark ? "dark" : "light");
+      document.documentElement.classList.toggle("dark", isDark);
     }
+    fetchSession();
+    // if (!isInitialized) {
+    //   fetchSession();
+    //   setIsInitialized(true);
+    // }
+  }, []);
 
-    // Set up periodic session check
-    if (isInitialized) {
-      const interval = setInterval(() => {
-        fetchSession();
-      }, 5 * 60 * 1000); // Check every 5 minutes
-
-      setSessionCheckInterval(interval);
-
-      return () => {
-        if (interval) {
-          clearInterval(interval);
-        }
-      };
-    }
-  }, [isInitialized]);
-
-  // Handle navigation based on session state
-  useEffect(() => {
-    if (isInitialized && !loading) {
-      const isPublicRoute = [
-        "/login",
-        "/register",
-        "/forgot-password",
-      ].includes(pathname);
-
-      if (!session && !isPublicRoute) {
-        router.push("/login");
-      } else if (session && isPublicRoute) {
-        router.push("/dashboard");
-      }
-    }
-  }, [session, loading, isInitialized, pathname, router]);
+  // useEffect(() => {
+  //   fetchSession();
+  // }, []);
 
   const fetchSession = async () => {
+    // if (loading) return;
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-
-      // Add a cache-busting parameter to prevent caching
-      const timestamp = new Date().getTime();
-      const response = await axios.get(`/api/auth/session?t=${timestamp}`, {
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-        },
-      });
-
-      // Check for success flag in response
-      if (response.status === 200 && response.data && response.data.success) {
-        // Remove success flag before setting session
-        const { success, ...userData } = response.data;
-        setSession(userData);
-        setError(null);
-      } else if (response.status === 200 && response.data) {
-        // Legacy response format without success flag
-        setSession(response.data);
-        setError(null);
-      } else {
-        console.error("Invalid session response format:", response.data);
-        setSession(null);
-        setError("Invalid session data format");
-      }
-    } catch (err) {
-      console.error("Session fetch error:", err);
-
-      if (axios.isAxiosError(err)) {
-        if (err.response?.status === 401) {
-          // Session expired or invalid
+      // setLoading(true);
+      const response = await axios.get("/api/auth/session");
+      // console.log("Session fetched in app context: ", response.data);
+      if (response.status !== 200) {
+        if (response.status === 401) {
           setSession(null);
-          setError(null);
-        } else {
-          const errorMessage = err.response?.data?.message || err.message;
-          setError(`Failed to load session: ${errorMessage}`);
-          setSession(null);
+          return;
         }
+        throw new Error("Failed to fetch session");
+      }
+
+      setSession(response.data);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching session:", err);
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        // Don't set error for expected non-authenticated state
+        setSession(null);
+        setError("Axios Error");
       } else {
-        setError("An unexpected error occurred");
+        setError("Failed to load session");
         setSession(null);
       }
+      // setSession(null);
     } finally {
       setLoading(false);
     }
   };
 
+  // Handle navigation based on session state
+  // useEffect(() => {
+  //   if (isInitialized && !loading) {
+  //     const isPublicRoute = [
+  //       "/login",
+  //       "/register",
+  //       "/forgot-password",
+  //     ].includes(pathname);
+
+  //     if (!session && !isPublicRoute) {
+  //       router.push("/login");
+  //     } else if (session && isPublicRoute) {
+  //       router.push("/dashboard");
+  //     }
+  //   }
+  // }, [session, loading, isInitialized, pathname, router]);
+
+  // const fetchSession = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const response = await axios.get("/api/auth/session");
+
+  //     if (response.status === 200 && response.data) {
+  //       setSession(response.data);
+  //       setError(null);
+  //     } else {
+  //       setSession(null);
+  //       setError("Invalid session data");
+  //     }
+  //   } catch (err) {
+  //     console.error("Session fetch error:", err);
+
+  //     if (axios.isAxiosError(err)) {
+  //       if (err.response?.status === 401) {
+  //         // Session expired or invalid
+  //         setSession(null);
+  //         setError(null);
+  //       } else {
+  //         setError(`Failed to load session: ${err.message}`);
+  //         setSession(null);
+  //       }
+  //     } else {
+  //       setError("An unexpected error occurred");
+  //       setSession(null);
+  //     }
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const logout = async () => {
     try {
+      console.log("Logging out...");
       setLoading(true);
-      await axios.post("/api/auth/logout");
+      const response = await axios.post("/api/auth/logout");
 
-      // Clear session immediately
+      // Clear session state regardless of response status
       setSession(null);
       setError(null);
 
-      // Navigate to login page
-      router.push("/login");
+      // Use replace instead of push to prevent history issues
+      router.replace("/login");
     } catch (err) {
       console.error("Logout failed:", err);
+      setError("Logout failed");
 
-      // Still clear session even if logout API fails
+      // Still clear session even if API call fails
       setSession(null);
-      setError("Logout failed, but session cleared");
+      router.replace("/login");
     } finally {
       setLoading(false);
     }
@@ -178,11 +175,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
-    try {
-      localStorage.setItem("theme", newTheme);
-    } catch (err) {
-      console.error("Error saving theme to localStorage:", err);
-    }
+    localStorage.setItem("theme", newTheme);
     document.documentElement.classList.toggle("dark", newTheme === "dark");
   };
 

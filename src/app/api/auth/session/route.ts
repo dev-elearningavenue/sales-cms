@@ -1,9 +1,12 @@
-// src/app/api/auth/session.ts
+// src/app/api/auth/session/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/utils/auth";
 import { cookies } from "next/headers";
 
 export async function GET(req: NextRequest, res: NextResponse) {
+  // Server-side session verification
+  // Returns user data if token is valid
   try {
     const cookieStore = cookies();
     const token = cookieStore.get("token");

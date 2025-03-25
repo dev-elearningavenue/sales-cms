@@ -6,11 +6,20 @@ import { User, Moon, Sun } from "lucide-react";
 import { LoadingSkeleton } from "./LoadingSkeleton";
 
 export const Navbar = () => {
-  const { session, logout, loading, theme, toggleTheme } = useApp();
+  const { session, fetchSession, logout, loading, theme, toggleTheme } =
+    useApp();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // useEffect(() => {
+  //   // fetchSession();
+  //   if (!session && !loading) {
+  //     fetchSession();
+  //   }
+  // }, [session, loading]);
+
+  /*
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -24,6 +33,7 @@ export const Navbar = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+  */
 
   return (
     <nav className="flex justify-between p-2 bg-white dark:bg-gray-800 transition-colors">
@@ -47,6 +57,7 @@ export const Navbar = () => {
         {loading ? (
           <LoadingSkeleton component="profile" />
         ) : session ? (
+          // Logged-in view
           <div className="relative group" ref={dropdownRef}>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -58,13 +69,19 @@ export const Navbar = () => {
             {isProfileOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 text-gray-800 group-hover:block">
                 <button
-                  onClick={() => router.push("/profile")}
+                  onClick={() => {
+                    router.push("/profile");
+                    setIsProfileOpen(false);
+                  }}
                   className="block px-4 py-2 text-sm w-full text-left dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
                   Profile
                 </button>
                 <button
-                  onClick={logout}
+                  onClick={() => {
+                    logout();
+                    setIsProfileOpen(false);
+                  }}
                   className="block px-4 py-2 text-sm w-full text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-red-500"
                 >
                   Logout
@@ -73,6 +90,7 @@ export const Navbar = () => {
             )}
           </div>
         ) : (
+          // Logged-out view
           <button
             onClick={() => router.push("/login")}
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"

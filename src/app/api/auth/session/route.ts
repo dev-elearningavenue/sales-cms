@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/utils/auth";
 import { cookies } from "next/headers";
 
+export const dynamic = "force-dynamic";
+ 
 export async function GET(req: NextRequest, res: NextResponse) {
   // Server-side session verification
   // Returns user data if token is valid

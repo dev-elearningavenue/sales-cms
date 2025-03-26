@@ -3,15 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "./utils/auth";
 
 export async function middleware(req: NextRequest) {
-  // fetch(`${process.env.NEXT_PUBLIC_URL}/api/start-listener`)
-  //   .then(() => {
-  //     console.log("listener called from middleware");
-  //   })
-  //   .catch(console.error);
-
   // Next.js middleware mein req object modify nahi kar sakte
   // Yahan req.user set nahi kar sakte
   const token = req.cookies.get("token")?.value;
+  // console.log("Token: ", token)
   const isAuthPage = req.nextUrl.pathname.startsWith("/login");
   
   if (isAuthPage && token) {

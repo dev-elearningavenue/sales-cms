@@ -84,6 +84,7 @@ const useDarkMode = () => {
 
   return { darkMode, toggleDarkMode };
 };
+
 const useThemeFromContext = () => {
   // Access theme from context instead of managing locally
   const { theme, toggleTheme } = useApp();
@@ -553,12 +554,10 @@ export default function DashboardPage() {
   // Combined loading state
   const isLoading = sessionLoading || dataLoading;
 
-  // useEffect(() => {
-  //   fetchSession();
-  // }, []);
-
   useEffect(() => {
+    // Check session status when component mounts
     if (!session && !isLoading) {
+      console.log("No session in dashboard, fetching session");
       fetchSession();
     }
   }, [session, isLoading]);
@@ -568,12 +567,20 @@ export default function DashboardPage() {
     return <LoadingSkeleton component="page" />;
   }
 
-  if (sessionError) return <div>Error: {sessionError}</div>;
-  if (dataError) return <div>Error loading data: {dataError}</div>;
+  // If session error, show error
+  if (sessionError) {
+    return <div>Session Error: {sessionError}</div>;
+  }
 
-  // Only proceed if we have a valid session
+  // If data error, show error
+  if (dataError) {
+    return <div>Data Error: {dataError}</div>;
+  }
+
+  // If no session and not loading, redirect to login
   if (!session) {
-    // router.push("/login");
+    console.log("No session in dashboard.");
+    router.replace("/login");
     return null;
   }
 

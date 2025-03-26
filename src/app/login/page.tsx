@@ -13,12 +13,13 @@ const LoginPage = () => {
   const { session, setSession, loading, fetchSession } = useApp();
   const router = useRouter();
 
-  // Handle automatic redirect after successful login
-  useEffect(() => {
-    if (session) {
-      router.push("/dashboard");
-    }
-  }, [session, router]);
+  // Handle automatic redirect if already logged in
+  // useEffect(() => {
+  //   if (session) {
+  //     console.log("Already logged in, redirecting to dashboard");
+  //     router.replace("/dashboard");
+  //   }
+  // }, [session, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,27 +33,33 @@ const LoginPage = () => {
         },
         body: JSON.stringify({ email, password }),
       });
-      const data = await response.json();
 
-      if (response.ok) {
-        // Only fetch session, let the useEffect handle redirect
-        // await fetchSession();
-
-        setSession(data);
-        // router.push("/dashboard");
-        router.replace("/dashboard");
-      } else {
-        alert(data.error || "Login failed");
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Login failed");
       }
+
+      const data = await response.json();
+      console.log("Login successful, setting session");
+
+      setSession(data);
+      await fetchSession();
+
+      console.log("Session fetched, redirecting to dashboard");
+      router.replace("/dashboard");
     } catch (error) {
-      alert("An error occurred during login");
       console.error("Login error:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "An error occurred during login"
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Allow password toggle even during session loading
+  // Toggle password visibility
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };

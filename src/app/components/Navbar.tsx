@@ -6,20 +6,12 @@ import { User, Moon, Sun } from "lucide-react";
 import { LoadingSkeleton } from "./LoadingSkeleton";
 
 export const Navbar = () => {
-  const { session, fetchSession, logout, loading, theme, toggleTheme } =
-    useApp();
+  const { session, logout, loading, theme, toggleTheme } = useApp();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // useEffect(() => {
-  //   // fetchSession();
-  //   if (!session && !loading) {
-  //     fetchSession();
-  //   }
-  // }, [session, loading]);
-
-  /*
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -33,7 +25,6 @@ export const Navbar = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-  */
 
   return (
     <nav className="flex justify-between p-2 bg-white dark:bg-gray-800 transition-colors">
@@ -54,6 +45,7 @@ export const Navbar = () => {
         >
           {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>
+
         {loading ? (
           <LoadingSkeleton component="profile" />
         ) : session ? (
@@ -67,7 +59,7 @@ export const Navbar = () => {
               <span>{session?.user_name || session?.full_name}</span>
             </button>
             {isProfileOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 text-gray-800 group-hover:block">
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 text-gray-800 group-hover:block z-50">
                 <button
                   onClick={() => {
                     router.push("/profile");

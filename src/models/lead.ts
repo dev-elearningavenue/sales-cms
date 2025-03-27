@@ -55,6 +55,12 @@ const leadSchema = new Schema<ILead>(
       ref: "OrderCreation",
       required: false,
     },
+    // Custom Lead
+    custom_lead: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "CustomLead",
+      required: false,
+    },
     status: {
       type: String,
       enum: status_enum,

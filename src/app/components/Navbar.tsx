@@ -1,6 +1,6 @@
 "use client";
 import { useApp } from "@/contexts/AppContext";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { User, Moon, Sun } from "lucide-react";
 import { LoadingSkeleton } from "./LoadingSkeleton";
@@ -8,6 +8,7 @@ import { LoadingSkeleton } from "./LoadingSkeleton";
 export const Navbar = () => {
   const { session, logout, loading, theme, toggleTheme } = useApp();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const pathname = usePathname();
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -46,7 +47,7 @@ export const Navbar = () => {
           {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
-        {loading ? (
+        {loading || (!session && pathname !== "/login") ? (
           <LoadingSkeleton component="profile" />
         ) : session ? (
           // Logged-in view

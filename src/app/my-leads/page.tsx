@@ -66,26 +66,27 @@ const MyLeads = () => {
   const [selectedLead, setSelectedLead] = useState<ILead | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Refactor fetchUserLeads as a standalone function
+  const fetchUserLeads = async () => {
+    try {
+      if (!session?._id) return;
+
+      const res = await fetch(`/api/my-leads?userId=${session._id}`);
+      const data = await res.json();
+      setUserLeads(data.leads);
+    } catch (error) {
+      console.error("Error fetching leads:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchSession();
   }, []);
 
   // Fetch leads when session is available
   useEffect(() => {
-    const fetchUserLeads = async () => {
-      try {
-        if (!session?._id) return;
-
-        const res = await fetch(`/api/my-leads?userId=${session._id}`);
-        const data = await res.json();
-        setUserLeads(data.leads);
-      } catch (error) {
-        console.error("Error fetching leads:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (session?._id) {
       fetchUserLeads();
     }
@@ -145,6 +146,13 @@ const MyLeads = () => {
   // Handle status change for a lead
   const handleStatusChange = async (leadId: string, newStatus: string) => {
     try {
+      // Optimistically update the UI first
+      setUserLeads((prevLeads) =>
+        prevLeads.map((lead) =>
+          lead._id === leadId ? { ...lead, status: newStatus } : lead
+        )
+      );
+
       const res = await fetch(`/api/my-leads/`, {
         method: "PATCH",
         headers: {
@@ -153,17 +161,16 @@ const MyLeads = () => {
         body: JSON.stringify({ leadId, newStatus }),
       });
 
-      if (!res.ok) throw new Error("Failed to update status");
+      if (!res.ok) {
+        throw new Error("Failed to update status");
+        // If there's an error, we could revert the optimistic update here
+      }
 
-      const updatedLead = await res.json();
-
-      setUserLeads((prevLeads) =>
-        prevLeads.map((lead) =>
-          lead._id === leadId ? { ...lead, status: updatedLead.status } : lead
-        )
-      );
+      // Update was successful, no need to fetch again as we already updated the UI
     } catch (error) {
       console.error("Error updating status:", error);
+      // Revert the optimistic update in case of error
+      fetchUserLeads();
     }
   };
 

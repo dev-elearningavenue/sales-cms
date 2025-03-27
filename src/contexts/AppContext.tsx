@@ -58,10 +58,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const response = await axios.get("/api/auth/session");
-      setSession(response.data);
+
+      if (JSON.stringify(session) !== JSON.stringify(response.data)) {
+        setSession(response.data);
+      }
+
       setError(null);
-      // Force a router refresh to ensure all components update
-      router.refresh();
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
         // Expected state for non-authenticated users
@@ -85,7 +87,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       router.push("/login");
     } catch (err) {
       console.error("Logout failed:", err);
-      setError("Logout failed");
+      // Still clear session even if something fails
+      setSession(null);
+      document.cookie =
+        "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      router.push("/login");
     } finally {
       setLoading(false);
     }

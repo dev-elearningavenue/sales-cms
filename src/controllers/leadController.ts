@@ -1,5 +1,7 @@
 import Lead from "@/models/lead";
 import { ILead } from "@/types/leads";
+import CustomLead, { ICustomLead } from "@/models/customLead";
+import mongoose from "mongoose";
 
 // Reusability:
 // Agar aapko similar logic multiple jagah pe chahiye ho, toh aap controller functions ko import karke reuse kar sakte hain.
@@ -22,6 +24,9 @@ export const getAllLeads = async () => {
     }
     if (await Lead.exists({ order_creation: { $ne: null } })) {
       populations.push({ path: "order_creation", model: "OrderCreation" });
+    }
+    if (await Lead.exists({ custom_lead: { $ne: null } })) {
+      populations.push({ path: "custom_lead", model: "CustomLead" });
     }
     // Add assigned_to population
     populations.push({ path: "assigned_to", model: "User", select: "full_name user_name" });
@@ -144,6 +149,9 @@ export const getLeadsByUser = async (userId: string) => {
     if (await Lead.exists({ order_creation: { $ne: null } })) {
       populations.push({ path: "order_creation", model: "OrderCreation" });
     }
+    if (await Lead.exists({ custom_lead: { $ne: null } })) {
+      populations.push({ path: "custom_lead", model: "CustomLead" });
+    }
 
     const leads = await Lead.find({
       assigned_to: userId,
@@ -167,4 +175,58 @@ export const updateLeadStatus = async (leadId: string, newStatus: string) => {
     { status: newStatus },
     { new: true }
   );
+};
+
+export const createCustomLead = async (customLeadData: Partial<ICustomLead>, createdById?: string) => {
+  try {
+    // First, create the CustomLead document
+    const customLead = new CustomLead({
+      firstName: customLeadData.firstName,
+      lastName: customLeadData.lastName,
+      email: customLeadData.email,
+      contactNo: customLeadData.contactNo,
+      domain: customLeadData.domain,
+      supportType: customLeadData.supportType,
+      coursesInterested: customLeadData.coursesInterested || [],
+    });
+
+    await customLead.save();
+
+    // Then, create the Lead document with reference to the CustomLead
+    const lead = new Lead({
+      category: "Custom Lead",
+      custom_lead: customLead._id,
+      contact_us: null,
+      scholarship: null,
+      free_signup: null,
+      abandoned_cart: null,
+      order_creation: null,
+      status: "Follow Up",
+      resolve_status: "Pending",
+      assigned: false, // Not auto-assigned
+      assigned_to: null, // No assignee initially
+      created_by: createdById || new mongoose.Types.ObjectId("67b33a327fa1571a2f0e1e4b"),
+      domain: customLeadData.domain,
+      next_follow_up_date: null,
+      conversion_value: null,
+    });
+
+    await lead.save();
+
+    // Populate the custom_lead field to return complete data
+    const populatedLead = await Lead.findById(lead._id).populate("custom_lead");
+
+    return {
+      success: true,
+      message: "Custom lead created successfully",
+      lead: populatedLead
+    };
+  } catch (error: any) {
+    console.error("Error creating custom lead:", error);
+    return {
+      success: false,
+      message: "Failed to create custom lead",
+      error: error.message
+    };
+  }
 };

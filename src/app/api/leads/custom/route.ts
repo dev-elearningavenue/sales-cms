@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
-import Lead from "@/models/lead";
-import CustomLead from "@/models/customLead";
+import { createCustomLead } from "@/controllers/leadController";
 import { getDataFromToken } from "@/utils/get_token_data";
 
 // Connect to database
@@ -16,56 +15,42 @@ export async function POST(req: NextRequest) {
     }
 
     // Parse request body
-    const { firstName, lastName, email, contactNo, domain, supportType, coursesInterested } = await req.json();
+    const customLeadData = await req.json();
 
     // Validate required fields
-    if (!firstName || !lastName || !email || !contactNo || !domain || !supportType || !coursesInterested) {
+    if (!customLeadData.firstName || !customLeadData.lastName || !customLeadData.email || 
+        !customLeadData.contactNo || !customLeadData.domain || !customLeadData.supportType || 
+        !customLeadData.coursesInterested || customLeadData.coursesInterested.length === 0) {
       return NextResponse.json(
         { message: "All fields are required" },
         { status: 400 }
       );
     }
 
-    // Create CustomLead document
-    const customLead = new CustomLead({
-      firstName,
-      lastName,
-      email,
-      contactNo,
-      domain,
-      supportType,
-      coursesInterested,
-    });
+    // Get the user ID as a string if it exists
+    const createdById = tokenData._id ? tokenData._id.toString() : undefined;
 
-    await customLead.save();
+    // Use the controller function to create the custom lead
+    const result = await createCustomLead(customLeadData, createdById);
 
-    // Create Lead document with reference to CustomLead
-    const lead = new Lead({
-      category: "Custom Lead",
-      custom_lead: customLead._id,
-      status: "Follow Up",
-      assigned: true, // Auto-assign to creator
-      assigned_to: tokenData._id,
-      created_by: tokenData._id,
-      domain,
-    });
-
-    await lead.save();
+    if (!result.success) {
+      return NextResponse.json(
+        { message: result.message, error: result.error },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
       { 
         message: "Custom lead created successfully", 
-        lead: {
-          ...lead.toObject(),
-          custom_lead: customLead.toObject()
-        }
+        lead: result.lead
       },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating custom lead:", error);
     return NextResponse.json(
-      { message: "Failed to create custom lead" },
+      { message: "Failed to create custom lead", error: error.message },
       { status: 500 }
     );
   }

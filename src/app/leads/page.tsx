@@ -230,8 +230,10 @@ const Leads = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Successfully created lead
-        setLeads((prev) => [data.lead, ...prev]);
+        // Successfully created lead - update the leads state with the returned lead
+        // The lead is not assigned to anyone initially
+        const newLead = data.lead;
+        setLeads((prev) => [newLead, ...prev]);
         resetForm();
         setIsCreateModalOpen(false);
       } else {

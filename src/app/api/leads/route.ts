@@ -28,7 +28,6 @@ export async function GET(req: Request) {
       return NextResponse.json(leadsResult, { status: 200 });
     }
     
-    // Apply filtering if parameters are provided
     let filteredLeads = leadsResult.leads;
     
     // Filter by category/type if specified

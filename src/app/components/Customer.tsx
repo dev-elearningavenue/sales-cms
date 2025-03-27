@@ -23,7 +23,21 @@ interface Scholarship {
   training?: string[];
 }
 
-type LeadData = ContactUs | ICustomer | OrderCreation | Scholarship | null;
+interface CustomLead {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  contactNo?: string;
+  supportType?: string;
+}
+
+type LeadData =
+  | ContactUs
+  | ICustomer
+  | OrderCreation
+  | Scholarship
+  | CustomLead
+  | null;
 
 export const Customer: React.FC<{ selectedLead: ILead }> = ({
   selectedLead,
@@ -35,6 +49,7 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
     "order_creation",
     "abandoned_cart",
     "scholarship",
+    "custom_lead",
   ].find((key) => selectedLead[key as keyof ILead]);
 
   const leadData: LeadData = populatedKey
@@ -143,6 +158,22 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
               </>
             )}
 
+          {populatedKey === "custom_lead" &&
+            leadData &&
+            isCustomLead(leadData) && (
+              <>
+                <Field
+                  label="Full Name"
+                  value={`${leadData?.firstName ?? ""} ${
+                    leadData?.lastName ?? ""
+                  }`}
+                />
+                <Field label="Email" value={leadData?.email} />
+                <Field label="Contact Number" value={leadData?.contactNo} />
+                <Field label="Support Type" value={leadData?.supportType} />
+              </>
+            )}
+
           {!populatedKey && (
             <p className="text-gray-500">No customer information available.</p>
           )}
@@ -193,5 +224,14 @@ function isScholarship(data: LeadData): data is Scholarship {
     typeof data === "object" &&
     "firstName" in data &&
     "training" in data
+  );
+}
+
+function isCustomLead(data: LeadData): data is CustomLead {
+  return (
+    data !== null &&
+    typeof data === "object" &&
+    "firstName" in data &&
+    "supportType" in data
   );
 }

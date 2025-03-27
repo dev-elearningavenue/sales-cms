@@ -22,7 +22,6 @@ import {
 } from "@/components/Dialog";
 import { Customer, Field } from "@/components/Customer";
 import CourseInfo from "@/components/CourseInfo";
-import Lead from "@/models/lead";
 
 const STATUS_OPTIONS = [
   "Follow Up",
@@ -256,11 +255,12 @@ const MyLeads = () => {
     "Contact Us": "bg-green-500",
     "Free SignUp": "bg-purple-500",
     "Free Study Guide": "bg-yellow-500",
+    "Custom Lead": "bg-indigo-500",
     Scholarship: "bg-amber-500",
   };
 
   return (
-    <div className="w-full p-4">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       {loading ? (
         <LoadingSkeleton component="my leads" />
       ) : (
@@ -339,6 +339,7 @@ const MyLeads = () => {
                     <option value="Abandoned Cart">Abandoned Cart</option>
                     <option value="Free SignUp">Free SignUp</option>
                     <option value="Free Study Guide">Free Study Guide</option>
+                    <option value="Custom Lead">Custom Lead</option>
                     <option value="Contact Us">Contact Us</option>
                     <option value="Scholarship">Scholarship</option>
                   </select>
@@ -447,6 +448,7 @@ const MyLeads = () => {
                                   "contact_us",
                                   "free_signup",
                                   "order_creation",
+                                  "custom_lead",
                                   "abandoned_cart",
                                   "scholarship",
                                 ].find((key) => lead[key as keyof ILead]);
@@ -465,7 +467,8 @@ const MyLeads = () => {
                                   populatedKey === "order_creation" ||
                                   populatedKey === "abandoned_cart" ||
                                   populatedKey === "free_signup" ||
-                                  populatedKey === "scholarship"
+                                  populatedKey === "scholarship" ||
+                                  populatedKey === "custom_lead"
                                 ) {
                                   return (
                                     `${(leadData as any)?.firstName ?? ""} ${

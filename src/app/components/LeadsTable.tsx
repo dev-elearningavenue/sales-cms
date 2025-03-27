@@ -114,6 +114,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     if (lead.contact_us) return "Contact Us";
     if (lead.scholarship) return "Scholarship";
     if (lead.free_signup) return "Free SignUp";
+    if (lead.custom_lead) return "Custom Lead";
     if (lead.abandoned_cart) return "Abandoned Cart";
     return "Direct";
   };
@@ -124,6 +125,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     "Contact Us": "bg-green-500",
     "Free SignUp": "bg-purple-500",
     "Free Study Guide": "bg-yellow-500",
+    "Custom Lead": "bg-indigo-500",
     Scholarship: "bg-amber-500",
   };
 
@@ -333,6 +335,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                     "Contact Us",
                     "Free SignUp",
                     "Free Study Guide",
+                    "Custom Lead",
                     "Scholarship",
                     "Abandoned Cart",
                     "Scholarship",
@@ -418,6 +421,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                       "Contact Us",
                       "Free SignUp",
                       "Free Study Guide",
+                      "Custom Lead",
                       "Scholarship",
                     ].map((option) => (
                       <button
@@ -497,6 +501,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                           lead.free_signup,
                           lead.order_creation,
                           lead.scholarship,
+                          lead.custom_lead,
                           lead.abandoned_cart,
                         ]
                           .map((entry) =>

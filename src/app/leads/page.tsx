@@ -277,7 +277,7 @@ const Leads = () => {
       </Head>
 
       <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-        <div className="mb-4 flex justify-between items-center">
+        {/* <div className="mb-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-800">All Leads</h1>
           <button
             onClick={() => setIsCreateModalOpen(true)}
@@ -286,12 +286,18 @@ const Leads = () => {
             <Plus className="w-5 h-5" />
             Create New Lead
           </button>
-        </div>
+        </div> */}
 
         {loading ? (
           <LoadingSkeleton component="All Leads" />
         ) : (
-          <LeadsTable leads={leads} onAssign={handleAssign} title="ALL LEADS" />
+          <LeadsTable
+            leads={leads}
+            onAssign={handleAssign}
+            title="All Leads"
+            showCreateButton={true}
+            onCreateClick={() => setIsCreateModalOpen(true)}
+          />
         )}
       </div>
 

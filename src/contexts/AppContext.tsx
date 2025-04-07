@@ -8,20 +8,34 @@ import React, {
   ReactNode,
 } from "react";
 import axios from "axios";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { UserSession } from "@/types/session";
 
-interface AppContextType {
-  // Session related
+export type NotificationType = {
+  id: string;
+  message: string;
+  time: Date;
+  read: boolean;
+  type: "lead" | "info" | "warning";
+  leadId?: string;
+};
+
+export interface AppContextType {
   session: UserSession | null;
-  setSession: (session: UserSession | null) => void;
   loading: boolean;
   error: string | null;
-  logout: () => Promise<void>;
+  setSession: (session: UserSession | null) => void;
   fetchSession: () => Promise<void>;
-  // Theme related
+  logout: () => Promise<void>;
   theme: "light" | "dark";
   toggleTheme: () => void;
+  notifications: NotificationType[];
+  addNotification: (
+    notification: Omit<NotificationType, "id" | "time">
+  ) => void;
+  markNotificationAsRead: (id: string) => void;
+  markAllNotificationsAsRead: () => void;
+  unreadCount: number;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -35,6 +49,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isInitialized, setIsInitialized] = useState(false);
+  const pathname = usePathname();
+
+  // Notifications state
+  const [notifications, setNotifications] = useState<NotificationType[]>([]);
+
+  // Calculate unread count
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // Add a new notification
+  const addNotification = (
+    notification: Omit<NotificationType, "id" | "time">
+  ) => {
+    const newNotification = {
+      ...notification,
+      id: Date.now().toString(),
+      time: new Date(),
+    };
+    setNotifications((prev) => [newNotification, ...prev]);
+  };
+
+  // Mark a notification as read
+  const markNotificationAsRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+  };
+
+  // Mark all notifications as read
+  const markAllNotificationsAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
 
   // Fetch session on mount
   useEffect(() => {
@@ -114,6 +159,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     logout,
     theme,
     toggleTheme,
+    notifications,
+    addNotification,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
+    unreadCount,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

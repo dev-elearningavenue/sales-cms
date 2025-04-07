@@ -2,17 +2,29 @@
 import { useApp } from "@/contexts/AppContext";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { User, Moon, Sun } from "lucide-react";
+import { User, Moon, Sun, Bell } from "lucide-react";
 import { LoadingSkeleton } from "./LoadingSkeleton";
 
 export const Navbar = () => {
-  const { session, logout, loading, theme, toggleTheme } = useApp();
+  const {
+    session,
+    logout,
+    loading,
+    theme,
+    toggleTheme,
+    notifications,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
+    unreadCount,
+  } = useApp();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -21,11 +33,55 @@ export const Navbar = () => {
       ) {
         setIsProfileOpen(false);
       }
+
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target as Node)
+      ) {
+        setIsNotificationsOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const formatTime = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+
+    // Less than a minute
+    if (diff < 60000) {
+      return "Just now";
+    }
+
+    // Less than an hour
+    if (diff < 3600000) {
+      const minutes = Math.floor(diff / 60000);
+      return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
+    }
+
+    // Less than a day
+    if (diff < 86400000) {
+      const hours = Math.floor(diff / 3600000);
+      return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+    }
+
+    // Otherwise return date
+    return date.toLocaleDateString();
+  };
+
+  // Handle notification click
+  const handleNotificationClick = (id: string, leadId?: string) => {
+    markNotificationAsRead(id);
+
+    // Navigate to lead if leadId is provided
+    if (leadId) {
+      router.push(`/leads?id=${leadId}`);
+    }
+
+    setIsNotificationsOpen(false);
+  };
 
   return (
     <nav className="flex justify-between p-2 bg-white dark:bg-gray-800 transition-colors">
@@ -46,6 +102,75 @@ export const Navbar = () => {
         >
           {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>
+
+        {/* Notifications */}
+        {session && (
+          <div className="relative" ref={notificationsRef}>
+            <button
+              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white relative flex items-center justify-center"
+            >
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {isNotificationsOpen && (
+              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 max-h-96 overflow-y-auto">
+                <div className="flex justify-between items-center p-3 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="font-medium dark:text-white">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllNotificationsAsRead}
+                      className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+
+                {notifications.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                    No notifications
+                  </div>
+                ) : (
+                  <div>
+                    {notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        onClick={() =>
+                          handleNotificationClick(
+                            notification.id,
+                            notification.leadId
+                          )
+                        }
+                        className={`p-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors ${
+                          !notification.read
+                            ? "bg-blue-50 dark:bg-blue-900/20"
+                            : ""
+                        }`}
+                      >
+                        <div
+                          className={`text-sm ${
+                            !notification.read ? "font-semibold" : ""
+                          } dark:text-white`}
+                        >
+                          {notification.message}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {formatTime(notification.time)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {loading || (!session && pathname !== "/login") ? (
           <LoadingSkeleton component="profile" />

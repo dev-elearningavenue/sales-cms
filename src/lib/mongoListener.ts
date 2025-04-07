@@ -268,9 +268,7 @@ function setupScholarshipCollectionWatch(
     );
   });
 
-  console.log(
-    `Watching ${domain.split(" - ")[1]} Scholarship collection`
-  );
+  console.log(`Watching ${domain.split(" - ")[1]} Scholarship collection`);
   return changeStream;
 }
 
@@ -333,7 +331,7 @@ function setupUserCollectionWatch(
   });
 
   console.log(
-    `Watching ${domain.split(" - ")[1]} users collection for free signups`
+    `Watching ${domain.split(" - ")[1]} users collection`
   );
   return changeStream;
 }
@@ -373,9 +371,16 @@ function setupContactUsCollectionWatch(
       `Change Stream Error in ${domain.split(" - ")[1]}:`,
       err.message
     );
+    const index = activeChangeStreams.indexOf(changeStream);
+    if (index !== -1) {
+      activeChangeStreams.splice(index, 1);
+    }
+    changeStream
+      .close()
+      .catch((e) => console.error("Error closing stream:", e));
     setTimeout(
       () =>
-        setupContactUsCollectionWatch(
+        setupUserCollectionWatch(
           sourceDbCollection,
           domain,
           ContactUsCollection
@@ -383,6 +388,10 @@ function setupContactUsCollectionWatch(
       3000
     );
   });
+  console.log(
+    `Watching ${domain.split(" - ")[1]} users collection`
+  );
+  return changeStream;
 }
 
 function setupOrderCollectionWatch(
@@ -447,7 +456,7 @@ function setupOrderCollectionWatch(
               pendingOrders.delete(orderId);
             }
           })();
-        }, 1 * 60 * 1000);
+        }, 6 * 60 * 1000);
       }
     } else if (change.operationType === "update") {
       const updatedOrder = await collection.findOne({

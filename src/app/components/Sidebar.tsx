@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useApp } from "@/contexts/AppContext";
+import { usePathname } from "next/navigation";
 
 interface SidebarProps {
   theme: "dark" | "light";
@@ -24,6 +25,7 @@ interface NavItemProps {
   text: string;
   href: string;
   isExpanded: boolean;
+  badge?: number;
 }
 
 const Sidebar = () => {
@@ -31,6 +33,35 @@ const Sidebar = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const [unassignedLeads, setUnassignedLeads] = useState(0);
+  const [unresolvedLeads, setUnresolvedLeads] = useState(0);
+  const pathname = usePathname();
+
+  // Fetch unassigned and unresolved leads count
+  useEffect(() => {
+    const fetchLeadCounts = async () => {
+      try {
+        // Fetch unassigned leads count
+        const unassignedRes = await fetch("/api/leads/count?assigned=false");
+        const unassignedData = await unassignedRes.json();
+        setUnassignedLeads(unassignedData.count || 0);
+
+        // Fetch unresolved assigned leads count
+        const unresolvedRes = await fetch("/api/my-leads/count?resolved=false");
+        const unresolvedData = await unresolvedRes.json();
+        setUnresolvedLeads(unresolvedData.count || 0);
+      } catch (error) {
+        console.error("Error fetching lead counts:", error);
+      }
+    };
+
+    fetchLeadCounts();
+
+    // Set up interval to periodically refresh counts
+    const intervalId = setInterval(fetchLeadCounts, 30000); // refresh every 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Toggle pin state
   const togglePin = (): void => {
@@ -81,7 +112,7 @@ const Sidebar = () => {
       ref={sidebarRef}
       className={`${
         isExpanded ? "w-64" : "w-16"
-      } h-full dark:bg-gray-800 bg-white text-black dark:text-white p-4 transition-all duration-300 ease-in-out relative group fixed left-0 top-0 shadow-md z-50`}
+      } h-full dark:bg-gray-800 bg-white text-black dark:text-white p-4 transition-all duration-300 ease-in-out relative group fixed left-0 top-0 shadow-md z-10 overflow-hidden`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -131,12 +162,14 @@ const Sidebar = () => {
           text="Leads"
           href="/leads"
           isExpanded={isExpanded}
+          badge={unassignedLeads}
         />
         <NavItem
           icon={<ClipboardList size={20} />}
           text="My Leads"
           href="/my-leads"
           isExpanded={isExpanded}
+          badge={unresolvedLeads}
         />
         <NavItem
           icon={<Settings size={20} />}
@@ -156,14 +189,32 @@ const Sidebar = () => {
 };
 
 // NavItem component for cleaner code
-const NavItem: React.FC<NavItemProps> = ({ icon, text, href, isExpanded }) => {
+const NavItem: React.FC<NavItemProps> = ({
+  icon,
+  text,
+  href,
+  isExpanded,
+  badge,
+}) => {
+  const pathname = usePathname();
+  const isActive = pathname === href;
+
   return (
     <li>
       <Link
         href={href}
-        className="flex items-center text-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white p-2 rounded-lg transition-all duration-200 group"
+        className={`flex items-center text-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white p-2 rounded-lg transition-all duration-200 group ${
+          isActive ? "bg-gray-200 dark:bg-gray-700" : ""
+        }`}
       >
-        <div className="flex justify-center items-center w-8 h-8">{icon}</div>
+        <div className="flex justify-center items-center w-8 h-8 relative">
+          {icon}
+          {badge !== undefined && badge > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              {badge > 99 ? "99+" : badge}
+            </span>
+          )}
+        </div>
         <span
           className={`ml-3 transition-all duration-300 whitespace-nowrap ${
             isExpanded
@@ -172,12 +223,22 @@ const NavItem: React.FC<NavItemProps> = ({ icon, text, href, isExpanded }) => {
           }`}
         >
           {text}
+          {badge !== undefined && badge > 0 && isExpanded && (
+            <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
+              {badge > 99 ? "99+" : badge}
+            </span>
+          )}
         </span>
 
         {/* Tooltip for collapsed state */}
         {!isExpanded && (
           <div className="absolute left-16 bg-gray-800 text-white px-2 py-1 rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 text-sm whitespace-nowrap z-50">
             {text}
+            {badge !== undefined && badge > 0 && (
+              <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
+                {badge > 99 ? "99+" : badge}
+              </span>
+            )}
           </div>
         )}
       </Link>

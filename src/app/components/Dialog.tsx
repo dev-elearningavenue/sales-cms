@@ -102,18 +102,51 @@ export const DialogFooter = ({
     {children}
   </div>
 );
-
-export const DialogClose = ({
-  onClick,
-  className,
-}: {
+interface DialogCloseProps {
   onClick?: () => void;
   className?: string;
-}) => (
-  <button
-    onClick={onClick}
-    className={cn("text-gray-500 hover:text-gray-700", className)}
-  >
-    <X className="h-5 w-5" />
-  </button>
-);
+  asChild?: boolean;
+  children?: React.ReactElement;
+}
+
+export const DialogClose: React.FC<DialogCloseProps> = ({
+  onClick,
+  className,
+  asChild,
+  children,
+}) => {
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children, {
+      onClick,
+      className: cn(
+        "text-gray-500 hover:text-gray-700",
+        className,
+        (children.props as { className?: string }).className
+      ),
+    } as React.Attributes & React.HTMLAttributes<HTMLElement>);
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      className={cn("text-gray-500 hover:text-gray-700", className)}
+    >
+      {children || <X className="h-5 w-5" />}
+    </button>
+  );
+};
+
+// export const DialogClose = ({
+//   onClick,
+//   className,
+// }: {
+//   onClick?: () => void;
+//   className?: string;
+// }) => (
+//   <button
+//     onClick={onClick}
+//     className={cn("text-gray-500 hover:text-gray-700", className)}
+//   >
+//     <X className="h-5 w-5" />
+//   </button>
+// );

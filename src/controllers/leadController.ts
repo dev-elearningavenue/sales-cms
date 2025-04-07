@@ -62,7 +62,7 @@ export const createLead = async (
     assigned_to,
     created_by,
     domain,
-    next_follow_up_date,
+    next_follow_up,
     conversion_value,
   } = requestBody;
 
@@ -85,7 +85,7 @@ export const createLead = async (
     assigned_to: assigned_to || null,
     created_by: created_by,
     domain,
-    next_follow_up_date,
+    next_follow_up,
     conversion_value,
   });
 
@@ -109,7 +109,7 @@ export const createLead = async (
         assigned_to: assigned_to || null,
         created_by: created_by,
         domain: domain,
-        next_follow_up_date: next_follow_up_date,
+        next_follow_up: next_follow_up,
         conversion_value: conversion_value,
       },
     },
@@ -169,12 +169,108 @@ export const getLeadsByUser = async (userId: string) => {
   }
 };
 
-export const updateLeadStatus = async (leadId: string, newStatus: string) => {
-  return await Lead.findByIdAndUpdate(
-    { _id: leadId },
-    { status: newStatus },
-    { new: true }
-  );
+export const updateLeadStatus = async (
+  leadId: string, 
+  newStatus: string, 
+  additionalData?: { 
+    conversionValue?: number, 
+    followUpDate?: Date,
+    contactTypes?: string[],
+    followUpNote?: string,
+    note?: string,
+    userId?: string
+  }
+) => {
+  try {
+    // Get the lead first to check follow-up dates
+    const lead = await Lead.findById(leadId);
+    if (!lead) return null;
+
+    const updateData: any = { status: newStatus };
+
+    // Handle specific status updates
+    if (newStatus === "Converted" && additionalData?.conversionValue) {
+      updateData.resolve_status = "Converted";
+      updateData.conversion_value = additionalData.conversionValue;
+    } 
+    
+    if (newStatus === "Follow Up" && additionalData?.followUpDate) {
+      // Create new follow-up entry
+      const newFollowUp = {
+        date: additionalData.followUpDate,
+        contact_type: additionalData.contactTypes || ["email"],
+        notes: additionalData.followUpNote || ""
+      };
+      
+      // Add new follow-up to the array
+      updateData.next_follow_up = lead.next_follow_up || [];
+      updateData.next_follow_up.push(newFollowUp);
+    }
+
+    if (newStatus === "Resolved") {
+      updateData.resolved = true;
+      updateData.resolvedAt = new Date();
+      updateData.resolve_status = "Resolved";
+    }
+
+    // Add note if provided
+    if (additionalData?.note && additionalData?.userId) {
+      const newNote = {
+        text: additionalData.note,
+        created_at: new Date(),
+        created_by: additionalData.userId
+      };
+      
+      // Check if notes field exists and is an array
+      if (!lead.notes || !Array.isArray(lead.notes)) {
+        updateData.notes = [newNote];
+      } else {
+        updateData.notes = [...lead.notes, newNote];
+      }
+    }
+
+    return await Lead.findByIdAndUpdate(
+      { _id: leadId },
+      updateData,
+      { new: true }
+    );
+  } catch (error) {
+    console.error("Error updating lead status:", error);
+    return null;
+  }
+};
+
+export const deleteLead = async (leadId: string, userId: string, userType: number) => {
+  try {
+    // Check if the user is authorized to delete leads (userType != 3)
+    if (userType === 3) {
+      return {
+        success: false,
+        message: "You don't have permission to delete leads"
+      };
+    }
+
+    // Delete the lead
+    const result = await Lead.findByIdAndDelete(leadId);
+    
+    if (!result) {
+      return {
+        success: false,
+        message: "Lead not found"
+      };
+    }
+
+    return {
+      success: true,
+      message: "Lead deleted successfully"
+    };
+  } catch (error) {
+    console.error("Error deleting lead:", error);
+    return {
+      success: false,
+      message: "Failed to delete lead"
+    };
+  }
 };
 
 export const createCustomLead = async (customLeadData: Partial<ICustomLead>, createdById?: string) => {

@@ -14,7 +14,6 @@ interface OrderItem {
 }
 
 const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
-  console.log("Selected Lead: ", selectedLead);
   //   const orderLead =
   //     selectedLead.order_creation &&
   //     typeof selectedLead.order_creation === "object"

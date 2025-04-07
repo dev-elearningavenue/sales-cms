@@ -2,6 +2,12 @@ import mongoose from "mongoose";
 import { OrderCreation } from "@/types/customer";
 import { ICustomLead } from "@/models/customLead";
 
+interface NextFollowUp {
+  date: Date;
+  contact_type: ("chat" | "email" | "call")[];
+  notes?: string;
+}
+
 // Define TypeScript Interface for Lead Document
 export interface ILead extends Document {
   _id?: string;
@@ -14,11 +20,19 @@ export interface ILead extends Document {
   custom_lead?: mongoose.Types.ObjectId | ICustomLead;
   status?: string;
   assigned?: Boolean;
+  assignedAt?: Date;
+  resolved?: Boolean;
+  resolvedAt?: Date;
   resolve_status?: string;
+  notes?: Array<{
+    text: string;
+    created_at: Date;
+    created_by: mongoose.Types.ObjectId;
+  }>;
   assigned_to?: mongoose.Types.ObjectId;
   created_by?: mongoose.Types.ObjectId;
   domain: "OOR" | "OOC" | "OES";
-  next_follow_up_date?: Date;
+  next_follow_up?: NextFollowUp[];
   conversion_value?: number;
   createdAt?: Date;
 }

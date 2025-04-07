@@ -1,6 +1,5 @@
 // components/LeadsTable.tsx
 import { useState } from "react";
-import DatePicker from "react-datepicker";
 import {
   ChevronLeft,
   ChevronRight,
@@ -14,24 +13,32 @@ import {
   ExternalLink,
   UserPlus,
   Plus,
+  Trash2,
+  Check,
 } from "lucide-react";
 import { ILead } from "@/types/leads";
+import { useApp } from "@/contexts/AppContext";
 
 interface LeadsTableProps {
   leads: ILead[];
-  onAssign: (leadId: string) => void;
+  onAssign?: (leadId: string) => void;
   title: string;
+  isMyLeads?: boolean;
   showCreateButton?: boolean;
   onCreateClick?: () => void;
+  onDelete?: (leadId: string) => void;
 }
 
 const LeadsTable: React.FC<LeadsTableProps> = ({
   leads,
   onAssign,
   title,
+  isMyLeads = false,
   showCreateButton = false,
   onCreateClick,
+  onDelete,
 }) => {
+  const { session } = useApp();
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
   const [showFilters, setShowFilters] = useState(false);
@@ -43,11 +50,99 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     type: "",
     domain: "",
   });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
+  const [showBatchAssignModal, setShowBatchAssignModal] = useState(false);
 
+  // Add state for delete confirmation
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
+  const [showBatchDeleteModal, setShowBatchDeleteModal] = useState(false);
+
+  // Filter leads based on search query and other filters
   const filteredLeads = leads.filter((lead) => {
+    if (searchQuery) {
+      // Search in customer name
+      const nameMatch = (() => {
+        const populatedKey = [
+          "contact_us",
+          "free_signup",
+          "order_creation",
+          "custom_lead",
+          "abandoned_cart",
+          "scholarship",
+        ].find((key) => lead[key as keyof ILead]);
+
+        if (!populatedKey) return false;
+
+        const leadData = lead[populatedKey as keyof ILead];
+
+        // Handle name formatting based on the populated key
+        if (populatedKey === "contact_us") {
+          return ((leadData as any)?.name || "")
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase());
+        }
+
+        if (
+          populatedKey === "order_creation" ||
+          populatedKey === "abandoned_cart" ||
+          populatedKey === "free_signup" ||
+          populatedKey === "scholarship" ||
+          populatedKey === "custom_lead"
+        ) {
+          const fullName = `${(leadData as any)?.firstName || ""} ${
+            (leadData as any)?.lastName || ""
+          }`
+            .trim()
+            .toLowerCase();
+          return fullName.includes(searchQuery.toLowerCase());
+        }
+
+        return false;
+      })();
+
+      // Search in email
+      const emailMatch = (() => {
+        const populatedKey = [
+          "contact_us",
+          "free_signup",
+          "order_creation",
+          "custom_lead",
+          "abandoned_cart",
+          "scholarship",
+        ].find((key) => lead[key as keyof ILead]);
+
+        if (!populatedKey) return false;
+
+        const leadData = lead[populatedKey as keyof ILead];
+
+        if (leadData && typeof leadData === "object") {
+          const email =
+            (leadData as any).email || (leadData as any).customerEmail || "";
+          return email.toLowerCase().includes(searchQuery.toLowerCase());
+        }
+
+        return false;
+      })();
+
+      // Search in category or domain
+      const categoryMatch = lead.category
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const domainMatch = lead.domain
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase());
+
+      if (!(nameMatch || emailMatch || categoryMatch || domainMatch)) {
+        return false;
+      }
+    }
+
+    // Apply other filters
     if (filters.type && lead.category !== filters.type) return false;
     if (filters.domain && lead.domain !== filters.domain) return false;
-    // Agar aur filters add karne hon to yahan check karein
+    // Check more filters if needed
     return true;
   });
 
@@ -90,9 +185,71 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
       } else {
         (newFilters as any)[category] = value;
       }
-      console.log("Updated Filters:", newFilters);
       return newFilters;
     });
+  };
+
+  // Handle select all leads
+  const handleSelectAll = () => {
+    if (selectedLeads.length === currentLeads.length) {
+      // If all are selected, unselect all
+      setSelectedLeads([]);
+    } else {
+      // Otherwise, select all
+      const allLeadIds = currentLeads
+        .filter((lead) => lead._id)
+        .map((lead) => lead._id as string);
+      setSelectedLeads(allLeadIds);
+    }
+  };
+
+  // Handle individual lead selection
+  const handleSelectLead = (leadId: string) => {
+    if (selectedLeads.includes(leadId)) {
+      setSelectedLeads(selectedLeads.filter((id) => id !== leadId));
+    } else {
+      setSelectedLeads([...selectedLeads, leadId]);
+    }
+  };
+
+  // Handle batch assign
+  const handleBatchAssign = () => {
+    if (selectedLeads.length > 0) {
+      setShowBatchAssignModal(true);
+    }
+  };
+
+  // Confirm batch assign
+  const confirmBatchAssign = async () => {
+    if (!onAssign || selectedLeads.length === 0) return;
+
+    // Process each lead sequentially
+    for (const leadId of selectedLeads) {
+      await onAssign(leadId);
+    }
+
+    setShowBatchAssignModal(false);
+    setSelectedLeads([]);
+  };
+
+  // Handle batch delete
+  const handleBatchDelete = () => {
+    if (selectedLeads.length > 0) {
+      setShowBatchDeleteModal(true);
+    }
+  };
+
+  // Confirm batch delete
+  const confirmBatchDelete = async () => {
+    if (!onDelete || selectedLeads.length === 0) return;
+
+    // Process each lead sequentially
+    for (const leadId of selectedLeads) {
+      await onDelete(leadId);
+    }
+
+    setShowBatchDeleteModal(false);
+    setSelectedLeads([]);
   };
 
   const getDomainLabel = (domain: string) => {
@@ -108,318 +265,289 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     }
   };
 
-  const getStatusLabel = (status?: string) => {
-    if (!status) return "New";
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  };
-
-  const getLeadSourceInfo = (lead: ILead) => {
-    if (lead.contact_us) return "Contact Us";
-    if (lead.scholarship) return "Scholarship";
-    if (lead.free_signup) return "Free SignUp";
-    if (lead.custom_lead) return "Custom Lead";
-    if (lead.abandoned_cart) return "Abandoned Cart";
-    return "Direct";
-  };
-
   const categoryColors: Record<string, string> = {
     "Abandoned Cart": "bg-red-500",
-    "Order Creation": "bg-blue-500",
-    "Contact Us": "bg-green-500",
+    "Order Creation": "bg-green-500",
+    "Contact Us": "bg-blue-500",
     "Free SignUp": "bg-purple-500",
     "Free Study Guide": "bg-yellow-500",
     "Custom Lead": "bg-indigo-500",
     Scholarship: "bg-amber-500",
   };
 
+  // Handle delete click
+  const handleDeleteClick = (leadId: string) => {
+    setLeadToDelete(leadId);
+    setShowDeleteModal(true);
+  };
+
+  // Confirm deletion
+  const confirmDelete = () => {
+    if (leadToDelete && onDelete) {
+      onDelete(leadToDelete);
+      setShowDeleteModal(false);
+      setLeadToDelete(null);
+    }
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border p-4 border-gray-200 overflow-hidden">
-      <div className="mb-3 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">{title}</h1>
-        {showCreateButton && (
-          <button
-            onClick={onCreateClick}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            Create New Lead
-          </button>
-        )}
-      </div>
-      {/* Search and Date Filters Row */}
-      <div className="flex flex-col text-xs md:flex-row md:items-center gap-3 mb-6">
-        <div className="relative flex-grow">
-          <input
-            type="text"
-            placeholder="Search Lead"
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-        </div>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-gray-800">{title}</h1>
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            className="flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50"
-            onClick={() => {}}
-          >
-            <RefreshCcw className="h-5 w-5 text-gray-600" />
-          </button>
-
-          {/* Date Range Fields */}
-          <div className="relative">
-            <input
-              type="date"
-              placeholder="Start Date"
-              value={filters.startDate}
-              onChange={(e) => handleFilterChange("startDate", e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-          </div>
-
-          <div className="relative">
-            <input
-              type="date"
-              placeholder="End Date"
-              value={filters.endDate}
-              onChange={(e) => handleFilterChange("endDate", e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-          </div>
-
-          <button className="px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 font-medium">
-            Send Follow-up
-          </button>
-
-          <button className="px-4 py-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 font-medium">
-            Remove Stale Leads
-          </button>
-        </div>
-      </div>
-
-      {/* Filters and Pagination Row */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
-        <button
-          className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          <Filter className="h-5 w-5" />
-          <span>Filters</span>
-        </button>
-        {/* Pagination Summary */}
-        <div className="mt-4 text-xs text-gray-600">
-          Showing {startIndex + 1}-{endIndex} of {leads.length} leads
-        </div>
-
-        <div className="flex text-xs items-center gap-2">
-          <button
-            className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(1)}
-          >
-            <ChevronsLeft className="h-5 w-5" />
-          </button>
-          <button
-            className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-
-          <div className="flex gap-1">
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
-
-              return (
+          {/* Batch actions */}
+          {selectedLeads.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">
+                {selectedLeads.length} lead{selectedLeads.length > 1 ? "s" : ""}{" "}
+                selected
+              </span>
+              {onAssign && (
                 <button
-                  key={pageNum}
-                  className={`w-10 h-10 ${
-                    currentPage === pageNum
-                      ? "bg-gray-200 font-medium"
-                      : "hover:bg-gray-100"
-                  } border border-gray-300 rounded-md`}
-                  onClick={() => setCurrentPage(pageNum)}
+                  onClick={handleBatchAssign}
+                  className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm flex items-center gap-1"
                 >
-                  {pageNum}
+                  <UserPlus className="w-4 h-4" />
+                  Assign All
                 </button>
-              );
-            })}
-            {totalPages > 5 && (
-              <span className="flex items-center px-2">...</span>
-            )}
-          </div>
-
-          <button
-            className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-            disabled={currentPage === totalPages}
-            onClick={() =>
-              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-            }
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-          <button
-            className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(totalPages)}
-          >
-            <ChevronsRight className="h-5 w-5" />
-          </button>
-
-          <div className="relative group">
-            <button className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-              {itemsPerPage} / page
-            </button>
-            <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden z-20 hidden group-hover:block">
-              {[50, 100, 200, 500].map((value) => (
+              )}
+              {onDelete && (
                 <button
-                  key={value}
-                  className={`w-full px-4 py-2 text-left ${
-                    itemsPerPage === value
-                      ? "bg-blue-50 font-medium"
-                      : "hover:bg-gray-50"
-                  }`}
-                  onClick={() => setItemsPerPage(value)}
+                  onClick={handleBatchDelete}
+                  className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm flex items-center gap-1"
                 >
-                  {value}
+                  <Trash2 className="w-4 h-4" />
+                  Delete All
                 </button>
-              ))}
+              )}
             </div>
-          </div>
-        </div>
-      </div>
+          )}
 
-      {/* Filters Panel */}
-      {showFilters && (
-        <div className="border border-gray-200 rounded-md p-4 mb-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-medium">Filters</h3>
-            <button
-              className="text-gray-500 hover:text-gray-700"
-              onClick={() => setShowFilters(false)}
-            >
-              ✕
-            </button>
-          </div>
+          <div className="flex flex-col text-xs md:flex-row md:items-center gap-3">
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50"
+                onClick={() => {}}
+              >
+                <RefreshCcw className="h-5 w-5 text-gray-600" />
+              </button>
 
-          <div className="grid text-sm md:grid-cols-3 gap-6">
-            {/* <div>
-                <h4 className="font-medium mb-3">Lead Status</h4>
-                <div className="space-y-2">
-                  {["New", "Contacted", "Qualified", "Converted", "Closed"].map(
-                    (status) => (
-                      <label
-                        key={status}
-                        className="flex items-center space-x-2"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={filters.paymentStatus.includes(status)}
-                          onChange={() =>
-                            handleFilterChange("paymentStatus", status)
-                          }
-                          className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span>{status}</span>
-                      </label>
-                    )
-                  )}
-                </div>
-              </div> */}
-
-            <div>
-              <h4 className="font-medium mb-3">Lead Categories</h4>
-              <div className="space-y-2">
-                {[
-                  "Contact Us",
-                  "Free SignUp",
-                  "Free Study Guide",
-                  "Custom Lead",
-                  "Scholarship",
-                  "Abandoned Cart",
-                  "Scholarship",
-                ].map((category) => (
-                  <label key={category} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={filters.category.includes(category)}
-                      onChange={() => handleFilterChange("category", category)}
-                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>{category}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-3">Domain</h4>
-              <div className="space-y-2">
-                {["OOR", "OOC", "OES"].map((domain) => (
-                  <label key={domain} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>{getDomainLabel(domain)}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 mt-4">
-            <button
-              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-              onClick={() => setShowFilters(false)}
-            >
-              Cancel
-            </button>
-            <button
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              onClick={() => setShowFilters(false)}
-            >
-              Apply Filters
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Table */}
-      <div className="overflow-y-auto" style={{ height: "600px" }}>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="sticky top-0 text-sm bg-white shadow-md z-10">
-            <tr>
-              <th className="w-12 px-2 py-3 text-left">
+              {/* Date Range Fields */}
+              <div className="relative">
                 <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300"
+                  type="date"
+                  placeholder="Start Date"
+                  value={filters.startDate}
+                  onChange={(e) =>
+                    handleFilterChange("startDate", e.target.value)
+                  }
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-              </th>
-              <th className="px-2 py-2 text-left font-medium text-gray-600 relative group">
-                <span>TYPE</span>
-                <button className="ml-1">
-                  <Filter className="h-4 w-4 text-gray-500" />
-                </button>
-                <div className="absolute left-0 mt-1 w-40 bg-white border border-gray-200 rounded shadow-lg z-30 hidden group-hover:block">
-                  {/* Reset option */}
+                <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              </div>
+
+              <div className="relative">
+                <input
+                  type="date"
+                  placeholder="End Date"
+                  value={filters.endDate}
+                  onChange={(e) =>
+                    handleFilterChange("endDate", e.target.value)
+                  }
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              </div>
+
+              <button className="px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 font-medium">
+                Send Follow-up
+              </button>
+
+              <button className="px-4 py-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 font-medium">
+                Remove Stale Leads
+              </button>
+            </div>
+          </div>
+
+          {showCreateButton && !selectedLeads.length && (
+            <button
+              onClick={onCreateClick}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Create New Lead
+            </button>
+          )}
+        </div>
+
+        {/* Search, Filters and Pagination Row*/}
+        <div className="flex flex-col text-xs md:flex-row md:items-center md:justify-between mb-4 gap-3">
+          <div className="relative flex-grow">
+            <input
+              type="text"
+              placeholder="Search Lead"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1); // Reset to first page on search
+              }}
+            />
+            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+          </div>
+
+          <button
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="h-5 w-5" />
+            <span>Filters</span>
+          </button>
+
+          {/* Pagination Summary */}
+          <div className="text-xs text-gray-600">
+            Showing {startIndex + 1}-{endIndex} of {filteredLeads.length} leads
+          </div>
+
+          <div className="flex text-xs items-center gap-2">
+            <button
+              className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(1)}
+            >
+              <ChevronsLeft className="h-5 w-5" />
+            </button>
+            <button
+              className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+
+            {/* <span className="text-sm px-4 py-2">
+              {currentPage} / {totalPages || 1}
+            </span> */}
+
+            <div className="flex gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                return (
                   <button
-                    onClick={() => handleFilterChange("type", "")}
-                    className="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
+                    key={pageNum}
+                    className={`w-10 h-10 ${
+                      currentPage === pageNum
+                        ? "bg-gray-200 font-medium"
+                        : "hover:bg-gray-100"
+                    } border border-gray-300 rounded-md`}
+                    onClick={() => setCurrentPage(pageNum)}
                   >
-                    Reset
+                    {pageNum}
                   </button>
+                );
+              })}
+              {totalPages > 5 && (
+                <span className="flex items-center px-2">...</span>
+              )}
+            </div>
+
+            <button
+              className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+              disabled={currentPage === totalPages || totalPages === 0}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+            <button
+              className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+              disabled={currentPage === totalPages || totalPages === 0}
+              onClick={() => setCurrentPage(totalPages)}
+            >
+              <ChevronsRight className="h-5 w-5" />
+            </button>
+            <div className="relative group">
+              <button className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                {itemsPerPage} / page
+              </button>
+              <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden z-20 hidden group-hover:block">
+                {[50, 100, 200, 500].map((value) => (
+                  <button
+                    key={value}
+                    className={`w-full px-4 py-2 text-left ${
+                      itemsPerPage === value
+                        ? "bg-blue-50 font-medium"
+                        : "hover:bg-gray-50"
+                    }`}
+                    onClick={() => setItemsPerPage(value)}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters Panel */}
+        {showFilters && (
+          <div className="border border-gray-200 rounded-md p-4 mb-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-base font-medium">Filters</h3>
+              <button
+                className="text-gray-500 hover:text-gray-700"
+                onClick={() => setShowFilters(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid text-sm md:grid-cols-3 gap-6">
+              <div>
+                <h4 className="font-medium mb-3">Domain</h4>
+                <div className="space-y-2">
+                  {[
+                    "Osha Outreach",
+                    "Osha Online Center",
+                    "Osha Education School",
+                  ].map((domain) => (
+                    <label key={domain} className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        checked={filters.domain === domainMapping[domain]}
+                        onChange={() => handleFilterChange("domain", domain)}
+                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>{domain}</span>
+                    </label>
+                  ))}
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      checked={filters.domain === ""}
+                      onChange={() => handleFilterChange("domain", "")}
+                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>All Domains</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-3">Lead Type</h4>
+                <div className="space-y-2">
                   {[
                     "Abandoned Cart",
                     "Order Creation",
@@ -428,178 +556,301 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                     "Free Study Guide",
                     "Custom Lead",
                     "Scholarship",
-                  ].map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => handleFilterChange("type", option)}
-                      className="w-full text-left px-2 py-1 hover:bg-gray-100 text-sm"
-                    >
-                      {option}
-                    </button>
+                  ].map((type) => (
+                    <label key={type} className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        checked={filters.type === type}
+                        onChange={() => handleFilterChange("type", type)}
+                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>{type}</span>
+                    </label>
                   ))}
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      checked={filters.type === ""}
+                      onChange={() => handleFilterChange("type", "")}
+                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>All Types</span>
+                  </label>
                 </div>
-              </th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">
-                FULL NAME
-              </th>
-              <th className="px-2 py-2 text-left font-medium text-gray-600 relative group">
-                <span>DOMAIN</span>
-                <button className="ml-1">
-                  <Filter className="h-4 w-4 text-gray-500" />
-                </button>
-                <div className="absolute right-4 mt-1 w-52 bg-white border border-gray-200 rounded shadow-lg z-30 hidden group-hover:block">
-                  <button
-                    onClick={() => handleFilterChange("domain", "")}
-                    className="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
-                  >
-                    Reset
-                  </button>
-                  {[
-                    "Osha Outreach",
-                    "Osha Online Center",
-                    "Osha Education School",
-                  ].map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => handleFilterChange("domain", option)}
-                      className="w-full text-left px-2 py-1 hover:bg-gray-100 text-sm"
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">
-                CREATED AT
-              </th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">
-                ACTION
-              </th>
-            </tr>
-          </thead>
+              </div>
+            </div>
+          </div>
+        )}
 
-          <tbody className="divide-y divide-gray-200">
-            {currentLeads.map((lead, index) => (
-              <tr key={lead._id || index} className="hover:bg-gray-50">
-                {/* CheckBox */}
-                <td className="w-12 px-2 py-4">
+        {/* Leads Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-xs">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="w-12 px-2 py-3 text-left">
                   <input
                     type="checkbox"
                     className="h-4 w-4 rounded border-gray-300"
+                    checked={
+                      currentLeads.length > 0 &&
+                      selectedLeads.length === currentLeads.length
+                    }
+                    onChange={handleSelectAll}
                   />
-                </td>
-                {/* TYPE */}
-                <td className="px-4 py-4">
-                  <div
-                    className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
-                      categoryColors[lead?.category ?? " "] || "bg-gray-500"
-                    }`}
-                  >
-                    {lead?.category}
+                </th>
+                <th className="px-2 py-2 text-left font-medium text-gray-600 relative group">
+                  <span>TYPE</span>
+                  <button className="ml-1">
+                    <Filter className="h-4 w-4 text-gray-500" />
+                  </button>
+                  <div className="absolute left-0 mt-1 w-40 bg-white border border-gray-200 rounded shadow-lg z-30 hidden group-hover:block">
+                    {/* Reset option */}
+                    <button
+                      onClick={() => handleFilterChange("type", "")}
+                      className="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
+                    >
+                      Reset
+                    </button>
+                    {[
+                      "Abandoned Cart",
+                      "Order Creation",
+                      "Contact Us",
+                      "Free SignUp",
+                      "Free Study Guide",
+                      "Custom Lead",
+                      "Scholarship",
+                    ].map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => handleFilterChange("type", option)}
+                        className="w-full text-left px-2 py-1 hover:bg-gray-100 text-sm"
+                      >
+                        {option}
+                      </button>
+                    ))}
                   </div>
-                </td>
-                {/* Full Name */}
-                <td className="px-4 py-4">
-                  <div className="py-4 text-sm font-medium text-gray-600">
-                    {(lead.contact_us as any)?.name ||
-                      [
-                        lead.free_signup,
-                        lead.order_creation,
-                        lead.scholarship,
-                        lead.custom_lead,
-                        lead.abandoned_cart,
-                      ]
-                        .map((entry) =>
-                          entry &&
-                          typeof entry === "object" &&
-                          "firstName" in entry &&
-                          "lastName" in entry
-                            ? `${entry.firstName} ${entry.lastName ?? ""}`
-                            : null
-                        )
-                        .filter(Boolean)[0] ||
-                      "No Data Available"}
-                  </div>
-                </td>
-                {/* DOMAIN (LEAD SOURCE) */}
-                <td className="py-4">
-                  {
-                    <div className="space-y-2">
-                      <div className="px-2 py-2 inline-block rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {getDomainLabel(lead.domain)}
-                      </div>
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
+                  FULL NAME
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
+                  DOMAIN
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
+                  DATE CREATED
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
+                  ACTION
+                </th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-gray-200">
+              {currentLeads.map((lead, index) => (
+                <tr key={lead._id || index} className="hover:bg-gray-50">
+                  {/* CheckBox */}
+                  <td className="w-12 px-2 py-4">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gray-300"
+                      checked={
+                        lead._id
+                          ? selectedLeads.includes(lead._id as string)
+                          : false
+                      }
+                      onChange={() =>
+                        lead._id && handleSelectLead(lead._id as string)
+                      }
+                    />
+                  </td>
+                  {/* TYPE */}
+                  <td className="px-4 py-4">
+                    <div
+                      className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
+                        categoryColors[lead?.category ?? " "] || "bg-gray-500"
+                      }`}
+                    >
+                      {lead?.category}
                     </div>
-                  }
-                </td>
-                {/* CREATED AT */}
-                <td className="py-4 text-sm whitespace-nowrap">
-                  {lead.createdAt
-                    ? new Date(lead.createdAt).toLocaleString("en-US", {
-                        timeZone: "America/New_York",
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                      }) + " EST"
-                    : "N/A"}
-                  {/* <div className="space-y-1">
-                      <div>
-                        Lead ID:{" "}
-                        <span className="font-medium">
-                          {lead._id?.substring(0, 8) || "New"}
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Assigned:{" "}
-                        <span className="font-medium">
-                          {lead.assigned ? "Yes" : "No"}
-                        </span>
-                      </div>
-                      {lead.resolve_status && (
-                        <div className="text-sm text-gray-600">
-                          Resolution:{" "}
-                          <span className="font-medium">
-                            {lead.resolve_status}
+                  </td>
+                  {/* Full Name */}
+                  <td className="px-4 py-4">
+                    <div className="py-4 text-sm font-medium text-gray-600">
+                      {(lead.contact_us as any)?.name ||
+                        [
+                          lead.free_signup,
+                          lead.order_creation,
+                          lead.scholarship,
+                          lead.custom_lead,
+                          lead.abandoned_cart,
+                        ]
+                          .map((entry) =>
+                            entry &&
+                            typeof entry === "object" &&
+                            "firstName" in entry &&
+                            "lastName" in entry
+                              ? `${entry.firstName} ${entry.lastName ?? ""}`
+                              : null
+                          )
+                          .filter(Boolean)[0] ||
+                        "No Data Available"}
+                    </div>
+                  </td>
+                  {/* DOMAIN (LEAD SOURCE) */}
+                  <td className="px-4 py-4 text-sm">
+                    {getDomainLabel(lead.domain || "")}
+                  </td>
+                  {/* DATE CREATED */}
+                  <td className="px-4 py-4 text-sm">
+                    {lead.createdAt
+                      ? new Date(lead.createdAt).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })
+                      : "N/A"}
+                  </td>
+                  {/* ACTION */}
+                  <td className="py-4">
+                    <div className="flex items-center justify-start gap-2">
+                      {isMyLeads ? (
+                        <button className="flex items-center justify-center px-3 py-1 border border-blue-300 rounded-md text-blue-600 hover:bg-blue-50">
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </button>
+                      ) : lead.assigned ? (
+                        <div className="flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600">
+                          <span className="text-sm">
+                            Assigned to{" "}
+                            {lead.assigned_to &&
+                            typeof lead.assigned_to === "object"
+                              ? (lead.assigned_to as any).full_name
+                              : "Unknown User"}
                           </span>
                         </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (lead._id && onAssign) onAssign(lead._id);
+                          }}
+                          className="flex items-center px-3 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50"
+                        >
+                          <UserPlus className="h-4 w-4 mr-1" />
+                          Assign Me
+                        </button>
                       )}
-                    </div> */}
-                </td>
-                {/* ACTION */}
-                <td className="py-4">
-                  <div className="flex flex-col gap-2">
-                    {lead.assigned ? (
-                      <div className="flex items-center justify-center w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600">
-                        <span className="text-sm">
-                          Assigned to{" "}
-                          {lead.assigned_to &&
-                          typeof lead.assigned_to === "object"
-                            ? (lead.assigned_to as any).full_name
-                            : "Unknown User"}
-                        </span>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          if (lead._id) onAssign(lead._id);
-                        }}
-                        className="flex items-center justify-center w-full px-3 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50"
-                      >
-                        <UserPlus className="h-4 w-4 mr-1" />
-                        Assign Me
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+                      {session?.user_type !== 3 && (
+                        <button
+                          className="flex items-center px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm "
+                          onClick={() => handleDeleteClick(lead._id as string)}
+                        >
+                          <Trash2 size={14} className="mr-1" />
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Confirm Deletion
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete this lead? This action cannot be
+              undone.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setLeadToDelete(null);
+                }}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Delete Confirmation Modal */}
+      {showBatchDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Confirm Batch Deletion
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete {selectedLeads.length} leads? This
+              action cannot be undone.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowBatchDeleteModal(false)}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmBatchDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Delete All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Assign Confirmation Modal */}
+      {showBatchAssignModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Confirm Batch Assignment
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to assign {selectedLeads.length} leads to
+              yourself?
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowBatchAssignModal(false)}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmBatchAssign}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Assign All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-    // </div>
   );
 };
 

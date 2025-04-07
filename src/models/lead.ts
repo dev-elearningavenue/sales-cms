@@ -11,12 +11,13 @@ const lead_category_enum = [
   "Custom Lead",
   "Unknown"
 ] as const;
+
 const status_enum = [
   "Follow Up",
   "Resolved",
   "Pending",
   "Converted",
-  "Assigned Orders",
+  "Assigned Order",
   "Paid",
 ] as const;
 
@@ -80,6 +81,21 @@ const leadSchema = new Schema<ILead>(
       required: false,
       default: null,
     },
+    assignedAt: {
+      type: Date,
+      required: false,
+      default: null,
+    },
+    resolved: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+    resolvedAt: {
+      type: Date,
+      required: false,
+      default: null,
+    },
     created_by: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -91,15 +107,36 @@ const leadSchema = new Schema<ILead>(
       enum: ["OOR", "OOC", "OES"],
       required: true,
     },
-    next_follow_up_date: {
-      type: Date,
-      required: false,
-      default: null,
+    next_follow_up: {
+      type: [
+        {
+          date: { type: Date, required: true },
+          contact_type: { type: [String], enum: ["chat", "email", "call"], required: true },
+          notes: { type: String }
+        }
+      ],
+      default: [],
     },
     conversion_value: {
       type: Number,
       required: false,
       default: null,
+    },
+    notes: {
+      type: [
+        {
+          text: String,
+          created_at: {
+            type: Date,
+            default: Date.now,
+          },
+          created_by: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+          },
+        },
+      ],
+      default: [],
     },
   },
   { timestamps: true }

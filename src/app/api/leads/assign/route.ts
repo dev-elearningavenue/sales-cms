@@ -23,10 +23,11 @@ export async function POST(req: NextRequest) {
     const user = await User.findById(userId).select('full_name user_name');
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
     
-    // Update the lead with assignment info
+    // Update the lead with assignment info and timestamp
     await Lead.findByIdAndUpdate(leadId, { 
-      assigned_to: userId, 
-      assigned: true 
+      assigned_to: userId,
+      assigned: true,
+      assignedAt: new Date()
     });
 
     // Return success with user details

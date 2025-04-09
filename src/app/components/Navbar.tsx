@@ -117,13 +117,23 @@ export const Navbar = () => {
 
   return (
     <nav className="flex justify-between p-2 bg-white dark:bg-gray-800 transition-colors">
-      <div className="flex p-2 justify-between items-center space-x-4">
-        <button onClick={() => router.push("/dashboard")} className="text-xl">
-          <h1 className="text-xl font-bold dark:text-white">Dashboard</h1>
-        </button>
+      <div
+        className={`flex p-2 ${
+          !session ? "invisible" : ""
+        } justify-between items-center space-x-4`}
+      >
+        {session && (
+          <button onClick={() => router.push("/dashboard")} className="text-xl">
+            <h1 className="text-xl font-bold dark:text-white">Dashboard</h1>
+          </button>
+        )}
       </div>
 
-      <div className="flex p-2 items-center space-x-4">
+      <div
+        className={`flex p-2 items-center space-x-4 ${
+          !session ? "ml-auto" : ""
+        }`}
+      >
         <button
           onClick={toggleTheme}
           className={`p-2 rounded-full transition-colors ${

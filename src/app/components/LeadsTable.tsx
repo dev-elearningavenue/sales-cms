@@ -336,7 +336,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   Assign All
                 </button>
               )}
-              {onDelete && (
+              {onDelete && session?.user_type !== 3 && (
                 <button
                   onClick={handleBatchDelete}
                   className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm flex items-center gap-1"

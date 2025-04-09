@@ -9,14 +9,14 @@ export async function createNewLeadNotification(lead: ILead) {
   try {
     console.log("🔔 createNewLead Notification called with lead:", lead.category, lead.domain, lead._id,);
     
-    // Get all users of type 1 and 2
-    const adminUsers = await User.find({ user_type: { $in: [1, 2] } });
-    // console.log(`🔔 Found ${adminUsers.length} admin users to notify:`, adminUsers.map(u => u._id));
+    // Get all users regardless of type
+    const allUsers = await User.find({});
+    console.log(`🔔 Found ${allUsers.length} users to notify for new lead`);
     
     const notificationData = new Notification( {
       type: "new_lead",
       lead: lead._id,
-      to_users: adminUsers.map(user => user._id),
+      to_users: allUsers.map(user => user._id),
       message: `New lead received from ${lead.domain} - ${lead.category}`,
       metadata: {
         lead_category: lead.category,

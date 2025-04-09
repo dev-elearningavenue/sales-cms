@@ -223,9 +223,21 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   const confirmBatchAssign = async () => {
     if (!onAssign || selectedLeads.length === 0) return;
 
+    // Store count for notification
+    const assignCount = selectedLeads.length;
+
     // Process each lead sequentially
     for (const leadId of selectedLeads) {
-      await onAssign(leadId);
+      onAssign(leadId); // Pass flag to suppress individual notifications
+    }
+
+    // Emit a single notification after batch operation is complete
+    if (window && window.dispatchEvent) {
+      window.dispatchEvent(
+        new CustomEvent("batchAssign", {
+          detail: { count: assignCount },
+        })
+      );
     }
 
     setShowBatchAssignModal(false);
@@ -243,9 +255,21 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   const confirmBatchDelete = async () => {
     if (!onDelete || selectedLeads.length === 0) return;
 
+    // Store count for notification
+    const deletedCount = selectedLeads.length;
+
     // Process each lead sequentially
     for (const leadId of selectedLeads) {
-      await onDelete(leadId);
+      onDelete(leadId); // Pass flag to suppress individual notifications
+    }
+
+    // Emit a single notification after batch operation is complete
+    if (window && window.dispatchEvent) {
+      window.dispatchEvent(
+        new CustomEvent("batchDelete", {
+          detail: { count: deletedCount },
+        })
+      );
     }
 
     setShowBatchDeleteModal(false);

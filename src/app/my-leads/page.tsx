@@ -11,53 +11,13 @@ import {
   Filter,
   Eye,
   X,
-  Trash2,
+  Plus,
 } from "lucide-react";
 import { Dialog } from "@/components/Dialog";
 import { Customer, Field } from "@/components/Customer";
 import CourseInfo from "@/components/CourseInfo";
 // import mongoose from "mongoose";
 import LeadNotes from "../components/LeadNotes";
-
-// Replace the STATUS_OPTIONS constant with a function to get category-specific statuses
-const getStatusOptionsForCategory = (
-  category: string,
-  lead?: ILead
-): string[] => {
-  // Basic options by category
-  let options: string[];
-
-  switch (category) {
-    case "Order Creation":
-      options = ["Pending", "Assigned Order"];
-      break;
-    case "Contact Us":
-      options = ["Pending", "Resolved"];
-      break;
-    default:
-      options = ["Pending", "Follow Up", "Converted", "Resolved"];
-      break;
-  }
-
-  // If lead has follow-ups and its status is "Follow Up", add "Add Follow-up" option
-  if (
-    lead &&
-    lead.next_follow_up &&
-    Array.isArray(lead.next_follow_up) &&
-    lead.next_follow_up.length > 0 &&
-    lead.status === "Follow Up"
-  ) {
-    // Replace "Follow Up" with "Add Follow-up"
-    return options.map((opt) => (opt === "Follow Up" ? "Add Follow-up" : opt));
-  }
-
-  // If lead status is not Pending anymore, remove Pending from options
-  if (lead && lead.status !== "Pending") {
-    return options.filter((opt) => opt !== "Pending");
-  }
-
-  return options;
-};
 
 // Domain mapping for labels
 const DOMAIN_LABELS = {
@@ -307,6 +267,11 @@ const MyLeads = () => {
       case "Contact Us":
         options = ["Pending", "Resolved"];
         break;
+      case "Scholarship":
+      case "Free SignUp":
+      case "Free Study Guide":
+        options = ["Pending", "Resolved"];
+        break;
       default:
         options = [
           "Pending",
@@ -314,40 +279,67 @@ const MyLeads = () => {
           "Follow Up 2",
           "Follow Up 3",
           "Converted",
+          "Resolved",
         ];
         break;
     }
 
     // If lead exists and we need to modify options based on status
     if (lead) {
-      // If lead status is not Pending anymore, remove Pending from options
-      if (lead.status !== "Pending") {
+      const currentStatus = lead.status;
+
+      // If status is not pending, remove pending option
+      if (currentStatus !== "Pending") {
         options = options.filter((opt) => opt !== "Pending");
       }
 
-      // If lead already has follow-ups, show appropriate next follow-up option
-      if (lead.status === "Follow Up" && hasFollowUp(lead)) {
-        const count = getFollowUpCount(lead);
+      // Handle follow-up status progression
+      if (currentStatus === "Follow Up 1") {
+        // In Follow Up 1, remove Follow Up 1 option (since we're already here)
+        options = options.filter((opt) => opt !== "Follow Up 1");
+      } else if (currentStatus === "Follow Up 2") {
+        // In Follow Up 2, remove both Follow Up 1 and 2 options
+        options = options.filter(
+          (opt) => opt !== "Follow Up 1" && opt !== "Follow Up 2"
+        );
+      } else if (currentStatus === "Follow Up 3") {
+        // In Follow Up 3, remove all Follow Up options
+        options = options.filter((opt) => !opt.startsWith("Follow Up"));
+      } else if (
+        currentStatus === "Follow Up" &&
+        lead.next_follow_up &&
+        Array.isArray(lead.next_follow_up)
+      ) {
+        // Legacy "Follow Up" status with next_follow_up array
+        const count = lead.next_follow_up.length;
 
-        // If we have 3+ follow-ups, don't allow more
-        if (count >= 3) {
-          // Replace "Follow Up" with special note that max follow-ups reached
-          return options.map((opt) =>
-            opt === "Follow Up" ? "Max Follow-ups Reached" : opt
-          );
-        } else {
-          // Replace "Follow Up" with the next numbered follow-up
-          return options.map((opt) =>
-            opt === "Follow Up" ? `Follow-up #${count + 1}` : opt
-          );
-        }
+        // Remove previous follow-up options
+        if (count >= 1)
+          options = options.filter((opt) => opt !== "Follow Up 1");
+        if (count >= 2)
+          options = options.filter((opt) => opt !== "Follow Up 2");
+        if (count >= 3)
+          options = options.filter((opt) => !opt.startsWith("Follow Up"));
       }
     }
 
     return options;
   };
 
-  // Modify the handleStatusChange function to handle follow-up numbering
+  // Get the follow-up level for display purposes
+  const getFollowUpDisplayStatus = (lead: ILead): string => {
+    if (
+      lead.status === "Follow Up" &&
+      lead.next_follow_up &&
+      Array.isArray(lead.next_follow_up)
+    ) {
+      const count = lead.next_follow_up.length;
+      return `Follow Up ${count}`;
+    }
+    return lead.status || "Pending";
+  };
+
+  // Modify the handleStatusChange function to handle follow-up levels
   const handleStatusChange = (leadId: string, newStatus: string) => {
     // Find the lead
     const lead = leads.find((l) => l._id === leadId);
@@ -356,14 +348,10 @@ const MyLeads = () => {
     // Handle special status types
     let actualStatus = newStatus;
 
-    // Convert "Follow-up #X" to "Follow Up" for backend
+    // Convert legacy "Follow-up #X" format to new format
     if (newStatus.startsWith("Follow-up #")) {
-      actualStatus = "Follow Up";
-    }
-
-    // Don't process if it's the "Max Follow-ups Reached" non-selectable option
-    if (newStatus === "Max Follow-ups Reached") {
-      return;
+      const level = parseInt(newStatus.replace("Follow-up #", ""));
+      actualStatus = `Follow Up ${level}`;
     }
 
     // Store the lead ID and pending status
@@ -373,7 +361,11 @@ const MyLeads = () => {
     // Show appropriate modal based on status
     if (actualStatus === "Converted") {
       setShowConversionModal(true);
-    } else if (actualStatus === "Follow Up") {
+    } else if (actualStatus.startsWith("Follow Up")) {
+      // Always show follow-up modal for any follow-up level
+      setContactTypes([]); // Reset contact types
+      setFollowUpDate(""); // Reset follow-up date
+      setFollowUpNote(""); // Reset follow-up note
       setShowFollowUpModal(true);
     } else {
       // For other statuses, prompt for a note (optional)
@@ -395,6 +387,28 @@ const MyLeads = () => {
     if (!currentLeadId || !pendingStatusChange) return;
 
     try {
+      // Validate inputs for specific status types
+      if (pendingStatusChange.startsWith("Follow Up")) {
+        // Require date and contact type for follow-ups
+        if (!followUpDate || contactTypes.length === 0) {
+          addNotification({
+            message: "Please set a date and select at least one contact method",
+            type: "warning",
+            read: false,
+          });
+          return;
+        }
+      }
+
+      if (pendingStatusChange === "Converted" && !conversionValue) {
+        addNotification({
+          message: "Please enter a conversion value",
+          type: "warning",
+          read: false,
+        });
+        return;
+      }
+
       // Prepare data based on status
       const requestData: any = {
         leadId: currentLeadId,
@@ -406,7 +420,7 @@ const MyLeads = () => {
         requestData.conversionValue = conversionValue;
       }
 
-      if (pendingStatusChange === "Follow Up" && followUpDate) {
+      if (pendingStatusChange.startsWith("Follow Up") && followUpDate) {
         requestData.followUpDate = followUpDate;
         requestData.contactTypes = contactTypes as (
           | "email"
@@ -437,7 +451,7 @@ const MyLeads = () => {
               updatedLead.resolve_status = "Resolved";
             }
 
-            if (pendingStatusChange === "Follow Up" && followUpDate) {
+            if (pendingStatusChange.startsWith("Follow Up") && followUpDate) {
               const newFollowUp = {
                 date: new Date(followUpDate),
                 contact_type: contactTypes as ("email" | "call" | "chat")[],
@@ -490,12 +504,26 @@ const MyLeads = () => {
         throw new Error("Failed to update status");
       }
 
+      // Notify the user of the status change with a clear message
+      addNotification({
+        message: `Lead status updated to ${pendingStatusChange}`,
+        type: "info",
+        read: false,
+      });
+
       // Reset form state
       closeAllModals();
     } catch (error) {
       console.error("Error updating status:", error);
       // Revert the optimistic update
       fetchMyLeads();
+
+      // Notify user of error
+      addNotification({
+        message: "Failed to update lead status",
+        type: "warning",
+        read: false,
+      });
     }
   };
 
@@ -860,10 +888,8 @@ const MyLeads = () => {
                           key={lead._id as string}
                           className="hover:bg-gray-50 transition-colors"
                         >
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div
-                              className={`py-1 px-2 inline-block rounded-lg font-medium text-gray`}
-                            >
+                          <td className="px-4 py-3">
+                            <div className="py-1 px-2 inline-block rounded-lg font-medium text-gray break-words">
                               {(() => {
                                 const populatedKey = [
                                   "contact_us",
@@ -902,6 +928,7 @@ const MyLeads = () => {
                               })()}
                             </div>
                           </td>
+
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div
                               className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
@@ -940,40 +967,36 @@ const MyLeads = () => {
                               className={`text-sm px-3 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                                 lead.status === "Converted"
                                   ? "bg-green-100 text-green-800 border-green-200"
-                                  : lead.status === "Follow Up"
+                                  : (lead.status || "").startsWith("Follow Up")
                                   ? "bg-yellow-100 text-yellow-800 border-yellow-200"
                                   : lead.status === "Pending"
                                   ? "bg-gray-100 text-gray-800 border-gray-200"
                                   : "bg-blue-100 text-blue-800 border-blue-200"
                               }`}
-                              value={
-                                lead.status === "Follow Up" && hasFollowUp(lead)
-                                  ? `Follow-up #${getFollowUpCount(lead) + 1}`
-                                  : lead.status
-                              }
+                              value={getFollowUpDisplayStatus(lead)}
                               onChange={(e) =>
                                 handleStatusChange(
                                   lead._id as string,
                                   e.target.value
                                 )
                               }
-                              disabled={
-                                lead.status === "Follow Up" &&
-                                getFollowUpCount(lead) >= 3
-                              }
                             >
+                              <option value={getFollowUpDisplayStatus(lead)}>
+                                {getFollowUpDisplayStatus(lead)}
+                              </option>
                               {getStatusOptionsForCategory(
                                 lead.category as string,
                                 lead
-                              ).map((status) => (
-                                <option
-                                  key={status}
-                                  value={status}
-                                  disabled={status === "Max Follow-ups Reached"}
-                                >
-                                  {status}
-                                </option>
-                              ))}
+                              )
+                                .filter(
+                                  (opt) =>
+                                    opt !== getFollowUpDisplayStatus(lead)
+                                )
+                                .map((status) => (
+                                  <option key={status} value={status}>
+                                    {status}
+                                  </option>
+                                ))}
                             </select>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
@@ -990,7 +1013,7 @@ const MyLeads = () => {
                                 className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-sm flex items-center"
                                 onClick={() => handleViewNotes(lead)}
                               >
-                                Notes{" "}
+                                Notes <Plus size={14} className="ml-1 mr-1" />
                                 {lead.notes &&
                                   Array.isArray(lead.notes) &&
                                   lead.notes.length > 0 && (

@@ -157,7 +157,37 @@ const Leads = () => {
     return "New Lead";
   };
 
-  const handleAssign = async (leadId: string) => {
+  const handleDeleteLead = async (leadId: string, isBatchOperation = false) => {
+    try {
+      const res = await fetch(`/api/leads?leadId=${leadId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete lead");
+      }
+      setLeads((prevLeads) => prevLeads.filter((lead) => lead._id !== leadId));
+
+      // Skip individual notifications for batch operations
+      if (!isBatchOperation) {
+        // Show success notification
+        addNotification({
+          message: "Lead deleted successfully",
+          type: "info",
+          read: false,
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting lead:", error);
+      addNotification({
+        message: "Failed to delete lead",
+        type: "warning",
+        read: false,
+      });
+    }
+  };
+
+  const handleAssign = async (leadId: string, isBatchOperation = false) => {
     try {
       console.log(`Assigning Lead: ${leadId}`);
       const res = await fetch("/api/leads/assign", {
@@ -194,6 +224,21 @@ const Leads = () => {
             return lead;
           });
         });
+
+        // Skip individual notifications for batch operations
+        if (!isBatchOperation) {
+          let leadName = "";
+          const lead = leads.find((l) => l._id === leadId);
+          if (lead) {
+            leadName = getLeadName(lead);
+          }
+
+          addNotification({
+            message: `Lead assigned: ${leadName}`,
+            type: "info",
+            read: false,
+          });
+        }
       } else {
         alert(data.message || "Failed to assign lead.");
       }
@@ -359,33 +404,35 @@ const Leads = () => {
     setFormErrors({});
   };
 
-  // Add a delete lead function
-  const handleDeleteLead = async (leadId: string) => {
-    try {
-      const res = await fetch(`/api/leads?leadId=${leadId}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to delete lead");
-      }
-      setLeads((prevLeads) => prevLeads.filter((lead) => lead._id !== leadId));
-
-      // Show success notification
+  // Add event listeners for batch operations
+  useEffect(() => {
+    const handleBatchDelete = (e: CustomEvent) => {
+      const { count } = e.detail;
       addNotification({
-        message: "Lead deleted successfully",
+        message: `${count} leads deleted successfully`,
         type: "info",
         read: false,
       });
-    } catch (error) {
-      console.error("Error deleting lead:", error);
+    };
+
+    const handleBatchAssign = (e: CustomEvent) => {
+      const { count } = e.detail;
       addNotification({
-        message: "Failed to delete lead",
-        type: "warning",
+        message: `${count} leads assigned successfully`,
+        type: "info",
         read: false,
       });
-    }
-  };
+    };
+
+    // TypeScript: Casting event as any to prevent type issues
+    window.addEventListener("batchDelete", handleBatchDelete as any);
+    window.addEventListener("batchAssign", handleBatchAssign as any);
+
+    return () => {
+      window.removeEventListener("batchDelete", handleBatchDelete as any);
+      window.removeEventListener("batchAssign", handleBatchAssign as any);
+    };
+  }, [addNotification]);
 
   return (
     <>

@@ -15,11 +15,6 @@ import Link from "next/link";
 import { useApp } from "@/contexts/AppContext";
 import { usePathname } from "next/navigation";
 
-interface SidebarProps {
-  theme: "dark" | "light";
-  toggleTheme: () => void;
-}
-
 interface NavItemProps {
   icon: React.ReactNode;
   text: string;
@@ -29,7 +24,7 @@ interface NavItemProps {
 }
 
 const Sidebar = () => {
-  const { theme, toggleTheme } = useApp();
+  const { theme, toggleTheme, session } = useApp();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -39,6 +34,9 @@ const Sidebar = () => {
 
   // Fetch unassigned and unresolved leads count
   useEffect(() => {
+    // Don't fetch if not logged in - return early
+    if (!session) return;
+
     const fetchLeadCounts = async () => {
       try {
         // Fetch unassigned leads count
@@ -55,13 +53,15 @@ const Sidebar = () => {
       }
     };
 
+    // Initial fetch
     fetchLeadCounts();
 
     // Set up interval to periodically refresh counts
     const intervalId = setInterval(fetchLeadCounts, 30000); // refresh every 30 seconds
 
+    // Clean up interval on unmount or when session changes
     return () => clearInterval(intervalId);
-  }, []);
+  }, [session]); // Re-run effect when session changes
 
   // Toggle pin state
   const togglePin = (): void => {
@@ -91,6 +91,8 @@ const Sidebar = () => {
 
   // Handle clicks outside the sidebar to collapse when not pinned
   useEffect(() => {
+    if (!session) return; // Don't add listeners if not logged in
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
         sidebarRef.current instanceof HTMLElement &&
@@ -105,7 +107,10 @@ const Sidebar = () => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isPinned]);
+  }, [isPinned, session]);
+
+  // Don't render the sidebar at all if not logged in
+  if (!session) return null;
 
   return (
     <div

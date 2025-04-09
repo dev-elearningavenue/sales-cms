@@ -8,6 +8,7 @@ import {
 import mongoose from "mongoose";
 import Log from "@/models/log";
 import Lead from "@/models/lead";
+import { createNewLeadNotification } from "@/services/notificationService";
 
 console.log("mongoListener.ts loaded");
 const mongoUri_Master = process.env.CLUSTER_MASTER as string;
@@ -638,16 +639,17 @@ async function syncToTargetCollection(
       resolve_status: "Pending",
       assigned: false,
       createdAt: new Date(),
-      next_follow_up_date: null,
+      next_follow_up: null,
+      notes: [],
       conversion_value: null,
     });
 
     // Use the MongoDB session with Mongoose save
     const leadResult = await leadData.save();
+    // console.log(`Lead created with ID: ${leadResult._id}`);
 
-    console.log(`Lead created with ID: ${leadResult._id}`);
-
-    // Return the insert result
+    createNewLeadNotification(leadResult);
+    
     return insertResult;
   } catch (error: any) {
     console.error(`Error syncing data from ${domain}:`, error);
@@ -693,8 +695,8 @@ function getLeadDetails(type: string, insertedId: ObjectId, domain: string) {
 
 // Improve connection monitoring
 function setupConnectionMonitoring() {
-  const CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
-  const HEALTH_CHECK_TIMEOUT = 60000; // 1 min timeout for health checks
+  const CHECK_INTERVAL = 10 * 60 * 1000; // Check every 5 minutes
+  const HEALTH_CHECK_TIMEOUT = 5 * 60000; // 1 min timeout for health checks
 
   setInterval(async () => {
     try {

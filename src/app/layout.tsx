@@ -3,8 +3,9 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
-import { AppProvider, useApp } from "@/contexts/AppContext";
+import { AppProvider } from "@/contexts/AppContext";
 import "@/lib/server";
+import BackToTop from "./components/BackToTop";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,9 +27,12 @@ export default function RootLayout({
             <Sidebar />
             <div className="flex-1 flex flex-col">
               <Navbar />
-              <main className="flex-1">{children}</main>
+              <main className="flex-1 overflow-y-auto relative">
+                {children}
+              </main>
             </div>
           </div>
+          <BackToTop />
         </AppProvider>
       </body>
     </html>

@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getLeadsByUser, updateLeadStatus } from "@/controllers/leadController";
 import { getDataFromToken } from "@/utils/get_token_data";
 import connectDB from "@/lib/db";
-import { verifyToken } from "@/utils/auth";
-import Lead from "@/models/lead";
 import User from "@/models/user";
+import { verifyToken } from "@/utils/auth";
+import { assignLeadToUser } from "@/controllers/leadController";
 
 // Connect to database at route initialization
 connectDB().catch(console.error);
@@ -52,20 +52,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
     const userId = decoded.data._id;
-
     // Get user details
     const user = await User.findById(userId).select("full_name user_name");
     if (!user)
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    // Use controller to assign lead and create notification
+    const result = await assignLeadToUser(leadId, userId);
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.message },
+        { status: result.message === "Lead not found" ? 404 : 500 }
+      );
+    }
 
-    // Update the lead with assignment info and timestamp
-    await Lead.findByIdAndUpdate(leadId, {
-      assigned_to: user._id,
-      assigned: true,
-      assignedAt: new Date(), // Add timestamp for when the lead was assigned
+    return NextResponse.json({
+      success: true,
+      message: result.message,
     });
-
-    return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to assign lead" },
@@ -76,14 +79,14 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { 
-      leadId, 
-      newStatus, 
-      conversionValue, 
-      followUpDate, 
-      contactTypes, 
-      followUpNote, 
-      note 
+    const {
+      leadId,
+      newStatus,
+      conversionValue,
+      followUpDate,
+      contactTypes,
+      followUpNote,
+      note,
     } = await req.json();
 
     if (!leadId || !newStatus) {
@@ -96,41 +99,58 @@ export async function PATCH(req: NextRequest) {
     // Get user ID for note creation
     const tokenData = await getDataFromToken();
     if (!tokenData || typeof tokenData !== "object" || !tokenData._id) {
-      return NextResponse.json(
-        { message: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const userId = tokenData._id.toString();
 
     // Build additional data object based on provided values
     const additionalData: any = {};
-    
+
     if (conversionValue !== undefined) {
       additionalData.conversionValue = conversionValue;
     }
-    
-    if (followUpDate) {
-      additionalData.followUpDate = new Date(followUpDate);
-      
-      if (contactTypes && Array.isArray(contactTypes) && contactTypes.length > 0) {
+
+    // Handle both legacy "Follow Up" and numbered follow-ups (Follow Up 1, 2, 3)
+    if (followUpDate && (newStatus === "Follow Up" || newStatus.startsWith("Follow Up "))) {
+      additionalData.followUpDate = followUpDate;
+
+      if (
+        contactTypes &&
+        Array.isArray(contactTypes) &&
+        contactTypes.length > 0
+      ) {
         additionalData.contactTypes = contactTypes;
       }
-      
+
       if (followUpNote) {
         additionalData.followUpNote = followUpNote;
       }
     }
-    
+
     if (note) {
       additionalData.note = note;
       additionalData.userId = userId;
     }
 
-    const updatedLead = await updateLeadStatus(leadId, newStatus, additionalData);
+    // Always pass the user ID for notification creation
+    additionalData.userId = userId;
+
+    const updatedLead = await updateLeadStatus(
+      leadId,
+      newStatus,
+      additionalData
+    );
+    
     if (!updatedLead) {
       return NextResponse.json({ message: "Lead not found" }, { status: 404 });
+    }
+    
+    // Check if there was a validation error
+    if (typeof updatedLead === 'object' && 'error' in updatedLead && updatedLead.error === true) {
+      return NextResponse.json({ 
+        message: updatedLead.message || "Validation error" 
+      }, { status: 400 });
     }
 
     return NextResponse.json(

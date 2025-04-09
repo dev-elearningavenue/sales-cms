@@ -1,8 +1,8 @@
 "use client";
-import { useApp } from "@/contexts/AppContext";
+import { useApp, DbNotificationType } from "@/contexts/AppContext";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { User, Moon, Sun, Bell } from "lucide-react";
+import { User, Moon, Sun, Bell, CheckCircle } from "lucide-react";
 import { LoadingSkeleton } from "./LoadingSkeleton";
 
 export const Navbar = () => {
@@ -15,6 +15,9 @@ export const Navbar = () => {
     notifications,
     markNotificationAsRead,
     markAllNotificationsAsRead,
+    dbNotifications,
+    markDbNotificationAsRead,
+    markAllDbNotificationsAsRead,
     unreadCount,
   } = useApp();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -46,7 +49,8 @@ export const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const formatTime = (date: Date) => {
+  const formatTime = (dateString: string | Date) => {
+    const date = dateString instanceof Date ? dateString : new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
 
@@ -71,7 +75,7 @@ export const Navbar = () => {
     return date.toLocaleDateString();
   };
 
-  // Handle notification click
+  // Handle local notification click
   const handleNotificationClick = (id: string, leadId?: string) => {
     markNotificationAsRead(id);
 
@@ -81,6 +85,24 @@ export const Navbar = () => {
     }
 
     setIsNotificationsOpen(false);
+  };
+
+  // Handle DB notification click
+  const handleDbNotificationClick = (notification: DbNotificationType) => {
+    markDbNotificationAsRead(notification._id);
+
+    // Navigate to lead if lead is provided
+    if (notification.lead && notification.lead._id) {
+      router.push(`/leads?id=${notification.lead._id}`);
+    }
+
+    setIsNotificationsOpen(false);
+  };
+
+  // Mark all notifications as read
+  const handleMarkAllAsRead = () => {
+    markAllNotificationsAsRead();
+    markAllDbNotificationsAsRead();
   };
 
   return (
@@ -124,7 +146,7 @@ export const Navbar = () => {
                   <h3 className="font-medium dark:text-white">Notifications</h3>
                   {unreadCount > 0 && (
                     <button
-                      onClick={markAllNotificationsAsRead}
+                      onClick={handleMarkAllAsRead}
                       className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                     >
                       Mark all as read
@@ -132,12 +154,46 @@ export const Navbar = () => {
                   )}
                 </div>
 
-                {notifications.length === 0 ? (
+                {notifications.length === 0 && dbNotifications.length === 0 ? (
                   <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                     No notifications
                   </div>
                 ) : (
                   <div>
+                    {/* DB Notifications first */}
+                    {dbNotifications.map((notification) => (
+                      <div
+                        key={notification._id}
+                        onClick={() => handleDbNotificationClick(notification)}
+                        className={`p-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors ${
+                          !notification.read
+                            ? "bg-blue-50 dark:bg-blue-900/20"
+                            : ""
+                        }`}
+                      >
+                        <div className="flex items-start">
+                          <div className="flex-1">
+                            <div
+                              className={`text-sm ${
+                                !notification.read ? "font-semibold" : ""
+                              } dark:text-white`}
+                            >
+                              {notification.message}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {formatTime(notification.createdAt)}
+                            </div>
+                          </div>
+                          {notification.read && (
+                            <span className="text-green-500">
+                              <CheckCircle size={16} />
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Local Notifications */}
                     {notifications.map((notification) => (
                       <div
                         key={notification.id}
@@ -153,15 +209,24 @@ export const Navbar = () => {
                             : ""
                         }`}
                       >
-                        <div
-                          className={`text-sm ${
-                            !notification.read ? "font-semibold" : ""
-                          } dark:text-white`}
-                        >
-                          {notification.message}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {formatTime(notification.time)}
+                        <div className="flex items-start">
+                          <div className="flex-1">
+                            <div
+                              className={`text-sm ${
+                                !notification.read ? "font-semibold" : ""
+                              } dark:text-white`}
+                            >
+                              {notification.message}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {formatTime(notification.time)}
+                            </div>
+                          </div>
+                          {notification.read && (
+                            <span className="text-green-500">
+                              <CheckCircle size={16} />
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}

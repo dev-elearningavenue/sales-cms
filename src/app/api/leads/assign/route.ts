@@ -1,10 +1,8 @@
 // src/app/api/leads/assign/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import dbConnect from "@/lib/db";
-import Lead from "@/models/lead";
 import User from "@/models/user";
 import { verifyToken } from "@/utils/auth";
-import mongoose from "mongoose";
+import { assignLeadToUser } from "@/controllers/leadController";
 
 export async function POST(req: NextRequest) {
   // await dbConnect();
@@ -23,16 +21,21 @@ export async function POST(req: NextRequest) {
     const user = await User.findById(userId).select('full_name user_name');
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
     
-    // Update the lead with assignment info and timestamp
-    await Lead.findByIdAndUpdate(leadId, { 
-      assigned_to: userId,
-      assigned: true,
-      assignedAt: new Date()
-    });
+    // Use the controller to assign lead and create notification
+    const result = await assignLeadToUser(leadId, userId);
+    
+    if (!result.success) {
+      return NextResponse.json({ 
+        error: result.message 
+      }, { 
+        status: result.message === "Lead not found" ? 404 : 500 
+      });
+    }
 
     // Return success with user details
     return NextResponse.json({ 
       success: true,
+      message: result.message,
       assignedTo: {
         _id: user._id,
         full_name: user.full_name,

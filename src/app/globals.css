@@ -36,3 +36,18 @@ body {
 .rotate-y-180 {
   transform: rotateY(180deg);
 }
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in-right {
+  animation: fadeInRight 0.3s ease-out;
+}

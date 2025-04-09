@@ -7,11 +7,11 @@ type UserIdType = string | mongoose.Types.ObjectId;
 
 export async function createNewLeadNotification(lead: ILead) {
   try {
-    console.log("🔔 createNewLead Notification called with lead:", lead._id, lead.category, lead.domain);
+    console.log("🔔 createNewLead Notification called with lead:", lead.category, lead.domain, lead._id,);
     
     // Get all users of type 1 and 2
     const adminUsers = await User.find({ user_type: { $in: [1, 2] } });
-    console.log(`🔔 Found ${adminUsers.length} admin users to notify:`, adminUsers.map(u => u._id));
+    // console.log(`🔔 Found ${adminUsers.length} admin users to notify:`, adminUsers.map(u => u._id));
     
     const notificationData = new Notification( {
       type: "new_lead",
@@ -25,10 +25,10 @@ export async function createNewLeadNotification(lead: ILead) {
       }
     });
     
-    console.log("🔔 Creating notification with data:", JSON.stringify(notificationData));
+    // console.log("🔔 Creating notification with data:", JSON.stringify(notificationData));
     
     const savedNotification = await notificationData.save();
-    console.log("🔔 Notification created successfully with ID:", savedNotification._id);
+    // console.log("🔔 Notification created successfully with ID:", savedNotification._id);
     
     return true;
   } catch (error) {

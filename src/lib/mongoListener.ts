@@ -604,7 +604,7 @@ async function syncToTargetCollection(
     delete syncedData._id;
 
     const insertResult = await targetCollection.insertOne(syncedData);
-
+    console.log("inserted Result", insertResult);
     if (!insertResult || !insertResult.insertedId)
       throw new Error(`Failed to insert into ${targetCollection}`);
 
@@ -646,7 +646,7 @@ async function syncToTargetCollection(
 
     // Use the MongoDB session with Mongoose save
     const leadResult = await leadData.save();
-    // console.log(`Lead created with ID: ${leadResult._id}`);
+    console.log(`Lead created with ID: ${leadResult._id}`);
 
     createNewLeadNotification(leadResult);
     

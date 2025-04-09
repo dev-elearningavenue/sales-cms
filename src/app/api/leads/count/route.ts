@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Lead from "@/models/lead";
 
-// Connect to database at route initialization
-connectDB().catch(console.error);
-
 export async function GET(request: NextRequest) {
   try {
     await connectDB();

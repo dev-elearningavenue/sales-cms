@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Notification from "@/models/notification";
 import { getDataFromToken } from "@/utils/get_token_data";
+import mongoose from "mongoose";
 
 // Connect to database
 connectDB();
@@ -34,21 +35,38 @@ export async function GET(req: NextRequest) {
     // Get notifications since the specified timestamp
     const since = new Date(timestamp);
     
-    // Find new notifications
+    // Find new notifications - filtering by to_users containing the current user
     const newNotifications = await Notification.find({
-      user: userId,
+      to_users: userId,
       createdAt: { $gt: since }
-    }).sort({ createdAt: -1 });
+    })
+    .sort({ createdAt: -1 })
+    .populate("lead", "category domain status")
+    .populate("from_user", "full_name user_name");
+    
+    // Transform notifications to include a 'read' boolean for the current user
+    const transformedNotifications = newNotifications.map(notification => {
+      const notificationObj = notification.toObject();
+      // Check if current user is in the read_by array
+      const read = notification.read_by.some((id: mongoose.Types.ObjectId | string) => 
+        id.toString() === userId
+      );
+      
+      return {
+        ...notificationObj,
+        read
+      };
+    });
     
     // Get unread count
     const unreadCount = await Notification.countDocuments({
-      user: userId,
-      read: false
+      to_users: userId,
+      read_by: { $ne: userId }
     });
     
     return NextResponse.json({
       success: true,
-      notifications: newNotifications,
+      notifications: transformedNotifications,
       unreadCount,
       timestamp: new Date()
     });

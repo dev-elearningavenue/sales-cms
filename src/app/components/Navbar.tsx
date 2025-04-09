@@ -91,9 +91,19 @@ export const Navbar = () => {
   const handleDbNotificationClick = (notification: DbNotificationType) => {
     markDbNotificationAsRead(notification._id);
 
-    // Navigate to lead if lead is provided
+    // Navigate based on notification type and data
     if (notification.lead && notification.lead._id) {
+      // For notifications related to a specific lead
       router.push(`/leads?id=${notification.lead._id}`);
+    } else if (
+      notification.type === "batch_assign" ||
+      notification.type === "batch_delete"
+    ) {
+      // For batch operations, go to my-leads page
+      router.push("/my-leads");
+    } else if (notification.type === "new_lead") {
+      // For new leads, go to leads page
+      router.push("/leads");
     }
 
     setIsNotificationsOpen(false);
@@ -161,37 +171,52 @@ export const Navbar = () => {
                 ) : (
                   <div>
                     {/* DB Notifications first */}
-                    {dbNotifications.map((notification) => (
-                      <div
-                        key={notification._id}
-                        onClick={() => handleDbNotificationClick(notification)}
-                        className={`p-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors ${
-                          !notification.read
-                            ? "bg-blue-50 dark:bg-blue-900/20"
-                            : ""
-                        }`}
-                      >
-                        <div className="flex items-start">
-                          <div className="flex-1">
-                            <div
-                              className={`text-sm ${
-                                !notification.read ? "font-semibold" : ""
-                              } dark:text-white`}
-                            >
-                              {notification.message}
+                    {dbNotifications.map((notification) => {
+                      // Check if notification is new (less than 5 minutes old)
+                      const isNew =
+                        new Date().getTime() -
+                          new Date(notification.createdAt).getTime() <
+                        5 * 60 * 1000;
+
+                      return (
+                        <div
+                          key={notification._id}
+                          onClick={() =>
+                            handleDbNotificationClick(notification)
+                          }
+                          className={`p-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors ${
+                            !notification.read
+                              ? "bg-blue-50 dark:bg-blue-900/20"
+                              : ""
+                          } ${isNew ? "border-l-4 border-l-blue-500" : ""}`}
+                        >
+                          <div className="flex items-start">
+                            <div className="flex-1">
+                              <div
+                                className={`text-sm ${
+                                  !notification.read ? "font-semibold" : ""
+                                } dark:text-white`}
+                              >
+                                {notification.message}
+                                {isNew && (
+                                  <span className="ml-2 text-xs bg-blue-500 text-white px-1.5 py-0.5 rounded-full">
+                                    New
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {formatTime(notification.createdAt)}
+                              </div>
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {formatTime(notification.createdAt)}
-                            </div>
+                            {notification.read && (
+                              <span className="text-green-500">
+                                <CheckCircle size={16} />
+                              </span>
+                            )}
                           </div>
-                          {notification.read && (
-                            <span className="text-green-500">
-                              <CheckCircle size={16} />
-                            </span>
-                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
 
                     {/* Local Notifications */}
                     {notifications.map((notification) => (

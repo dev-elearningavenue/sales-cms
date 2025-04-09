@@ -16,11 +16,11 @@ export type DbNotificationType = {
   _id: string;
   type: string;
   message: string;
-  user: string;
   lead?: any;
-  related_user?: any;
-  read: boolean;
-  readAt?: string;
+  from_user?: any;
+  to_users: string[];
+  read_by: string[];
+  read: boolean; // Computed property for UI
   metadata?: Record<string, any>;
   createdAt: string;
   updatedAt: string;
@@ -228,7 +228,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           try {
             // Use the last poll time if available
             const lastPollTime = new Date();
-            lastPollTime.setMinutes(lastPollTime.getMinutes() - 2); // 2 minutes buffer
+            lastPollTime.setMinutes(lastPollTime.getMinutes() - 1); // 1 minute buffer
 
             const response = await axios.get(
               `/api/notifications/updates?since=${lastPollTime.toISOString()}`
@@ -245,9 +245,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   (n: DbNotificationType) => !existingIds.has(n._id)
                 );
 
-                // Show toast for new notifications
+                // Play notification sound if there are new notifications
+                if (newNotifications.length > 0) {
+                  playNotificationSound();
+                }
+
+                // Show toast for each new notification
                 newNotifications.forEach((notification: DbNotificationType) => {
-                  showToast(notification.message, "info");
+                  const toastType = getToastTypeForNotification(
+                    notification.type
+                  );
+                  showToast(notification.message, toastType);
                 });
 
                 return [...newNotifications, ...prev];
@@ -256,7 +264,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           } catch (error) {
             console.error("Error polling for notifications:", error);
           }
-        }, 30000); // Poll every 30 seconds
+        }, 10000); // Poll every 10 seconds (more frequent)
 
         setNotificationPolling(intervalId);
       }
@@ -274,6 +282,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     };
   }, [session]);
+
+  // Function to play notification sound
+  const playNotificationSound = () => {
+    try {
+      const audio = new Audio("/notification.mp3");
+      audio.volume = 0.5; // Set volume to 50%
+      audio.play().catch((err) => {
+        // Browser might block autoplay without user interaction
+        console.log("Audio autoplay was blocked:", err);
+      });
+    } catch (err) {
+      console.error("Error playing notification sound:", err);
+    }
+  };
+
+  // Function to determine toast type based on notification type
+  const getToastTypeForNotification = (
+    type: string
+  ): "success" | "error" | "info" => {
+    switch (type) {
+      case "lead_converted":
+      case "lead_resolved":
+        return "success";
+      case "lead_deleted":
+      case "batch_delete":
+        return "error";
+      default:
+        return "info";
+    }
+  };
 
   const fetchSession = async () => {
     try {

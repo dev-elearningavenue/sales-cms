@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Notification from "@/models/notification";
 import { getDataFromToken } from "@/utils/get_token_data";
+import mongoose from "mongoose";
 
 // Connect to database
 connectDB();
@@ -26,11 +27,12 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50", 10);
     const after = searchParams.get("after"); // For pagination
     
-    // Build query
-    let query: any = { user: userId };
+    // Build query - filter by to_users containing the current user
+    let query: any = { to_users: userId };
     
     if (unreadOnly) {
-      query.read = false;
+      // For unread notifications, check that the user's ID is not in read_by array
+      query.read_by = { $ne: userId };
     }
     
     if (after) {
@@ -40,14 +42,33 @@ export async function GET(req: NextRequest) {
     // Get notifications
     const notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
-      .limit(limit);
+      .limit(limit)
+      .populate("lead", "category domain status")
+      .populate("from_user", "full_name user_name");
       
-    // Get unread count
-    const unreadCount = await Notification.countDocuments({ user: userId, read: false });
+    // Transform notifications to include a 'read' boolean for the current user
+    const transformedNotifications = notifications.map(notification => {
+      const notificationObj = notification.toObject();
+      // Check if current user is in the read_by array
+      const read = notification.read_by.some((id: mongoose.Types.ObjectId | string) => 
+        id.toString() === userId
+      );
+      
+      return {
+        ...notificationObj,
+        read
+      };
+    });
+    
+    // Get unread count - count notifications where user's ID is in to_users but not in read_by
+    const unreadCount = await Notification.countDocuments({ 
+      to_users: userId, 
+      read_by: { $ne: userId } 
+    });
     
     return NextResponse.json({
       success: true,
-      notifications,
+      notifications: transformedNotifications,
       unreadCount
     });
   } catch (error) {
@@ -74,12 +95,18 @@ export async function PATCH(req: NextRequest) {
     }
 
     const userId = tokenData._id.toString();
+    const userObjectId = new mongoose.Types.ObjectId(userId);
     
     if (markAll) {
-      // Mark all notifications as read
+      // Mark all notifications as read using $addToSet to add userId to read_by array
       await Notification.updateMany(
-        { user: userId, read: false },
-        { $set: { read: true, readAt: new Date() } }
+        { 
+          to_users: userId,
+          read_by: { $ne: userId }
+        },
+        { 
+          $addToSet: { read_by: userObjectId } 
+        }
       );
       
       return NextResponse.json({
@@ -97,8 +124,13 @@ export async function PATCH(req: NextRequest) {
     
     // Mark specific notifications as read
     await Notification.updateMany(
-      { _id: { $in: notificationIds }, user: userId },
-      { $set: { read: true, readAt: new Date() } }
+      { 
+        _id: { $in: notificationIds }, 
+        to_users: userId
+      },
+      { 
+        $addToSet: { read_by: userObjectId } 
+      }
     );
     
     return NextResponse.json({
@@ -132,7 +164,7 @@ export async function DELETE(req: NextRequest) {
     
     if (deleteAll) {
       // Delete all notifications
-      await Notification.deleteMany({ user: userId });
+      await Notification.deleteMany({ to_users: userId });
       
       return NextResponse.json({
         success: true,
@@ -150,7 +182,7 @@ export async function DELETE(req: NextRequest) {
     // Delete specific notifications
     await Notification.deleteMany({
       _id: { $in: notificationIds },
-      user: userId
+      to_users: userId
     });
     
     return NextResponse.json({

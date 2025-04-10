@@ -32,9 +32,7 @@ export async function GET(req: Request) {
     if (!type && !form) {
       return NextResponse.json(leadsResult, { status: 200 });
     }
-
     let filteredLeads = leadsResult.leads;
-
     // Filter by category/type if specified
     if (type) {
       const typeMap: { [key: string]: string } = {

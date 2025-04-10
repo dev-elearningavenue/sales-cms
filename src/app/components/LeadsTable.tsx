@@ -1,5 +1,5 @@
 // components/LeadsTable.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -9,19 +9,25 @@ import {
   Search,
   RefreshCcw,
   Calendar,
-  Eye,
-  ExternalLink,
   UserPlus,
   Plus,
   Trash2,
-  Check,
+  ChevronDown,
 } from "lucide-react";
 import { ILead } from "@/types/leads";
 import { useApp } from "@/contexts/AppContext";
 
+// User type for the dropdown
+interface User {
+  _id: string;
+  full_name: string;
+  user_name: string;
+  user_type: number;
+}
+
 interface LeadsTableProps {
   leads: ILead[];
-  onAssign?: (leadId: string) => void;
+  onAssign?: (leadId: string, userId?: string) => void;
   title: string;
   isMyLeads?: boolean;
   showCreateButton?: boolean;
@@ -53,11 +59,91 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [showBatchAssignModal, setShowBatchAssignModal] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   // Add state for delete confirmation
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
   const [showBatchDeleteModal, setShowBatchDeleteModal] = useState(false);
+
+  // Fetch available users for assignment
+  useEffect(() => {
+    if (session?.user_type === 1 || session?.user_type === 2) {
+      fetchAvailableUsers();
+    }
+  }, [session]);
+
+  // Additional effect to refresh users when batch modal opens
+  useEffect(() => {
+    if (
+      showBatchAssignModal &&
+      (session?.user_type === 1 || session?.user_type === 2)
+    ) {
+      fetchAvailableUsers();
+    }
+  }, [showBatchAssignModal]);
+
+  // Function to fetch users with lower type than current user
+  const fetchAvailableUsers = async () => {
+    if (!session) return;
+
+    setLoadingUsers(true);
+    try {
+      console.log("Fetching available users for user type:", session.user_type);
+      // Fetch users with lower user_type than current user
+      const response = await fetch("/api/users");
+      const data = await response.json();
+
+      if (response.ok && data.success && data.users) {
+        // Filter users with lower user_type than current user
+        const filteredUsers = data.users.filter(
+          (user: User) =>
+            user.user_type > session.user_type && user.user_type <= 3
+        );
+
+        console.log("Filtered users:", filteredUsers);
+        setAvailableUsers(filteredUsers);
+      } else {
+        console.error(
+          "Failed to fetch users:",
+          data.message || "Unknown error"
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching users for assignment:", error);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // Toggle dropdown visibility
+  const toggleDropdown = (leadId: string | null) => {
+    setOpenDropdownId(openDropdownId === leadId ? null : leadId);
+  };
+
+  // Handle assigning to specific user
+  const handleAssignToUser = (leadId: string, userId: string) => {
+    if (onAssign) {
+      onAssign(leadId, userId);
+      setOpenDropdownId(null);
+    }
+  };
+
+  // Handle clicking outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openDropdownId && !(event.target as Element).closest(".dropdown")) {
+        setOpenDropdownId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [openDropdownId]);
 
   // Filter leads based on search query and other filters
   const filteredLeads = leads.filter((lead) => {
@@ -152,6 +238,12 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   const endIndex = Math.min(startIndex + itemsPerPage, filteredLeads.length);
   const currentLeads = filteredLeads.slice(startIndex, endIndex);
 
+  // console.log(
+  //   "🔔 currentLeads",
+  //   currentLeads[1],
+  //   currentLeads[2],
+  //   currentLeads[3]
+  // );
   const domainMapping: Record<string, string> = {
     "Osha Outreach": "OOR",
     "Osha Online Center": "OOC",
@@ -215,20 +307,25 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   // Handle batch assign
   const handleBatchAssign = () => {
     if (selectedLeads.length > 0) {
+      console.log("Batch assign clicked, user type:", session?.user_type);
+
+      // Always show modal for all user types
       setShowBatchAssignModal(true);
     }
   };
 
   // Confirm batch assign
-  const confirmBatchAssign = async () => {
+  const confirmBatchAssign = async (userId?: string) => {
     if (!onAssign || selectedLeads.length === 0) return;
+
+    console.log("Confirming batch assign, userId:", userId || "current user");
 
     // Store count for notification
     const assignCount = selectedLeads.length;
 
     // Process each lead sequentially
     for (const leadId of selectedLeads) {
-      onAssign(leadId); // Pass flag to suppress individual notifications
+      onAssign(leadId, userId); // Pass userId if provided
     }
 
     // Emit a single notification after batch operation is complete
@@ -314,6 +411,16 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     }
   };
 
+  // Check if any selected lead is already assigned
+  const isAnySelectedLeadAssigned = () => {
+    if (selectedLeads.length === 0) return false;
+
+    return selectedLeads.some((leadId) => {
+      const lead = leads.find((l) => l._id === leadId);
+      return lead?.assigned === true;
+    });
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <div className="p-4">
@@ -327,13 +434,16 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                 {selectedLeads.length} lead{selectedLeads.length > 1 ? "s" : ""}{" "}
                 selected
               </span>
-              {onAssign && (
+              {onAssign && !isAnySelectedLeadAssigned() && (
                 <button
                   onClick={handleBatchAssign}
                   className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm flex items-center gap-1"
                 >
                   <UserPlus className="w-4 h-4" />
-                  Assign All
+                  <span>Assign All</span>
+                  {session?.user_type !== 3 && (
+                    <ChevronDown className="w-3 h-3 ml-1" />
+                  )}
                 </button>
               )}
               {onDelete && session?.user_type !== 3 && (
@@ -737,12 +847,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   {/* ACTION */}
                   <td className="py-4">
                     <div className="flex items-center justify-start gap-2">
-                      {isMyLeads ? (
-                        <button className="flex items-center justify-center px-3 py-1 border border-blue-300 rounded-md text-blue-600 hover:bg-blue-50">
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </button>
-                      ) : lead.assigned ? (
+                      {lead.assigned ? (
                         <div className="flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600">
                           <span className="text-sm">
                             Assigned to{" "}
@@ -753,25 +858,87 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                           </span>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => {
-                            if (lead._id && onAssign) onAssign(lead._id);
-                          }}
-                          className="flex items-center px-3 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50"
-                        >
-                          <UserPlus className="h-4 w-4 mr-1" />
-                          Assign Me
-                        </button>
-                      )}
+                        <>
+                          {session?.user_type !== 3 ? (
+                            <>
+                              <div className="dropdown relative mr-2">
+                                <button
+                                  className="flex items-center justify-center px-4 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50 min-w-[120px]"
+                                  onClick={() =>
+                                    toggleDropdown(lead._id as string)
+                                  }
+                                >
+                                  <UserPlus className="h-4 w-4 mr-2" />
+                                  <span className="mr-1">Assign</span>
+                                  <ChevronDown className="h-4 w-4" />
+                                </button>
 
-                      {session?.user_type !== 3 && (
-                        <button
-                          className="flex items-center px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm "
-                          onClick={() => handleDeleteClick(lead._id as string)}
-                        >
-                          <Trash2 size={14} className="mr-1" />
-                          Delete
-                        </button>
+                                {openDropdownId === lead._id && (
+                                  <div className="dropdown-menu absolute left-0 top-full mt-1 w-60 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                                    <button
+                                      onClick={() => {
+                                        if (lead._id && onAssign)
+                                          onAssign(lead._id);
+                                        setOpenDropdownId(null);
+                                      }}
+                                      className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm border-b border-gray-100"
+                                    >
+                                      Assign to Me
+                                    </button>
+
+                                    {loadingUsers ? (
+                                      <div className="px-4 py-2 text-sm text-gray-500">
+                                        Loading users...
+                                      </div>
+                                    ) : (
+                                      availableUsers.length > 0 && (
+                                        <div className="max-h-48 overflow-y-auto">
+                                          {availableUsers.map((user) => (
+                                            <button
+                                              key={user._id}
+                                              onClick={() =>
+                                                handleAssignToUser(
+                                                  lead._id as string,
+                                                  user._id
+                                                )
+                                              }
+                                              className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm flex items-center justify-between"
+                                            >
+                                              <span>
+                                                {user.full_name ||
+                                                  user.user_name}
+                                              </span>
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              {/* Delete button */}
+                              <button
+                                className="flex items-center px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm"
+                                onClick={() =>
+                                  handleDeleteClick(lead._id as string)
+                                }
+                              >
+                                <Trash2 size={14} className="mr-1" />
+                                Delete
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              className="flex items-center px-4 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50 mr-2"
+                              onClick={() => {
+                                if (lead._id && onAssign) onAssign(lead._id);
+                              }}
+                            >
+                              <UserPlus className="h-4 w-4 mr-2" />
+                              Assign Me
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
                   </td>
@@ -850,12 +1017,52 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
             <h2 className="text-xl font-bold text-gray-800 mb-4">
-              Confirm Batch Assignment
+              Assign {selectedLeads.length} Leads
             </h2>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to assign {selectedLeads.length} leads to
-              yourself?
-            </p>
+
+            {session?.user_type === 3 ? (
+              // Simple confirmation for user type 3
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to assign {selectedLeads.length} leads to
+                yourself?
+              </p>
+            ) : (
+              // User selection interface for types 1 and 2
+              <div className="mb-6">
+                <p className="text-gray-600 mb-4">
+                  Select a user to assign these leads to:
+                </p>
+
+                <div className="border border-gray-200 rounded-md overflow-hidden">
+                  <button
+                    onClick={() => confirmBatchAssign()}
+                    className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm border-b border-gray-100"
+                  >
+                    Assign to Me
+                  </button>
+
+                  {loadingUsers ? (
+                    <div className="px-4 py-2 text-sm text-gray-500">
+                      Loading users...
+                    </div>
+                  ) : (
+                    availableUsers.length > 0 && (
+                      <div className="max-h-60 overflow-y-auto">
+                        {availableUsers.map((user) => (
+                          <button
+                            key={user._id}
+                            onClick={() => confirmBatchAssign(user._id)}
+                            className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm flex items-center justify-between border-b border-gray-100"
+                          >
+                            <span>{user.full_name || user.user_name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end gap-3">
               <button
@@ -864,12 +1071,16 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
               >
                 Cancel
               </button>
-              <button
-                onClick={confirmBatchAssign}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Assign All
-              </button>
+
+              {/* Show Confirm button only for type 3 users */}
+              {session?.user_type === 3 && (
+                <button
+                  onClick={() => confirmBatchAssign()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Assign All
+                </button>
+              )}
             </div>
           </div>
         </div>

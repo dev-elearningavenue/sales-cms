@@ -43,11 +43,9 @@ const Leads = () => {
 
   useEffect(() => {
     fetchLeads();
-
-    // Set up polling for new leads
     const intervalId = setInterval(() => {
       fetchLeadsUpdates();
-    }, 15000); // Check for updates every 45 seconds
+    }, 15000); // Check for updates every 15 seconds
 
     return () => clearInterval(intervalId);
   }, []);
@@ -187,13 +185,19 @@ const Leads = () => {
     }
   };
 
-  const handleAssign = async (leadId: string, isBatchOperation = false) => {
+  const handleAssign = async (
+    leadId: string,
+    userId?: string,
+    isBatchOperation = false
+  ) => {
     try {
-      console.log(`Assigning Lead: ${leadId}`);
+      console.log(
+        `Assigning Lead: ${leadId}${userId ? ` to user: ${userId}` : ""}`
+      );
       const res = await fetch("/api/leads/assign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadId }),
+        body: JSON.stringify({ leadId, userId }),
       });
 
       const data = await res.json();
@@ -233,8 +237,12 @@ const Leads = () => {
             leadName = getLeadName(lead);
           }
 
+          const assignedToUser = userId
+            ? `assigned to ${data.assignedTo?.full_name || "another user"}`
+            : "assigned";
+
           addNotification({
-            message: `Lead assigned: ${leadName}`,
+            message: `Lead ${assignedToUser}: ${leadName}`,
             type: "info",
             read: false,
           });

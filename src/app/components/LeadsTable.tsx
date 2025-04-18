@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { ILead } from "@/types/leads";
 import { useApp } from "@/contexts/AppContext";
+import { isResolvedStatus } from "@/lib/leadUtils";
 
 // User type for the dropdown
 interface User {
@@ -27,12 +28,16 @@ interface User {
 
 interface LeadsTableProps {
   leads: ILead[];
-  onAssign?: (leadId: string, userId?: string) => void;
+  onAssign?: (
+    leadId: string,
+    userId?: string,
+    isBatchOperation?: boolean
+  ) => Promise<boolean>;
   title: string;
   isMyLeads?: boolean;
   showCreateButton?: boolean;
   onCreateClick?: () => void;
-  onDelete?: (leadId: string) => void;
+  onDelete?: (leadId: string, isBatchOperation: boolean) => void;
 }
 
 const LeadsTable: React.FC<LeadsTableProps> = ({
@@ -44,7 +49,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   onCreateClick,
   onDelete,
 }) => {
-  const { session } = useApp();
+  const { session, addNotification } = useApp();
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
   const [showFilters, setShowFilters] = useState(false);
@@ -61,6 +66,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   const [showBatchAssignModal, setShowBatchAssignModal] = useState(false);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   // Add state for delete confirmation
@@ -73,7 +79,56 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     if (session?.user_type === 1 || session?.user_type === 2) {
       fetchAvailableUsers();
     }
-  }, [session]);
+
+    // Set up polling for lead assignment status updates
+    const pollInterval = setInterval(() => {
+      checkAssignmentUpdates();
+    }, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [session, leads]);
+
+  // Function to check for updates on assigned leads
+  const checkAssignmentUpdates = async () => {
+    try {
+      // Get all lead IDs from current leads array
+      const leadIds = leads.map((lead) => lead._id).filter(Boolean);
+
+      if (leadIds.length === 0) return;
+
+      // Make API request to get latest assignment status
+      const res = await fetch("/api/leads/assignment-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadIds }),
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      // If there are changes, notify parent component
+      if (data.hasChanges && data.updatedLeads?.length > 0) {
+        // Show notification for newly assigned leads
+        data.updatedLeads.forEach((updated: any) => {
+          if (updated.assigned && !updated.previouslyAssigned) {
+            addNotification({
+              message: `Lead has been assigned to ${
+                updated.assigned_to?.full_name || "another user"
+              }`,
+              type: "info",
+              read: false,
+            });
+          }
+        });
+
+        // The parent should be fetching fresh data on its own schedule
+        // so we don't need to force a refetch here
+      }
+    } catch (error) {
+      console.error("Error checking assignment updates:", error);
+    }
+  };
 
   // Additional effect to refresh users when batch modal opens
   useEffect(() => {
@@ -91,7 +146,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
 
     setLoadingUsers(true);
     try {
-      console.log("Fetching available users for user type:", session.user_type);
+      // console.log("Fetching available users for user type:", session.user_type);
       // Fetch users with lower user_type than current user
       const response = await fetch("/api/users");
       const data = await response.json();
@@ -103,7 +158,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
             user.user_type > session.user_type && user.user_type <= 3
         );
 
-        console.log("Filtered users:", filteredUsers);
+        // console.log("Filtered users:", filteredUsers);
         setAvailableUsers(filteredUsers);
       } else {
         console.error(
@@ -124,10 +179,19 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   };
 
   // Handle assigning to specific user
-  const handleAssignToUser = (leadId: string, userId: string) => {
+  const confirmAssign = async (leadId: string, userId: string) => {
     if (onAssign) {
-      onAssign(leadId, userId);
-      setOpenDropdownId(null);
+      try {
+        const success = await onAssign(leadId, userId);
+        if (success) {
+          setOpenDropdownId(null);
+        } else {
+          // Handle failure - the onAssign function will show appropriate alerts
+        }
+      } catch (error) {
+        console.error("Error during assignment:", error);
+        alert("Failed to assign lead. Please try again.");
+      }
     }
   };
 
@@ -307,9 +371,6 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   // Handle batch assign
   const handleBatchAssign = () => {
     if (selectedLeads.length > 0) {
-      console.log("Batch assign clicked, user type:", session?.user_type);
-
-      // Always show modal for all user types
       setShowBatchAssignModal(true);
     }
   };
@@ -317,28 +378,52 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   // Confirm batch assign
   const confirmBatchAssign = async (userId?: string) => {
     if (!onAssign || selectedLeads.length === 0) return;
-
-    console.log("Confirming batch assign, userId:", userId || "current user");
-
-    // Store count for notification
     const assignCount = selectedLeads.length;
+    let successCount = 0;
+    let failCount = 0;
 
-    // Process each lead sequentially
-    for (const leadId of selectedLeads) {
-      onAssign(leadId, userId); // Pass userId if provided
+    setIsProcessing(true);
+
+    try {
+      // Instead of Promise.all, process sequentially to handle errors for each lead
+      for (const leadId of selectedLeads) {
+        try {
+          const success = await onAssign(leadId, userId, true);
+          if (success) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+        } catch (error) {
+          console.error(`Error assigning lead ${leadId}:`, error);
+          failCount++;
+        }
+      }
+
+      // Show appropriate notifications
+      if (successCount > 0) {
+        addNotification({
+          message: `${successCount} leads assigned successfully`,
+          type: "info",
+          read: false,
+        });
+      }
+
+      if (failCount > 0) {
+        addNotification({
+          message: `Failed to assign ${failCount} leads (possibly already assigned)`,
+          type: "warning",
+          read: false,
+        });
+      }
+    } catch (error) {
+      console.error("Batch assign operation failed:", error);
+      alert("An error occurred during the batch assignment.");
+    } finally {
+      setIsProcessing(false);
+      setShowBatchAssignModal(false);
+      setSelectedLeads([]);
     }
-
-    // Emit a single notification after batch operation is complete
-    if (window && window.dispatchEvent) {
-      window.dispatchEvent(
-        new CustomEvent("batchAssign", {
-          detail: { count: assignCount },
-        })
-      );
-    }
-
-    setShowBatchAssignModal(false);
-    setSelectedLeads([]);
   };
 
   // Handle batch delete
@@ -356,17 +441,22 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     const deletedCount = selectedLeads.length;
 
     // Process each lead sequentially
-    for (const leadId of selectedLeads) {
-      onDelete(leadId); // Pass flag to suppress individual notifications
-    }
-
-    // Emit a single notification after batch operation is complete
-    if (window && window.dispatchEvent) {
-      window.dispatchEvent(
-        new CustomEvent("batchDelete", {
-          detail: { count: deletedCount },
-        })
+    try {
+      const deletePromises = selectedLeads.map((leadId) =>
+        onDelete(leadId, true)
       );
+      setIsProcessing(true);
+      await Promise.all(deletePromises);
+      setIsProcessing(false);
+      if (window && window.dispatchEvent) {
+        window.dispatchEvent(
+          new CustomEvent("batchDelete", {
+            detail: { count: deletedCount },
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Batch delete operation failed:", error);
     }
 
     setShowBatchDeleteModal(false);
@@ -405,7 +495,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   // Confirm deletion
   const confirmDelete = () => {
     if (leadToDelete && onDelete) {
-      onDelete(leadToDelete);
+      onDelete(leadToDelete, false);
       setShowDeleteModal(false);
       setLeadToDelete(null);
     }
@@ -417,8 +507,154 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
 
     return selectedLeads.some((leadId) => {
       const lead = leads.find((l) => l._id === leadId);
-      return lead?.assigned === true;
+      return lead?.assigned === true; // True if it is assigned
     });
+  };
+
+  // Handle status change for leads
+  const isStatusDisabled = (lead: ILead, option: string) => {
+    // Disable status options when a lead is resolved
+    if (
+      lead.resolve_status &&
+      isResolvedStatus(lead.resolve_status) &&
+      lead.resolve_status !== "Pending"
+    ) {
+      return true;
+    }
+
+    // Disable previous follow-up options based on current status
+    if (lead.status && lead.status.startsWith("Follow Up")) {
+      const currentLevel = parseInt(lead.status.split(" ")[2] || "0", 10) || 0;
+      const optionLevel = parseInt(option.split(" ")[2] || "0", 10) || 0;
+
+      if (optionLevel < currentLevel) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  // Within the getStatusOptionsForCategory function, add logic to handle resolved statuses
+  const getStatusOptionsForCategory = (
+    category: string,
+    lead?: ILead
+  ): string[] => {
+    // Basic options by category
+    let options: string[];
+
+    switch (category) {
+      case "Order Creation":
+        options = ["Pending", "Assigned Order"];
+        break;
+      case "Contact Us":
+        options = ["Pending", "Resolved"];
+        break;
+      case "Scholarship":
+      case "Free SignUp":
+      case "Free Study Guide":
+        options = ["Pending", "Resolved"];
+        break;
+      default:
+        options = [
+          "Pending",
+          "Follow Up 1",
+          "Follow Up 2",
+          "Follow Up 3",
+          "Converted",
+          "Resolved",
+        ];
+        break;
+    }
+
+    // If lead exists and we need to modify options based on status
+    if (lead) {
+      const currentStatus = lead.status;
+      const currentResolveStatus = lead.resolve_status;
+
+      // If lead is resolved, only show the current status
+      if (
+        currentResolveStatus &&
+        isResolvedStatus(currentResolveStatus) &&
+        currentResolveStatus !== "Pending"
+      ) {
+        return [currentStatus || "Pending"];
+      }
+
+      // If status is not pending, remove pending option
+      if (currentStatus !== "Pending") {
+        options = options.filter((opt) => opt !== "Pending");
+      }
+
+      // Handle follow-up status progression
+      if (currentStatus === "Follow Up 1") {
+        // In Follow Up 1, remove Follow Up 1 option (since we're already here)
+        options = options.filter((opt) => opt !== "Follow Up 1");
+      } else if (currentStatus === "Follow Up 2") {
+        // In Follow Up 2, remove both Follow Up 1 and 2 options
+        options = options.filter(
+          (opt) => opt !== "Follow Up 1" && opt !== "Follow Up 2"
+        );
+      } else if (currentStatus === "Follow Up 3") {
+        // In Follow Up 3, remove all Follow Up options
+        options = options.filter((opt) => !opt.startsWith("Follow Up"));
+      } else if (
+        currentStatus === "Follow Up" &&
+        lead.next_follow_up &&
+        Array.isArray(lead.next_follow_up)
+      ) {
+        // Legacy "Follow Up" status with next_follow_up array
+        const count = lead.next_follow_up.length;
+
+        // Remove previous follow-up options
+        if (count >= 1)
+          options = options.filter((opt) => opt !== "Follow Up 1");
+        if (count >= 2)
+          options = options.filter((opt) => opt !== "Follow Up 2");
+        if (count >= 3)
+          options = options.filter((opt) => !opt.startsWith("Follow Up"));
+      }
+    }
+
+    return options;
+  };
+
+  // Reusable Modal Component
+  const ConfirmationModal = ({
+    title,
+    message,
+    onCancel,
+    onConfirm,
+    confirmText,
+  }: {
+    title: string;
+    message: string;
+    onCancel: () => void;
+    onConfirm: () => void;
+    confirmText: string;
+  }) => {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">{title}</h2>
+          <p className="text-gray-600 mb-6">{message}</p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+            >
+              {confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -897,7 +1133,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                                             <button
                                               key={user._id}
                                               onClick={() =>
-                                                handleAssignToUser(
+                                                confirmAssign(
                                                   lead._id as string,
                                                   user._id
                                                 )
@@ -949,67 +1185,25 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">
-              Confirm Deletion
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete this lead? This action cannot be
-              undone.
-            </p>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setLeadToDelete(null);
-                }}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Batch Delete Confirmation Modal */}
-      {showBatchDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">
-              Confirm Batch Deletion
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete {selectedLeads.length} leads? This
-              action cannot be undone.
-            </p>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowBatchDeleteModal(false)}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmBatchDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Delete All
-              </button>
-            </div>
-          </div>
-        </div>
+      {(showDeleteModal || showBatchDeleteModal) && (
+        <ConfirmationModal
+          title="Confirm Deletion"
+          message={
+            showBatchDeleteModal
+              ? `Are you sure you want to delete ${selectedLeads.length} leads? This action cannot be undone.`
+              : "Are you sure you want to delete this lead? This action cannot be undone."
+          }
+          onCancel={() => {
+            if (showBatchDeleteModal) {
+              setShowBatchDeleteModal(false);
+            } else {
+              setShowDeleteModal(false);
+              setLeadToDelete(null);
+            }
+          }}
+          onConfirm={showBatchDeleteModal ? confirmBatchDelete : confirmDelete}
+          confirmText={showBatchDeleteModal ? "Delete All" : "Delete"}
+        />
       )}
 
       {/* Batch Assign Confirmation Modal */}

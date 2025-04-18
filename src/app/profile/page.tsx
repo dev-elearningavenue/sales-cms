@@ -1,6 +1,5 @@
 "use client";
 import { useApp } from "@/contexts/AppContext";
-import { useState, useEffect } from "react";
 
 const ProfilePage = () => {
   const { session, fetchSession, loading } = useApp();

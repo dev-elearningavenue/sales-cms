@@ -18,6 +18,8 @@ import { Customer, Field } from "@/components/Customer";
 import CourseInfo from "@/components/CourseInfo";
 // import mongoose from "mongoose";
 import LeadNotes from "../components/LeadNotes";
+import { useSocket } from "@/hooks/useSocket";
+import { isResolvedStatus } from "@/lib/leadUtils";
 
 // Domain mapping for labels
 const DOMAIN_LABELS = {
@@ -82,18 +84,92 @@ const MyLeads = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
 
+  // Initialize WebSocket connection with event handlers
+  const { isConnected } = useSocket({
+    onLeadAssigned: (data) => {
+      const assignedLead = data.lead;
+
+      // Only care about assignments to the current user
+      if (
+        assignedLead &&
+        assignedLead.assigned_to &&
+        assignedLead.assigned_to._id === session?._id
+      ) {
+        // Fetch the complete lead data since socket only sends minimal data
+        fetchLeadById(assignedLead._id);
+      }
+    },
+    onLeadStatusChanged: (data) => {
+      const updatedLead = data.lead;
+
+      // Check if this is one of our leads
+      if (leads.some((lead) => lead._id === updatedLead._id)) {
+        // Fetch the complete lead data
+        fetchLeadById(updatedLead._id);
+      }
+    },
+    onLeadDeleted: (data) => {
+      const deletedLeadId = data.leadId;
+      // Remove the lead if it's in our list
+      setLeads((prevLeads) =>
+        prevLeads.filter((lead) => lead._id !== deletedLeadId)
+      );
+    },
+  });
+
+  // Add a function to fetch a specific lead
+  const fetchLeadById = async (leadId: string) => {
+    try {
+      const res = await fetch(`/api/leads/${leadId}`);
+      const data = await res.json();
+
+      if (res.ok && data.lead) {
+        // Update the lead in our state
+        setLeads((prevLeads) => {
+          // Check if we already have this lead
+          const existingIndex = prevLeads.findIndex((l) => l._id === leadId);
+
+          if (existingIndex >= 0) {
+            // Update existing lead
+            const newLeads = [...prevLeads];
+            newLeads[existingIndex] = data.lead;
+            return newLeads;
+          } else {
+            // This is a new lead assigned to the user
+            return [data.lead, ...prevLeads];
+          }
+        });
+
+        // Notify about the new assignment if this is a new lead
+        if (!leads.some((l) => l._id === leadId)) {
+          addNotification({
+            message: `New lead assigned to you: ${getLeadName(data.lead)}`,
+            read: false,
+            type: "lead",
+            leadId: data.lead._id,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching lead:", error);
+    }
+  };
+
   useEffect(() => {
     if (session) {
       fetchMyLeads();
 
-      // Set up polling for assigned lead updates
+      // Set up polling for assigned lead updates - as a backup for websockets
       const intervalId = setInterval(() => {
-        fetchMyLeadsUpdates();
-      }, 20000); // Check for updates every 20 seconds
+        if (!isConnected) {
+          // Only use polling if websocket is not connected
+          fetchMyLeadsUpdates();
+        }
+      }, 30000); // Check for updates every 30 seconds as fallback
 
       return () => clearInterval(intervalId);
     }
-  }, [session]);
+  }, [session, isConnected]);
 
   const fetchMyLeads = async () => {
     try {
@@ -180,7 +256,7 @@ const MyLeads = () => {
       }
     }
 
-    return "New Lead";
+    return "Distinct Lead";
   };
 
   // Apply sorting to leads
@@ -207,6 +283,14 @@ const MyLeads = () => {
           ? domainB.localeCompare(domainA)
           : domainA.localeCompare(domainB);
       }
+
+      // if (sort.field === "Full Name") {
+      //   const nameA = a.full_name || "";
+      //   const nameb = b.full_name || "";
+      //   return sort.direction === "desc"
+      //     ? nameb.localeCompare(nameA)
+      //     : nameA.localeCompare(nameb);
+      // }
 
       return 0;
     });
@@ -344,6 +428,20 @@ const MyLeads = () => {
     // Find the lead
     const lead = leads.find((l) => l._id === leadId);
     if (!lead) return;
+
+    // Check if the lead is already resolved - don't allow status changes
+    if (
+      lead.resolve_status &&
+      isResolvedStatus(lead.resolve_status) &&
+      lead.resolve_status !== "Pending"
+    ) {
+      addNotification({
+        message: "Cannot change status of a resolved lead",
+        type: "warning",
+        read: false,
+      });
+      return;
+    }
 
     // Handle special status types
     let actualStatus = newStatus;
@@ -709,6 +807,34 @@ const MyLeads = () => {
     }
   };
 
+  // Add this utility function to check if status options should be disabled
+  const isStatusDisabled = (lead: ILead, option: string) => {
+    // Disable if lead is resolved
+    if (
+      lead.resolve_status &&
+      isResolvedStatus(lead.resolve_status) &&
+      lead.resolve_status !== "Pending"
+    ) {
+      return true;
+    }
+
+    // Disable going backwards in follow-up flow
+    if (
+      lead.status &&
+      lead.status.startsWith("Follow Up") &&
+      option.startsWith("Follow Up")
+    ) {
+      const currentLevel = parseInt(lead.status.split(" ")[2] || "0", 10) || 0;
+      const optionLevel = parseInt(option.split(" ")[2] || "0", 10) || 0;
+
+      if (optionLevel < currentLevel) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       {loading ? (
@@ -980,6 +1106,7 @@ const MyLeads = () => {
                                   e.target.value
                                 )
                               }
+                              // disabled={isStatusDisabled(lead)}
                             >
                               <option value={getFollowUpDisplayStatus(lead)}>
                                 {getFollowUpDisplayStatus(lead)}

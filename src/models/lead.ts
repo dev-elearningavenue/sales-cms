@@ -14,8 +14,15 @@ const lead_category_enum = [
 
 const status_enum = [
   "Follow Up",
-  "Resolved",
+  "Follow Up 1",
+  "Follow Up 2",
+  "Follow Up 3",
+  "Closed",
   "Pending",
+] as const;
+
+const resolve_status_enum = [
+  "Resolved",
   "Converted",
   "Assigned Order",
   "Paid",
@@ -39,13 +46,11 @@ const leadSchema = new Schema<ILead>(
       ref: "Scholarship",
       required: false,
     },
-    // Free Signups, Free Study Guide
     free_signup: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Customer",
       required: false,
     },
-    //Abandoned Cart
     abandoned_cart: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "AbandonedCart",
@@ -56,7 +61,6 @@ const leadSchema = new Schema<ILead>(
       ref: "OrderCreation",
       required: false,
     },
-    // Custom Lead
     custom_lead: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "CustomLead",
@@ -68,7 +72,7 @@ const leadSchema = new Schema<ILead>(
     },
     resolve_status: {
       type: String,
-      enum: status_enum,
+      enum: resolve_status_enum,
     },
     assigned: {
       type: Boolean,

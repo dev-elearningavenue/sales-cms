@@ -102,13 +102,12 @@ export async function DELETE(req: Request) {
 
     const userId = tokenData._id.toString();
     const userType =
-      typeof tokenData.user_type === "number" ? tokenData.user_type : 3; // Default to user type 3 if not present or not a number
+      typeof tokenData.user_type === "number" ? tokenData.user_type : 3;
 
     // Use the controller function to handle deletion
     const result = await deleteLead(leadId, userId, userType);
 
     if (!result.success) {
-      // Determine appropriate status code based on the error
       const statusCode =
         result.message === "Lead not found"
           ? 404

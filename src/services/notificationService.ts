@@ -7,11 +7,7 @@ type UserIdType = string | mongoose.Types.ObjectId;
 
 export async function createNewLeadNotification(lead: ILead) {
   try {
-    console.log("🔔 createNewLead Notification called with lead:", lead.category, lead.domain, lead._id,);
-    
-    // Get all users regardless of type
     const allUsers = await User.find({});
-    console.log(`🔔 Found ${allUsers.length} users to notify for new lead`);
     
     const notificationData = new Notification( {
       type: "new_lead",
@@ -24,10 +20,7 @@ export async function createNewLeadNotification(lead: ILead) {
         status: lead.status,
       }
     });
-    
-    // console.log("🔔 Creating notification with data:", JSON.stringify(notificationData));
-    
-    const savedNotification = await notificationData.save();
+    await notificationData.save();
     // console.log("🔔 Notification created successfully with ID:", savedNotification._id);
     
     return true;

@@ -30,11 +30,9 @@ const Sidebar = () => {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [unassignedLeads, setUnassignedLeads] = useState(0);
   const [unresolvedLeads, setUnresolvedLeads] = useState(0);
-  const pathname = usePathname();
 
   // Fetch unassigned and unresolved leads count
   useEffect(() => {
-    // Don't fetch if not logged in - return early
     if (!session) return;
 
     const fetchLeadCounts = async () => {
@@ -57,13 +55,12 @@ const Sidebar = () => {
     fetchLeadCounts();
 
     // Set up interval to periodically refresh counts
-    const intervalId = setInterval(fetchLeadCounts, 30000); // refresh every 30 seconds
+    const intervalId = setInterval(fetchLeadCounts, 60000);
 
     // Clean up interval on unmount or when session changes
     return () => clearInterval(intervalId);
   }, [session]); // Re-run effect when session changes
 
-  // Toggle pin state
   const togglePin = (): void => {
     setIsPinned(!isPinned);
     // If unpinning, also collapse if not being hovered
@@ -75,21 +72,18 @@ const Sidebar = () => {
     }
   };
 
-  // Handle mouse enter - expand if not pinned
   const handleMouseEnter = (): void => {
     if (!isPinned) {
       setIsExpanded(true);
     }
   };
 
-  // Handle mouse leave - collapse if not pinned
   const handleMouseLeave = (): void => {
     if (!isPinned) {
       setIsExpanded(false);
     }
   };
 
-  // Handle clicks outside the sidebar to collapse when not pinned
   useEffect(() => {
     if (!session) return; // Don't add listeners if not logged in
 
@@ -166,15 +160,15 @@ const Sidebar = () => {
           icon={<ClipboardList size={20} />}
           text="Leads"
           href="/leads"
-          isExpanded={isExpanded}
           badge={unassignedLeads}
+          isExpanded={isExpanded}
         />
         <NavItem
           icon={<ClipboardList size={20} />}
           text="My Leads"
           href="/my-leads"
-          isExpanded={isExpanded}
           badge={unresolvedLeads}
+          isExpanded={isExpanded}
         />
         <NavItem
           icon={<Settings size={20} />}

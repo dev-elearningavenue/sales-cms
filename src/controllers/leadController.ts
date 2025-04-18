@@ -8,6 +8,37 @@ import {
   createStatusChangeNotification 
 } from "@/services/notificationService";
 
+// For server-side only imports
+let socketServer: {
+  emitNewLead: (lead: any) => void;
+  emitLeadAssigned: (lead: any) => void;
+  emitLeadStatusChanged: (lead: any) => void;
+  emitLeadDeleted: (leadId: string) => void;
+} | undefined;
+
+if (typeof window === 'undefined') {
+  // Only import on server-side
+  socketServer = require('../../server/socketServer');
+}
+
+// Status enums for reference
+export const status_enum = [
+  "Follow Up",
+  "Follow Up 1",
+  "Follow Up 2",
+  "Follow Up 3",
+  "Closed",
+  "Pending",
+] as const;
+
+export const resolve_status_enum = [
+  "Pending",
+  "Resolved",
+  "Converted",
+  "Assigned Order",
+  "Paid",
+] as const;
+
 // Reusability:
 // Agar aapko similar logic multiple jagah pe chahiye ho, toh aap controller functions ko import karke reuse kar sakte hain.
 
@@ -131,11 +162,19 @@ export const createLead = async (
       // Get the newly created leads
       const newLeads = await Lead.find({
         _id: { $in: Object.values(result.insertedIds).map(id => id) }
-      });
+      }).populate([
+        { path: "contact_us", model: "Contact" },
+        { path: "assigned_to", model: "User", select: "full_name user_name" }
+      ]);
       
       // Create notification for each lead
       for (const lead of newLeads) {
         createNewLeadNotification(lead);
+        
+        // Emit socket event for each new lead - only on server
+        if (socketServer) {
+          socketServer.emitNewLead(lead);
+        }
       }
     }
     
@@ -209,6 +248,7 @@ export const updateLeadStatus = async (
 
     // Store old status for notification
     const oldStatus = lead.status || "Pending";
+    const oldResolveStatus = lead.resolve_status || "Pending";
 
     const updateData: any = { status: newStatus };
 
@@ -297,6 +337,11 @@ export const updateLeadStatus = async (
           note: additionalData.note,
         }
       );
+      
+      // Emit socket event for status change - only on server
+      if (socketServer && updatedLead) {
+        socketServer.emitLeadStatusChanged(updatedLead);
+      }
     }
 
     return updatedLead;
@@ -375,16 +420,26 @@ export const assignLeadToUser = async (leadId: string, userId: string) => {
       };
     }
 
+    // Check if lead is already assigned
+    if (lead.assigned) {
+      return {
+        success: false,
+        message: "This lead is already assigned to another user",
+        isAlreadyAssigned: true
+      };
+    }
+
     // Update the lead with assignment information
     const updatedLead = await Lead.findByIdAndUpdate(
       leadId,
       {
         assigned_to: userId,
         assigned: true,
-        assignedAt: new Date()
+        assignedAt: new Date(),
+        status: lead.status || "Pending"
       },
       { new: true }
-    );
+    ).populate('assigned_to', 'full_name user_name');
 
     if (!updatedLead) {
       return {
@@ -395,6 +450,11 @@ export const assignLeadToUser = async (leadId: string, userId: string) => {
 
     // Create notification for lead assignment
     createLeadAssignedNotification(updatedLead, userId);
+    
+    // Emit socket event for lead assignment - only on server
+    if (socketServer) {
+      socketServer.emitLeadAssigned(updatedLead);
+    }
 
     return {
       success: true,
@@ -428,6 +488,10 @@ export const deleteLead = async (leadId: string, userId: string, userType: numbe
         success: false,
         message: "Lead not found"
       };
+    }
+    // Emit socket event for lead deletion - only on server
+    if (socketServer) {
+      socketServer.emitLeadDeleted(leadId);
     }
 
     return {

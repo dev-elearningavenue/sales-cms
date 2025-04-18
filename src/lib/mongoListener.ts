@@ -219,6 +219,7 @@ export async function watchCollections() {
     setTimeout(() => watchCollections(), 60000); // Try again in 1 minute
   }
 }
+
 function setupScholarshipCollectionWatch(
   sourceDbCollection: Collection,
   domain: string,
@@ -226,8 +227,6 @@ function setupScholarshipCollectionWatch(
 ) {
   const changeStream = sourceDbCollection.watch();
   activeChangeStreams.push(changeStream);
-
-  console.log("Active Streams: ", activeChangeStreams.length);
 
   changeStream.on("change", async (change) => {
     console.log(
@@ -269,7 +268,11 @@ function setupScholarshipCollectionWatch(
     );
   });
 
-  console.log(`Watching ${domain.split(" - ")[1]} Scholarship collection`);
+  console.log(
+    `${domain.split(" - ")[1]} Scholarship collection: ${
+      activeChangeStreams.length
+    }`
+  );
   return changeStream;
 }
 
@@ -281,7 +284,6 @@ function setupUserCollectionWatch(
   const changeStream = sourceDbCollection.watch();
   activeChangeStreams.push(changeStream);
 
-  console.log("Active Streams: ", activeChangeStreams.length);
   changeStream.on("change", async (change) => {
     console.log(
       `Change event in User's collection of ${domain.split(" - ")[1]}:`,
@@ -332,7 +334,7 @@ function setupUserCollectionWatch(
   });
 
   console.log(
-    `Watching ${domain.split(" - ")[1]} users collection`
+    `${domain.split(" - ")[1]} users collection ${activeChangeStreams.length}`
   );
   return changeStream;
 }
@@ -344,11 +346,6 @@ function setupContactUsCollectionWatch(
 ) {
   const changeStream = sourceDbCollection.watch();
   activeChangeStreams.push(changeStream);
-
-  console.log(
-    "Active Streams in setUp Contact Us: ",
-    activeChangeStreams.length
-  );
 
   changeStream.on("change", async (change) => {
     console.log(
@@ -390,7 +387,7 @@ function setupContactUsCollectionWatch(
     );
   });
   console.log(
-    `Watching ${domain.split(" - ")[1]} users collection`
+    `${domain.split(" - ")[1]} users collection ${activeChangeStreams.length}`
   );
   return changeStream;
 }
@@ -409,11 +406,6 @@ function setupOrderCollectionWatch(
       const newOrder = change.fullDocument;
 
       if (newOrder?.isPaid === false) {
-        console.log(
-          `New Unpaid order from (${domain.split(" - ")[1]}) detected:`,
-          newOrder._id
-        );
-
         // Store the order ID in a temporary map with a timestamp
         const orderId = newOrder._id.toString();
         pendingOrders.set(orderId, {
@@ -446,7 +438,9 @@ function setupOrderCollectionWatch(
                 "Abandoned Cart"
               );
               console.log(
-                `Successfully processed abandoned cart for order ${newOrder._id}`
+                `Unpaid Order on ${
+                  domain.split(" - ")[1]
+                } successfully processed: ${newOrder._id}`
               );
 
               if (orderStatus?.isPaid === false) {
@@ -473,7 +467,7 @@ function setupOrderCollectionWatch(
 
       if (wasPaidBefore === false && isPaidNow === true) {
         console.log(
-          `Order payment is now paid on ${domain.split(" - ")[1]}:`,
+          `Order is now paid on ${domain.split(" - ")[1]}:`,
           orderId
         );
         pendingOrders.delete(orderId);
@@ -530,7 +524,7 @@ function setupOrderCollectionWatch(
               {
                 $set: {
                   order_creation: orderResult.insertedId,
-                  category: "Order Creation", // Update category to reflect the conversion
+                  category: "Order Creation",
                 },
               }
             );
@@ -566,9 +560,7 @@ function setupOrderCollectionWatch(
   });
 
   console.log(
-    `Watching ${domain.split(" - ")[1]} orders collection. Active streams: ${
-      activeChangeStreams.length
-    }`
+    `${domain.split(" - ")[1]} orders collection: ${activeChangeStreams.length}`
   );
   return changeStream;
 }
@@ -609,7 +601,7 @@ async function syncToTargetCollection(
       throw new Error(`Failed to insert into ${targetCollection}`);
 
     console.log(
-      `Successfully inserted into ${targetCollection} collection: ${insertResult.insertedId}`
+      `Successfully inserted into ${type} collection: ${insertResult.insertedId}`
     );
 
     const logData = new Log({
@@ -649,7 +641,7 @@ async function syncToTargetCollection(
     console.log(`Lead created with ID: ${leadResult._id}`);
 
     createNewLeadNotification(leadResult);
-    
+
     return insertResult;
   } catch (error: any) {
     console.error(`Error syncing data from ${domain}:`, error);
@@ -744,7 +736,6 @@ function setupConnectionMonitoring() {
   }, CHECK_INTERVAL);
 }
 
-// Improve restart logic
 async function restartWatchers() {
   console.log("Initiating watcher restart sequence...");
   await stopWatching();

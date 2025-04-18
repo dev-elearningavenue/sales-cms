@@ -64,6 +64,16 @@ export async function POST(req: NextRequest) {
     const result = await assignLeadToUser(leadId, assignToUserId);
     
     if (!result.success) {
+      // Special handling for already assigned leads
+      if (result.isAlreadyAssigned) {
+        return NextResponse.json({ 
+          success: false,
+          error: result.message 
+        }, { 
+          status: 409
+        });
+      }
+      
       return NextResponse.json({ 
         error: result.message 
       }, { 

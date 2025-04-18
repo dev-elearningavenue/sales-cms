@@ -8,16 +8,7 @@ import { ILead } from "@/types/leads";
 import { useApp } from "@/contexts/AppContext";
 import { Plus, X } from "lucide-react";
 import { CourseInterest } from "@/models/customLead";
-
-// interface Lead {
-//   _id: string;
-//   category: string;
-//   createdAt: string;
-//   domain: string;
-//   assigned_to?: string;
-//   assigned?: Boolean;
-//   created_by?: string;
-// }
+import { useSocket } from "@/hooks/useSocket";
 
 const Leads = () => {
   const [leads, setLeads] = useState<ILead[]>([]);
@@ -41,14 +32,59 @@ const Leads = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
 
+  // Initialize WebSocket connection with event handlers
+  const { isConnected } = useSocket({
+    onNewLead: (data) => {
+      const newLead = data.lead;
+      // Check if this lead already exists in our list
+      if (!leads.some((lead) => lead._id === newLead._id)) {
+        setLeads((prevLeads) => [newLead, ...prevLeads]);
+        addNotification({
+          message: `New lead added: ${getLeadName(newLead)}`,
+          read: false,
+          type: "lead",
+          leadId: newLead._id,
+        });
+      }
+    },
+    onLeadAssigned: (data) => {
+      const updatedLead = data.lead;
+      // Update lead assignment status
+      setLeads((prevLeads) =>
+        prevLeads.map((lead) => {
+          if (lead._id === updatedLead._id) {
+            return {
+              ...lead,
+              assigned: true,
+              assigned_to: updatedLead.assigned_to,
+              assignedAt: updatedLead.assignedAt,
+            };
+          }
+          return lead;
+        })
+      );
+    },
+    onLeadDeleted: (data) => {
+      const deletedLeadId = data.leadId;
+      // Remove deleted lead
+      setLeads((prevLeads) =>
+        prevLeads.filter((lead) => lead._id !== deletedLeadId)
+      );
+    },
+  });
+
   useEffect(() => {
     fetchLeads();
+    // We can still keep polling as a fallback mechanism, but with a longer interval
     const intervalId = setInterval(() => {
-      fetchLeadsUpdates();
-    }, 15000); // Check for updates every 15 seconds
+      if (!isConnected) {
+        // Only use polling when WebSocket is not connected
+        fetchLeadsUpdates();
+      }
+    }, 60000); // Check for updates every 60 seconds as a fallback
 
     return () => clearInterval(intervalId);
-  }, []);
+  }, [isConnected]);
 
   const fetchLeads = async () => {
     try {
@@ -155,7 +191,10 @@ const Leads = () => {
     return "New Lead";
   };
 
-  const handleDeleteLead = async (leadId: string, isBatchOperation = false) => {
+  const handleDelete = async (
+    leadId: string,
+    isBatchOperation: boolean = false
+  ) => {
     try {
       const res = await fetch(`/api/leads?leadId=${leadId}`, {
         method: "DELETE",
@@ -164,6 +203,9 @@ const Leads = () => {
       if (!res.ok) {
         throw new Error("Failed to delete lead");
       }
+
+      // Don't need to update state since WebSocket will handle this
+      // But as a fallback, let's update it locally too
       setLeads((prevLeads) => prevLeads.filter((lead) => lead._id !== leadId));
 
       // Skip individual notifications for batch operations
@@ -175,6 +217,8 @@ const Leads = () => {
           read: false,
         });
       }
+
+      return true;
     } catch (error) {
       console.error("Error deleting lead:", error);
       addNotification({
@@ -182,6 +226,7 @@ const Leads = () => {
         type: "warning",
         read: false,
       });
+      return false;
     }
   };
 
@@ -191,9 +236,8 @@ const Leads = () => {
     isBatchOperation = false
   ) => {
     try {
-      console.log(
-        `Assigning Lead: ${leadId}${userId ? ` to user: ${userId}` : ""}`
-      );
+      // console.log(`Assigning Lead: ${leadId}${userId ? ` to user: ${userId}` : ""}`);
+
       const res = await fetch("/api/leads/assign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -203,7 +247,7 @@ const Leads = () => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        // Update the leads state to show the lead as assigned
+        // Update handled by WebSocket, but as fallback also update here
         setLeads((prevLeads) => {
           return prevLeads.map((lead) => {
             if (lead._id === leadId) {
@@ -247,12 +291,24 @@ const Leads = () => {
             read: false,
           });
         }
+
+        return true; // Assignment successful
       } else {
-        alert(data.message || "Failed to assign lead.");
+        // Handle assignment error
+        if (res.status === 409) {
+          // Lead already assigned
+          alert(
+            data.error || "This lead has already been assigned to another user."
+          );
+        } else {
+          alert(data.error || data.message || "Failed to assign lead.");
+        }
+        return false; // Assignment failed
       }
     } catch (error) {
       console.error("Error while assigning lead:", error);
       alert("An error occurred while assigning the lead.");
+      return false; // Assignment failed with exception
     }
   };
 
@@ -364,17 +420,19 @@ const Leads = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Successfully created lead - update the leads state with the returned lead
-        const newLead = data.lead;
-        setLeads((prev) => [newLead, ...prev]);
+        // Successfully created lead - update is handled by WebSocket
+        // but as fallback, also update state
+        if (data.lead) {
+          setLeads((prev) => [data.lead, ...prev]);
 
-        // Add notification for new lead
-        addNotification({
-          message: `New lead created: ${newLead.custom_lead.firstName} ${newLead.custom_lead.lastName}`,
-          read: false,
-          type: "lead",
-          leadId: newLead._id,
-        });
+          // Add notification for new lead
+          addNotification({
+            message: `New lead created: ${data.lead.custom_lead.firstName} ${data.lead.custom_lead.lastName}`,
+            read: false,
+            type: "lead",
+            leadId: data.lead._id,
+          });
+        }
 
         resetForm();
         setIsCreateModalOpen(false);
@@ -412,36 +470,6 @@ const Leads = () => {
     setFormErrors({});
   };
 
-  // Add event listeners for batch operations
-  useEffect(() => {
-    const handleBatchDelete = (e: CustomEvent) => {
-      const { count } = e.detail;
-      addNotification({
-        message: `${count} leads deleted successfully`,
-        type: "info",
-        read: false,
-      });
-    };
-
-    const handleBatchAssign = (e: CustomEvent) => {
-      const { count } = e.detail;
-      addNotification({
-        message: `${count} leads assigned successfully`,
-        type: "info",
-        read: false,
-      });
-    };
-
-    // TypeScript: Casting event as any to prevent type issues
-    window.addEventListener("batchDelete", handleBatchDelete as any);
-    window.addEventListener("batchAssign", handleBatchAssign as any);
-
-    return () => {
-      window.removeEventListener("batchDelete", handleBatchDelete as any);
-      window.removeEventListener("batchAssign", handleBatchAssign as any);
-    };
-  }, [addNotification]);
-
   return (
     <>
       <Head>
@@ -449,17 +477,6 @@ const Leads = () => {
       </Head>
 
       <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-        {/* <div className="mb-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">All Leads</h1>
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            Create New Lead
-          </button>
-        </div> */}
-
         {loading ? (
           <LoadingSkeleton component="All Leads" />
         ) : (
@@ -469,7 +486,7 @@ const Leads = () => {
             title="All Leads"
             showCreateButton={true}
             onCreateClick={() => setIsCreateModalOpen(true)}
-            onDelete={handleDeleteLead}
+            onDelete={handleDelete}
           />
         )}
       </div>

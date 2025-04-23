@@ -22,6 +22,7 @@ const status_enum = [
 ] as const;
 
 const resolve_status_enum = [
+  "Pending",
   "Resolved",
   "Converted",
   "Assigned Order",

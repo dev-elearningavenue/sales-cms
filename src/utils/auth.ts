@@ -1,6 +1,6 @@
 // src/utils/auth.ts
 import jwt from "jsonwebtoken";
-import { jwtVerify, SignJWT } from "jose";
+import { jwtVerify } from "jose";
 import { IUser } from "@/models/user";
 import { TokenPayload } from "@/types/auth";
 

@@ -255,6 +255,8 @@ export const updateLeadStatus = async (
     // Handle specific status updates
     if (newStatus === "Converted" && additionalData?.conversionValue) {
       updateData.resolve_status = "Converted";
+      updateData.resolved = true;
+      updateData.resolvedAt = new Date();
       updateData.conversion_value = additionalData.conversionValue;
     }
 
@@ -294,10 +296,11 @@ export const updateLeadStatus = async (
       updateData.next_follow_up.push(newFollowUp);
     }
 
-    if (newStatus === "Resolved") {
+    if (["Resolved", "Assigned Order", "Paid"].includes(newStatus)) {
+      updateData.status = "Closed";
       updateData.resolved = true;
       updateData.resolvedAt = new Date();
-      updateData.resolve_status = "Resolved";
+      updateData.resolve_status = newStatus;
     }
 
     // Add note if provided

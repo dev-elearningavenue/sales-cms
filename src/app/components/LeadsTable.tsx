@@ -302,12 +302,6 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   const endIndex = Math.min(startIndex + itemsPerPage, filteredLeads.length);
   const currentLeads = filteredLeads.slice(startIndex, endIndex);
 
-  // console.log(
-  //   "🔔 currentLeads",
-  //   currentLeads[1],
-  //   currentLeads[2],
-  //   currentLeads[3]
-  // );
   const domainMapping: Record<string, string> = {
     "Osha Outreach": "OOR",
     "Osha Online Center": "OOC",

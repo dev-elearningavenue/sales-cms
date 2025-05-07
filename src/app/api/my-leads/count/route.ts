@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Lead from "@/models/lead";
 import { getDataFromToken } from "@/utils/get_token_data";
-
+export const dynamic = "force-dynamic";
 // Connect to database at route initialization
 connectDB().catch(console.error);
 

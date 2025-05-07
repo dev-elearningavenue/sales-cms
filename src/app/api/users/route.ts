@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDataFromToken } from "@/utils/get_token_data";
 import { getUsers } from "@/controllers/userController";
 import connectDB from "@/lib/db";
+export const dynamic = "force-dynamic";
 
 async function connectDatabase() {
   await connectDB();

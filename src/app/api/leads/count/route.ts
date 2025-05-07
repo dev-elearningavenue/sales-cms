@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Lead from "@/models/lead";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,7 +22,8 @@ export async function GET(request: NextRequest) {
 
     // Filter by resolution status
     if (resolved !== null) {
-      filter.resolve_status = resolved === "true" ? "Resolved" : { $ne: "Resolved" };
+      filter.resolve_status =
+        resolved === "true" ? "Resolved" : { $ne: "Resolved" };
     }
 
     // Filter by user assignment
@@ -40,4 +42,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

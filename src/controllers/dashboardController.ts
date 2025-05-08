@@ -2,8 +2,14 @@ import Lead from "@/models/lead";
 import User from "@/models/user";
 import { SalesPerson } from "@/types/salesPerson";
 
+// Interface for date filter
+interface DateFilter {
+  startDate?: Date;
+  endDate?: Date;
+}
+
 // Get dashboard metrics for admin view
-export const getDashboardMetrics = async () => {
+export const getDashboardMetrics = async (dateFilter?: DateFilter) => {
   try {
     // Get all salespeople (user_type = 3)
     const salesPeople = await User.find({ user_type: 3 })
@@ -30,12 +36,36 @@ export const getDashboardMetrics = async () => {
         freeStudyGuides: 0,
         scholarship: 0
       },
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      dateRange: {
+        startDate: dateFilter?.startDate || null,
+        endDate: dateFilter?.endDate || null
+      }
+    };
+
+    // Build the query based on date filter
+    const buildLeadQuery = (assignedTo: string) => {
+      const query: any = { assigned_to: assignedTo };
+      
+      if (dateFilter?.startDate || dateFilter?.endDate) {
+        query.createdAt = {};
+        
+        if (dateFilter.startDate) {
+          query.createdAt.$gte = dateFilter.startDate;
+        }
+        
+        if (dateFilter.endDate) {
+          query.createdAt.$lte = dateFilter.endDate;
+        }
+      }
+      
+      return query;
     };
 
     const salesPeopleWithMetrics = await Promise.all(
       salesPeople.map(async (user) => {
-        const leads = await Lead.find({ assigned_to: user._id }).lean();
+        const query = buildLeadQuery(user._id.toString());
+        const leads = await Lead.find(query).lean();
         
         // Calculate basic metrics for this salesperson
         const assigned = leads.length;
@@ -107,7 +137,8 @@ export const getDashboardMetrics = async () => {
 
       // Gather all leads assigned to any manager
       for (const manager of managers) {
-        const leads = await Lead.find({ assigned_to: manager._id }).lean();
+        const query = buildLeadQuery(manager._id.toString());
+        const leads = await Lead.find(query).lean();
         
         // Add to admin totals
         adminAssigned += leads.length;
@@ -180,7 +211,7 @@ export const getDashboardMetrics = async () => {
   }
 };
 
-export const getSalespersonMetrics = async (userId: string) => {
+export const getSalespersonMetrics = async (userId: string, dateFilter?: DateFilter) => {
   try {
     // Get the salesperson
     const user = await User.findById(userId).select('_id full_name user_name').lean();
@@ -192,8 +223,22 @@ export const getSalespersonMetrics = async (userId: string) => {
       };
     }
 
-    // Get all leads assigned to this user
-    const leads = await Lead.find({ assigned_to: userId }).lean();
+    // Build the query based on date filter
+    const query: any = { assigned_to: userId };
+    if (dateFilter?.startDate || dateFilter?.endDate) {
+      query.createdAt = {};
+      
+      if (dateFilter.startDate) {
+        query.createdAt.$gte = dateFilter.startDate;
+      }
+      
+      if (dateFilter.endDate) {
+        query.createdAt.$lte = dateFilter.endDate;
+      }
+    }
+    
+    // Get all leads assigned to this user with date filtering
+    const leads = await Lead.find(query).lean();
     
     // Calculate basic metrics
     const assigned = leads.length;
@@ -238,7 +283,11 @@ export const getSalespersonMetrics = async (userId: string) => {
         freeStudyGuides,
         scholarship
       },
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      dateRange: {
+        startDate: dateFilter?.startDate || null,
+        endDate: dateFilter?.endDate || null
+      }
     };
 
     return {

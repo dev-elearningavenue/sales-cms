@@ -2,23 +2,25 @@ import Lead from "@/models/lead";
 import { ILead } from "@/types/leads";
 import CustomLead, { ICustomLead } from "@/models/customLead";
 import mongoose from "mongoose";
-import { 
-  createNewLeadNotification, 
-  createLeadAssignedNotification, 
-  createStatusChangeNotification 
+import {
+  createNewLeadNotification,
+  createLeadAssignedNotification,
+  createStatusChangeNotification,
 } from "@/services/notificationService";
 
 // For server-side only imports
-let socketServer: {
-  emitNewLead: (lead: any) => void;
-  emitLeadAssigned: (lead: any) => void;
-  emitLeadStatusChanged: (lead: any) => void;
-  emitLeadDeleted: (leadId: string) => void;
-} | undefined;
+let socketServer:
+  | {
+      emitNewLead: (lead: any) => void;
+      emitLeadAssigned: (lead: any) => void;
+      emitLeadStatusChanged: (lead: any) => void;
+      emitLeadDeleted: (leadId: string) => void;
+    }
+  | undefined;
 
-if (typeof window === 'undefined') {
+if (typeof window === "undefined") {
   // Only import on server-side
-  socketServer = require('../../server/socketServer');
+  socketServer = require("../../server/socketServer");
 }
 
 // Status enums for reference
@@ -65,10 +67,15 @@ export const getAllLeads = async () => {
       populations.push({ path: "custom_lead", model: "CustomLead" });
     }
     // Add assigned_to population
-    populations.push({ path: "assigned_to", model: "User", select: "full_name user_name" });
+    populations.push({
+      path: "assigned_to",
+      model: "User",
+      select: "full_name user_name",
+    });
 
     const leads = await Lead.find()
       .sort({ createdAt: -1 })
+      .limit(150)
       .populate(populations);
 
     if (!leads || leads.length === 0) {
@@ -77,8 +84,12 @@ export const getAllLeads = async () => {
     // console.log("Lead: ", leads[leads.length - 2]);
     return { message: "All leads fetched successfully", leads };
   } catch (error: any) {
-    console.error("Error caught: ", error)
-    return { error: "Failed to fetch leads", details: error.message, leads: [] };
+    console.error("Error caught: ", error);
+    return {
+      error: "Failed to fetch leads",
+      details: error.message,
+      leads: [],
+    };
   }
 };
 
@@ -155,29 +166,29 @@ export const createLead = async (
   try {
     // await newLead.save();
     const result = await Lead.bulkWrite(bulkOps);
-    
+
     // Create notifications for each new lead
     // Note: This is async but we don't wait for it to complete
     if (result.insertedCount > 0) {
       // Get the newly created leads
       const newLeads = await Lead.find({
-        _id: { $in: Object.values(result.insertedIds).map(id => id) }
+        _id: { $in: Object.values(result.insertedIds).map((id) => id) },
       }).populate([
         { path: "contact_us", model: "Contact" },
-        { path: "assigned_to", model: "User", select: "full_name user_name" }
+        { path: "assigned_to", model: "User", select: "full_name user_name" },
       ]);
-      
+
       // Create notification for each lead
       for (const lead of newLeads) {
         createNewLeadNotification(lead);
-        
+
         // Emit socket event for each new lead - only on server
         if (socketServer) {
           socketServer.emitNewLead(lead);
         }
       }
     }
-    
+
     return {
       message: "Leads created successfully",
       insertedCount: result.insertedCount,
@@ -225,7 +236,11 @@ export const getLeadsByUser = async (userId: string) => {
     return { message: "Leads fetched successfully", leads };
   } catch (error: any) {
     console.error("Error fetching getLeadsByUser", error);
-    return { error: "Failed to fetch My Leads", details: error.message, leads: [] };
+    return {
+      error: "Failed to fetch My Leads",
+      details: error.message,
+      leads: [],
+    };
   }
 };
 
@@ -276,17 +291,22 @@ export const updateLeadStatus = async (
       };
 
       // Validate follow-up date - must be later than any previous follow-up
-      if (lead.next_follow_up && Array.isArray(lead.next_follow_up) && lead.next_follow_up.length > 0) {
-        const previousFollowUps = [...lead.next_follow_up].sort((a, b) => 
-          new Date(b.date).getTime() - new Date(a.date).getTime()
+      if (
+        lead.next_follow_up &&
+        Array.isArray(lead.next_follow_up) &&
+        lead.next_follow_up.length > 0
+      ) {
+        const previousFollowUps = [...lead.next_follow_up].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         );
         const latestFollowUpDate = new Date(previousFollowUps[0].date);
         const newFollowUpDate = new Date(additionalData.followUpDate);
-        
+
         if (newFollowUpDate.getTime() <= latestFollowUpDate.getTime()) {
-          return { 
-            error: true, 
-            message: "New follow-up date must be later than previous follow-up dates"
+          return {
+            error: true,
+            message:
+              "New follow-up date must be later than previous follow-up dates",
           };
         }
       }
@@ -335,12 +355,14 @@ export const updateLeadStatus = async (
         additionalData.userId,
         {
           conversion_value: additionalData.conversionValue,
-          follow_up_date: additionalData.followUpDate ? new Date(additionalData.followUpDate) : undefined,
+          follow_up_date: additionalData.followUpDate
+            ? new Date(additionalData.followUpDate)
+            : undefined,
           contact_types: additionalData.contactTypes,
           note: additionalData.note,
         }
       );
-      
+
       // Emit socket event for status change - only on server
       if (socketServer && updatedLead) {
         socketServer.emitLeadStatusChanged(updatedLead);
@@ -354,7 +376,10 @@ export const updateLeadStatus = async (
   }
 };
 
-export const createCustomLead = async (customLeadData: Partial<ICustomLead>, createdById?: string) => {
+export const createCustomLead = async (
+  customLeadData: Partial<ICustomLead>,
+  createdById?: string
+) => {
   try {
     // First, create the CustomLead document
     const customLead = new CustomLead({
@@ -380,9 +405,10 @@ export const createCustomLead = async (customLeadData: Partial<ICustomLead>, cre
       order_creation: null,
       status: "Follow Up",
       resolve_status: "Pending",
-      assigned: false, 
+      assigned: false,
       assigned_to: null,
-      created_by: createdById || new mongoose.Types.ObjectId("67b33a327fa1571a2f0e1e4b"),
+      created_by:
+        createdById || new mongoose.Types.ObjectId("67b33a327fa1571a2f0e1e4b"),
       domain: customLeadData.domain,
       next_follow_up: null,
       notes: [],
@@ -399,14 +425,14 @@ export const createCustomLead = async (customLeadData: Partial<ICustomLead>, cre
     return {
       success: true,
       message: "Custom lead created successfully",
-      lead: populatedLead
+      lead: populatedLead,
     };
   } catch (error: any) {
     console.error("Error creating custom lead:", error);
     return {
       success: false,
       message: "Failed to create custom lead",
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -419,7 +445,7 @@ export const assignLeadToUser = async (leadId: string, userId: string) => {
     if (!lead) {
       return {
         success: false,
-        message: "Lead not found"
+        message: "Lead not found",
       };
     }
 
@@ -428,7 +454,7 @@ export const assignLeadToUser = async (leadId: string, userId: string) => {
       return {
         success: false,
         message: "This lead is already assigned to another user",
-        isAlreadyAssigned: true
+        isAlreadyAssigned: true,
       };
     }
 
@@ -439,21 +465,21 @@ export const assignLeadToUser = async (leadId: string, userId: string) => {
         assigned_to: userId,
         assigned: true,
         assignedAt: new Date(),
-        status: lead.status || "Pending"
+        status: lead.status || "Pending",
       },
       { new: true }
-    ).populate('assigned_to', 'full_name user_name');
+    ).populate("assigned_to", "full_name user_name");
 
     if (!updatedLead) {
       return {
         success: false,
-        message: "Failed to assign lead"
+        message: "Failed to assign lead",
       };
     }
 
     // Create notification for lead assignment
     createLeadAssignedNotification(updatedLead, userId);
-    
+
     // Emit socket event for lead assignment - only on server
     if (socketServer) {
       socketServer.emitLeadAssigned(updatedLead);
@@ -462,34 +488,38 @@ export const assignLeadToUser = async (leadId: string, userId: string) => {
     return {
       success: true,
       message: "Lead assigned successfully",
-      lead: updatedLead
+      lead: updatedLead,
     };
   } catch (error) {
     console.error("Error assigning lead:", error);
     return {
       success: false,
-      message: "Failed to assign lead"
+      message: "Failed to assign lead",
     };
   }
 };
 
-export const deleteLead = async (leadId: string, userId: string, userType: number) => {
+export const deleteLead = async (
+  leadId: string,
+  userId: string,
+  userType: number
+) => {
   try {
     // Check if the user is authorized to delete leads (userType != 3)
     if (userType === 3) {
       return {
         success: false,
-        message: "You don't have permission to delete leads"
+        message: "You don't have permission to delete leads",
       };
     }
 
     // Delete the lead
     const result = await Lead.findByIdAndDelete(leadId);
-    
+
     if (!result) {
       return {
         success: false,
-        message: "Lead not found"
+        message: "Lead not found",
       };
     }
     // Emit socket event for lead deletion - only on server
@@ -499,13 +529,13 @@ export const deleteLead = async (leadId: string, userId: string, userType: numbe
 
     return {
       success: true,
-      message: "Lead deleted successfully"
+      message: "Lead deleted successfully",
     };
   } catch (error) {
     console.error("Error deleting lead:", error);
     return {
       success: false,
-      message: "Failed to delete lead"
+      message: "Failed to delete lead",
     };
   }
 };

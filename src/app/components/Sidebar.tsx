@@ -4,6 +4,7 @@ import {
   Menu,
   Home,
   ClipboardList,
+  LayoutDashboard,
   Settings,
   User,
   Sun,
@@ -154,6 +155,12 @@ const Sidebar = () => {
           icon={<Home size={20} />}
           text="Home"
           href="/"
+          isExpanded={isExpanded}
+        />
+        <NavItem
+          icon={<LayoutDashboard size={20} />}
+          text="Dashboard"
+          href="/dashboard"
           isExpanded={isExpanded}
         />
         <NavItem

@@ -74,22 +74,31 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
   const [showBatchDeleteModal, setShowBatchDeleteModal] = useState(false);
 
+  // Add state to track shown notifications
+  const [shownNotifications, setShownNotifications] = useState<Set<string>>(
+    new Set()
+  );
+
   // Fetch available users for assignment
   useEffect(() => {
     if (session?.user_type === 1 || session?.user_type === 2) {
       fetchAvailableUsers();
     }
 
-    // Set up polling for lead assignment status updates
-    const pollInterval = setInterval(() => {
-      checkAssignmentUpdates();
-    }, 10000); // Poll every 10 seconds
+    // Comment out polling for lead assignment status updates
+    // const pollInterval = setInterval(() => {
+    //   checkAssignmentUpdates();
+    // }, 10000); // Poll every 10 seconds
 
-    return () => clearInterval(pollInterval);
+    // return () => clearInterval(pollInterval);
   }, [session, leads]);
 
   // Function to check for updates on assigned leads
   const checkAssignmentUpdates = async () => {
+    // Disable this function completely to prevent API calls
+    return; // Early return to prevent execution
+
+    /* Original implementation commented out
     try {
       // Get all lead IDs from current leads array
       const leadIds = leads.map((lead) => lead._id).filter(Boolean);
@@ -112,22 +121,45 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
         // Show notification for newly assigned leads
         data.updatedLeads.forEach((updated: any) => {
           if (updated.assigned && !updated.previouslyAssigned) {
-            addNotification({
-              message: `Lead has been assigned to ${
-                updated.assigned_to?.full_name || "another user"
-              }`,
-              type: "info",
-              read: false,
-            });
+            // Create a unique key for this notification
+            const notificationKey = `${updated._id}-${updated.assigned_to?._id}-${new Date().toISOString().split('T')[0]}`;
+            
+            // Only show notification if we haven't shown it before
+            if (!shownNotifications.has(notificationKey)) {
+              addNotification({
+                message: `Lead has been assigned to ${
+                  updated.assigned_to?.full_name || "another user"
+                }`,
+                type: "info",
+                read: false,
+              });
+              
+              // Add to shown notifications
+              setShownNotifications(prev => new Set([...prev, notificationKey]));
+            }
           }
         });
 
-        // The parent should be fetching fresh data on its own schedule
-        // so we don't need to force a refetch here
+        // Clean up old notifications (older than 24 hours)
+        const oneDayAgo = new Date();
+        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+        
+        setShownNotifications(prev => {
+          const newSet = new Set(prev);
+          for (const key of newSet) {
+            const [, , dateStr] = key.split('-');
+            const notificationDate = new Date(dateStr);
+            if (notificationDate < oneDayAgo) {
+              newSet.delete(key);
+            }
+          }
+          return newSet;
+        });
       }
     } catch (error) {
       console.error("Error checking assignment updates:", error);
     }
+    */
   };
 
   // Additional effect to refresh users when batch modal opens

@@ -26,8 +26,8 @@ export const Card = ({
   };
 
   const baseClasses = `rounded-xl transition-all duration-300 perspective-1000 ${
-    isSquarish ? "aspect-[4/3]" : ""
-  } ${hover ? "hover:shadow-lg transform hover:-translate-y-1" : ""}`;
+    hover ? "hover:shadow-lg transform hover:-translate-y-1" : ""
+  }`;
   const lightModeClasses = "bg-white shadow-sm border border-gray-100";
   const darkModeClasses =
     "bg-gray-800 shadow-md border border-gray-700 text-white";

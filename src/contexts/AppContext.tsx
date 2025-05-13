@@ -228,7 +228,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           try {
             // Use the last poll time if available
             const lastPollTime = new Date();
-            lastPollTime.setMinutes(lastPollTime.getMinutes() - 1); // 1 minute buffer
+            lastPollTime.setMinutes(lastPollTime.getMinutes() - 5); // 5 minute buffer (increased from 1 minute)
 
             const response = await axios.get(
               `/api/notifications/updates?since=${lastPollTime.toISOString()}`
@@ -264,7 +264,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           } catch (error) {
             console.error("Error polling for notifications:", error);
           }
-        }, 10000); // Poll every 10 seconds (more frequent)
+        }, 300000); // Poll every 5 minutes (changed from 10 seconds)
 
         setNotificationPolling(intervalId);
       }

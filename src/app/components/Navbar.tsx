@@ -124,7 +124,7 @@ export const Navbar = () => {
       >
         {session && (
           <button onClick={() => router.push("/dashboard")} className="text-xl">
-            <h1 className="text-xl font-bold dark:text-white">Dashboard</h1>
+            {/* <h1 className="text-xl font-bold dark:text-white">Dashboard</h1> */}
           </button>
         )}
       </div>

@@ -76,7 +76,7 @@ export const StatCard = ({
   return (
     <Card
       darkMode={darkMode}
-      className={`p-4 flex flex-col overflow-hidden relative group h-36 min-h-36 ${colors.background}`}
+      className={`p-6 flex flex-col overflow-hidden relative group h-60 min-h-60 ${colors.background}`} // Increased height for stat cards
       flipContent={flipContent}
       isSquarish={true}
     >

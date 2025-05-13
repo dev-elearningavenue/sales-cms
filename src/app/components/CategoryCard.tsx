@@ -65,7 +65,7 @@ export const CategoryCard = ({
   return (
     <Card
       darkMode={darkMode}
-      className={`p-3 flex flex-col flex-1 overflow-hidden h-24 min-h-24 ${colors.background}`}
+      className={`p-4 flex flex-col flex-1 overflow-hidden h-32 min-h-32 ${colors.background}`} // Adjusted height for Category Cards
     >
       <div className="flex justify-between items-center">
         <h3 className="text-xs font-medium text-white/90">{title}</h3>

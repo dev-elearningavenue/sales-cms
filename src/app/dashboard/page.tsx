@@ -13,8 +13,6 @@ import { Card } from "@/components/Card";
 import { StatCard } from "@/components/StatCard";
 import { CategoryCard } from "@/components/CategoryCard";
 
-import { useToast } from "@/components/ui/use-toast";
-
 import { SummaryStats } from "@/components/SummaryStats";
 import { TeamPerformance } from "@/components/TeamPerformance";
 
@@ -23,48 +21,16 @@ import {
   CheckCircle,
   Clock,
   PhoneCall,
-  XCircle,
   BarChart3,
-  ChevronUp,
   PieChart,
   RefreshCcw,
-  ArrowUpRight,
-  Calendar,
-  ChevronRight,
 } from "lucide-react";
 
-// Custom hook for dark mode
-const useDarkMode = () => {
-  const [darkMode, setDarkMode] = useState(false);
-
-  useEffect(() => {
-    // Check for system preference
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    ).matches;
-    setDarkMode(prefersDark);
-
-    // Listen for changes
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = (e: MediaQueryListEvent) => setDarkMode(e.matches);
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
-
-  const toggleDarkMode = () => setDarkMode(!darkMode);
-
-  return { darkMode, toggleDarkMode };
-};
+import { ErrorDisplay } from "@/components/ErrorDisplay";
 
 const useThemeFromContext = () => {
-  // Access theme from context instead of managing locally
   const { theme, toggleTheme } = useApp();
   const isDarkMode = theme === "dark";
-
-  useEffect(() => {
-    // No need for additional setup since your navbar already handles this
-  }, []);
 
   return { darkMode: isDarkMode, toggleTheme };
 };
@@ -99,8 +65,6 @@ const useLeadsData = () => {
       if (params.toString()) {
         url += `?${params.toString()}`;
       }
-
-      // Actual API call to get dashboard metrics
       const response = await fetch(url);
       const result = await response.json();
 
@@ -108,7 +72,6 @@ const useLeadsData = () => {
         throw new Error(result.message || "Failed to fetch dashboard data");
       }
 
-      // Set the data from the API response
       setData(result.data);
       setLoading(false);
     } catch (err: any) {
@@ -122,7 +85,12 @@ const useLeadsData = () => {
   }, [dateRange]);
 
   const refreshData = async () => {
-    fetchData(dateRange.startDate || undefined, dateRange.endDate || undefined);
+    setLoading(true);
+    await fetchData(
+      dateRange.startDate || undefined,
+      dateRange.endDate || undefined
+    );
+    setLoading(false);
   };
 
   const updateDateRange = (startDate: Date, endDate: Date) => {
@@ -203,13 +171,12 @@ export default function DashboardPage() {
     dateRange,
   } = useLeadsData();
 
-  // Combined loading state
   const isLoading = sessionLoading || dataLoading;
 
   useEffect(() => {
     // Check session status when component mounts
     if (!session && !isLoading) {
-      console.log("No session in dashboard, fetching session");
+      console.log("No session available in dashboard, fetching session");
       fetchSession();
     }
   }, [session, isLoading]);
@@ -219,21 +186,20 @@ export default function DashboardPage() {
   }
 
   if (sessionError) {
-    return <div>Session Error: {sessionError}</div>;
+    return <ErrorDisplay message={sessionError} type="session" />;
   }
 
   if (dataError) {
-    return <div>Data Error: {dataError}</div>;
+    return <ErrorDisplay message={dataError} type="data" />;
   }
 
   // If no session and not loading, redirect to login
   if (!session) {
-    console.log("No session in dashboard.");
+    console.log("Session unavailable in dashboard.");
     router.replace("/login");
     return null;
   }
 
-  // Set background based on dark mode
   const bgClass = darkMode
     ? "bg-gradient-to-br from-gray-900 to-gray-800 text-white"
     : "bg-gradient-to-br from-gray-50 to-white";
@@ -279,7 +245,7 @@ export default function DashboardPage() {
               >
                 <span
                   className={`text-sm font-medium ${
-                    darkMode ? "text-blue-300" : "text-blue-700"
+                    darkMode ? "text-white" : "text-blue-700"
                   }`}
                 >
                   Today: {new Date().toLocaleDateString()}
@@ -313,7 +279,7 @@ export default function DashboardPage() {
             data?.salesperson && (
               <div className="space-y-5">
                 {/* Main stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   <StatCard
                     title="Your Assigned Leads"
                     value={data.salesperson.assigned}
@@ -331,7 +297,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Category stats */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3">
                   <CategoryCard
                     title="Order Creations"
                     value={data.salesperson.orderCreations}

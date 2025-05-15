@@ -1094,17 +1094,21 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   </td>
                   {/* DOMAIN (LEAD SOURCE) */}
                   <td className="px-4 py-4 text-sm">
-                    {getDomainLabel(lead.domain || "")}
+                    <div className="py-4 text-sm font-medium text-gray-600">
+                      {getDomainLabel(lead.domain || "")}
+                    </div>
                   </td>
                   {/* DATE CREATED */}
                   <td className="px-4 py-4 text-sm">
-                    {lead.createdAt
-                      ? new Date(lead.createdAt).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })
-                      : "N/A"}
+                    <div className="py-4 text-sm font-medium text-gray-600">
+                      {lead.createdAt
+                        ? new Date(lead.createdAt).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : "N/A"}
+                    </div>
                   </td>
                   {/* ACTION */}
                   <td className="py-4">

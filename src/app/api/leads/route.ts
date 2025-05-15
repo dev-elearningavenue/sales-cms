@@ -49,7 +49,6 @@ export async function GET(req: Request) {
       );
     }
     // Additional filtering can be applied here
-    // For example, filtering contact_us leads with form=2
 
     return NextResponse.json(
       {

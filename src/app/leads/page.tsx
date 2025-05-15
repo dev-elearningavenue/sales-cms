@@ -97,21 +97,8 @@ const Leads = () => {
         return;
       }
 
-      // Filter out contact_us leads with form=2
-      const filteredLeads = data.leads.filter((lead: ILead) => {
-        // Exclude leads that are Contact Us category with form=2
-        if (
-          lead.category === "Contact Us" &&
-          lead.contact_us &&
-          typeof lead.contact_us === "object" &&
-          (lead.contact_us as any).form === 2
-        ) {
-          return false; // Skip these leads
-        }
-        return true; // Include all other leads
-      });
-
-      setLeads(filteredLeads);
+      // Show all leads without filtering
+      setLeads(data.leads);
       setLastFetchTime(new Date());
     } catch (error) {
       console.error("Error fetching leads:", error);

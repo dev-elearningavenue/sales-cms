@@ -55,7 +55,12 @@ export async function GET(req: Request) {
         ...leadsResult,
         leads: filteredLeads,
       },
-      { status: 200 }
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
     );
   } catch (error: any) {
     return NextResponse.json(

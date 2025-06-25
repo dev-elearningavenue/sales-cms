@@ -11,10 +11,12 @@ import {
   Moon,
   Pin,
   PinOff,
+  Receipt,
 } from "lucide-react";
 import Link from "next/link";
 import { useApp } from "@/contexts/AppContext";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -187,6 +189,12 @@ const Sidebar = () => {
           icon={<User size={20} />}
           text="Profile"
           href="/profile"
+          isExpanded={isExpanded}
+        />
+        <NavItem
+          icon={<Receipt size={20} />}
+          text="Invoice"
+          href="/invoice"
           isExpanded={isExpanded}
         />
       </ul>

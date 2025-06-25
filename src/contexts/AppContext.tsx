@@ -264,7 +264,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           } catch (error) {
             console.error("Error polling for notifications:", error);
           }
-        }, 300000); // Poll every 5 minutes (changed from 10 seconds)
+        }, 10000); // Poll every 10 seconds (more frequent)
 
         setNotificationPolling(intervalId);
       }

@@ -7,6 +7,7 @@ import {
 import connectDB from "@/lib/db";
 import "@/models/customer";
 import { getDataFromToken } from "@/utils/get_token_data";
+import Lead from "@/models/lead";
 
 async function connectDatabase() {
   await connectDB();
@@ -19,21 +20,28 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const type = url.searchParams.get("type");
   const form = url.searchParams.get("form");
+  const limit = url.searchParams.get("limit");
+  const latest = url.searchParams.get("latest");
+  const skip = url.searchParams.get("skip");
 
   try {
-    // Get all leads from controller
-    const leadsResult = await getAllLeads();
+    // Prepare options for the controller
+    const options = {
+      limit: limit ? parseInt(limit, 10) : undefined,
+      skip: skip ? parseInt(skip, 10) : undefined,
+      latest: latest === "true",
+    };
+
+    // Get leads from controller with pagination options
+    const leadsResult = await getAllLeads(options);
 
     if (leadsResult.error) {
       return NextResponse.json(leadsResult, { status: 500 });
     }
 
-    // No filters, return all leads
-    if (!type && !form) {
-      return NextResponse.json(leadsResult, { status: 200 });
-    }
     let filteredLeads = leadsResult.leads;
-    // Filter by category/type if specified
+    
+    // Filter by category/type if specified (this filtering happens after DB query)
     if (type) {
       const typeMap: { [key: string]: string } = {
         contact_us: "Contact Us",
@@ -48,20 +56,24 @@ export async function GET(req: Request) {
         (lead: any) => lead.category === category
       );
     }
-    // Additional filtering can be applied here
 
-    return NextResponse.json(
-      {
-        ...leadsResult,
-        leads: filteredLeads,
+    // Get total count for hasMore calculation (we need to make another query for accurate count)
+    const totalCount = await getTotalLeadsCount(type);
+    
+    const response = {
+      ...leadsResult,
+      leads: filteredLeads,
+      total: totalCount,
+      hasMore: limit && skip ? totalCount > (parseInt(skip, 10) + parseInt(limit, 10)) : false,
+      showing: filteredLeads.length,
+    };
+
+    return NextResponse.json(response, {
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store",
       },
-      {
-        status: 200,
-        headers: {
-          "Cache-Control": "no-store",
-        },
-      }
-    );
+    });
   } catch (error: any) {
     return NextResponse.json(
       {
@@ -70,6 +82,34 @@ export async function GET(req: Request) {
       },
       { status: 500 }
     );
+  }
+}
+
+// Helper function to get total count
+async function getTotalLeadsCount(type?: string | null): Promise<number> {
+  try {
+    await connectDatabase();
+    
+    let countQuery = {};
+    
+    if (type) {
+      const typeMap: { [key: string]: string } = {
+        contact_us: "Contact Us",
+        free_signup: "Free SignUp",
+        abandoned_cart: "Abandoned Cart",
+        order_creation: "Order Creation",
+        scholarship: "Scholarship",
+      };
+
+      const category = typeMap[type] || type;
+      countQuery = { category };
+    }
+    
+    const count = await Lead.countDocuments(countQuery);
+    return count;
+  } catch (error) {
+    console.error("Error getting total leads count:", error);
+    return 0;
   }
 }
 

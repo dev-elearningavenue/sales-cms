@@ -44,7 +44,11 @@ export const resolve_status_enum = [
 // Reusability:
 // Agar aapko similar logic multiple jagah pe chahiye ho, toh aap controller functions ko import karke reuse kar sakte hain.
 
-export const getAllLeads = async () => {
+export const getAllLeads = async (options?: {
+  limit?: number;
+  skip?: number;
+  latest?: boolean;
+}) => {
   // console.log("Inside getAllLeads function");
   try {
     const populations = [];
@@ -73,10 +77,28 @@ export const getAllLeads = async () => {
       select: "full_name user_name",
     });
 
-    const leads = await Lead.find()
-      .sort({ createdAt: -1 })
-      .limit(150)
-      .populate(populations);
+    // Build the query
+    let query = Lead.find();
+    
+    // Apply sorting - default to newest first, but allow override
+    if (options?.latest !== false) {
+      query = query.sort({ createdAt: -1 });
+    }
+    
+    if (options?.skip && options.skip > 0) {
+      query = query.skip(options.skip);
+    }
+    
+    // Apply limit if provided, otherwise use default of 150 for backward compatibility
+    if (options?.limit && options.limit > 0) {
+      query = query.limit(options.limit);
+    } else if (!options?.skip) {
+      // Only apply default limit if no skip is provided (to maintain backward compatibility)
+      query = query.limit(150);
+    }
+    
+    // Execute query with populations
+    const leads = await query.populate(populations);
 
     if (!leads || leads.length === 0) {
       return { message: "No leads found", leads: [] };

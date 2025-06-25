@@ -7,7 +7,7 @@ export async function middleware(req: NextRequest) {
   // Yahan req.user set nahi kar sakte
   const token = req.cookies.get("token")?.value;
   const isAuthPage = req.nextUrl.pathname.startsWith("/login");
-  
+
   if (isAuthPage && token) {
     console.log("login successful.");
     return NextResponse.redirect(new URL("/dashboard", req.url));
@@ -34,7 +34,8 @@ export const config = {
     "/profile/:path*",
     "/leads/:path*",
     "/settings/:path*",
-    "/login",
+    "/invoice/:path*",
     "/my-leads/:path*",
+    "/login",
   ],
 };

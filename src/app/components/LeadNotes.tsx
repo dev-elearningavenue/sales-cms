@@ -142,7 +142,7 @@ const LeadDetails: React.FC<LeadDetailsProps> = ({ lead, isOpen, onClose }) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-white rounded-lg shadow-lg max-w-lg mx-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4">
             <DialogTitle className="text-xl font-semibold">
               Lead Details
             </DialogTitle>
@@ -185,7 +185,7 @@ const LeadDetails: React.FC<LeadDetailsProps> = ({ lead, isOpen, onClose }) => {
                   <textarea
                     value={newNote}
                     onChange={(e) => setNewNote(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     placeholder="Enter your note here..."
                     rows={3}
                   />
@@ -227,7 +227,7 @@ const LeadDetails: React.FC<LeadDetailsProps> = ({ lead, isOpen, onClose }) => {
                       key={index}
                       className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0"
                     >
-                      <p className="text-sm text-gray-800 mb-1">{note.text}</p>
+                      <p className="text-sm text-gray-900 mb-1">{note.text}</p>
                       <p className="text-xs text-gray-500">
                         {note.created_at
                           ? formatDistanceToNow(new Date(note.created_at), {

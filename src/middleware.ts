@@ -9,7 +9,7 @@ export async function middleware(req: NextRequest) {
   const isAuthPage = req.nextUrl.pathname.startsWith("/login");
 
   if (isAuthPage && token) {
-    console.log("login successful.");
+    // console.log("login successful.");
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
   if (!token && !isAuthPage) {

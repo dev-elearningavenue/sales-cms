@@ -40,12 +40,12 @@ const LoginPage = () => {
       }
 
       const data = await response.json();
-      console.log("Login successful, setting session");
+      // console.log("Login successful, setting session");
 
       setSession(data);
       await fetchSession();
 
-      console.log("Session fetched, redirecting to dashboard");
+      // console.log("Session fetched, redirecting to dashboard");
       router.replace("/dashboard");
     } catch (error) {
       console.error("Login error:", error);

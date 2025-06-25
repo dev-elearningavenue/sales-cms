@@ -193,7 +193,7 @@ export default function DashboardPage() {
     return <ErrorDisplay message={dataError} type="data" />;
   }
 
-  // If no session and not loading, redirect to login
+  // If no session & not loading, redirect to login
   if (!session) {
     console.log("Session unavailable in dashboard.");
     router.replace("/login");

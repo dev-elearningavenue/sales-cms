@@ -82,7 +82,7 @@ const Leads = () => {
         // Only use polling when WebSocket is not connected
         fetchLeadsUpdates();
       }
-    }, 60000); // Check for updates every 60 seconds as a fallback
+    }, 60000 * 5); // Check for updates every 60 seconds as a fallback
 
     return () => clearInterval(intervalId);
   }, [isConnected]);

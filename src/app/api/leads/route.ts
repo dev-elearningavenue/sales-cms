@@ -32,15 +32,20 @@ export async function GET(req: Request) {
       latest: latest === "true",
     };
 
-    // Get leads from controller with pagination options
-    const leadsResult = await getAllLeads(options);
-
+    // Get all leads from controller
+    const leadsResult = await getAllLeads();
+    
     if (leadsResult.error) {
       return NextResponse.json(leadsResult, { status: 500 });
     }
 
+    if (!type && !form) {
+      return NextResponse.json(leadsResult, { status: 200 });
+    }
+    console.log("Lead Count: ",leadsResult.leads.length)
+
     let filteredLeads = leadsResult.leads;
-    
+
     // Filter by category/type if specified (this filtering happens after DB query)
     if (type) {
       const typeMap: { [key: string]: string } = {
@@ -56,15 +61,19 @@ export async function GET(req: Request) {
         (lead: any) => lead.category === category
       );
     }
+    
 
     // Get total count for hasMore calculation (we need to make another query for accurate count)
     const totalCount = await getTotalLeadsCount(type);
-    
+
     const response = {
       ...leadsResult,
       leads: filteredLeads,
       total: totalCount,
-      hasMore: limit && skip ? totalCount > (parseInt(skip, 10) + parseInt(limit, 10)) : false,
+      hasMore:
+        limit && skip
+          ? totalCount > parseInt(skip, 10) + parseInt(limit, 10)
+          : false,
       showing: filteredLeads.length,
     };
 
@@ -88,10 +97,8 @@ export async function GET(req: Request) {
 // Helper function to get total count
 async function getTotalLeadsCount(type?: string | null): Promise<number> {
   try {
-    await connectDatabase();
-    
     let countQuery = {};
-    
+
     if (type) {
       const typeMap: { [key: string]: string } = {
         contact_us: "Contact Us",
@@ -104,7 +111,7 @@ async function getTotalLeadsCount(type?: string | null): Promise<number> {
       const category = typeMap[type] || type;
       countQuery = { category };
     }
-    
+
     const count = await Lead.countDocuments(countQuery);
     return count;
   } catch (error) {

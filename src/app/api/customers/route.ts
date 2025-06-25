@@ -11,10 +11,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const customerData: CreateCustomerRequest = body;
 
-    console.log("Processing customer with data: ", {
-      ...customerData,
-      contactNo: customerData.contactNo ? "***masked***" : "",
-    });
+    // console.log("Processing customer with data: ", {
+    //   ...customerData,
+    //   contactNo: customerData.contactNo ? "***masked***" : "",
+    // });
 
     // Validate required fields
     if (!customerData.site_name || !customerData.email) {

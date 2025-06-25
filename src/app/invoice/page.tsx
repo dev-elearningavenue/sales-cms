@@ -288,7 +288,7 @@ const Invoice = () => {
   // Load agent name from session using useApp hook
   const loadAgentName = () => {
     if (session?.full_name) {
-      console.log("Agent Name: ", session.full_name);
+      // console.log("Agent Name: ", session.full_name);
       setInvoiceData((prev) => ({ ...prev, agentName: session.full_name }));
     }
   };
@@ -473,7 +473,24 @@ const Invoice = () => {
     setShowModal(false);
     setStep(1);
     setCustomerExists(false);
-    // Reset product search states
+    setFormData(getInitialFormData());
+    setInvoiceData({
+      customerId: "",
+      products: [
+        {
+          product_id: "",
+          name: "",
+          price_id: "",
+          price: "",
+          quantity: 1,
+          total: 0,
+        },
+      ],
+      dueDate: "",
+      coupon: "",
+      agentName: "",
+      totalPrice: 0,
+    });
     setProductSearchStates({});
     setPriceOptions({});
     setIsLoadingPrices({});
@@ -591,8 +608,6 @@ const Invoice = () => {
         },
       }));
     }
-
-    // Recalculate total
     calculateTotalPrice(updatedProducts);
   };
 
@@ -1608,6 +1623,38 @@ const Invoice = () => {
                             <span className="text-sm font-semibold text-green-600">
                               ${product.total.toFixed(2)}
                             </span>
+                            {/* Show discounted price if coupon is applied */}
+                            {invoiceData.coupon &&
+                              (() => {
+                                const selectedCoupon = couponOptions.find(
+                                  (c) => c.id === invoiceData.coupon
+                                );
+                                let discounted = product.total;
+                                if (selectedCoupon?.percent_off) {
+                                  discounted =
+                                    Math.floor(
+                                      product.total *
+                                        (1 - selectedCoupon.percent_off / 100) *
+                                        100
+                                    ) / 100;
+                                } else if (selectedCoupon?.amount_off) {
+                                  // Distribute amount_off proportionally (optional: here, just show full amount_off on first product)
+                                  if (index === 0) {
+                                    discounted = Math.max(
+                                      0,
+                                      product.total - selectedCoupon.amount_off
+                                    );
+                                  }
+                                }
+                                if (discounted !== product.total) {
+                                  return (
+                                    <div className="text-xs text-blue-600 font-medium mt-1">
+                                      After Discount: ${discounted.toFixed(2)}
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
                           </div>
                         </div>
                       </div>

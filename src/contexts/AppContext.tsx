@@ -244,8 +244,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 const newNotifications = response.data.notifications.filter(
                   (n: DbNotificationType) => !existingIds.has(n._id)
                 );
-
-                // Play notification sound if there are new notifications
                 if (newNotifications.length > 0) {
                   playNotificationSound();
                 }

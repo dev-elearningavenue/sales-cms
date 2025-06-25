@@ -154,7 +154,7 @@ export const createCustomer = async (
       }
 
       console.log(
-        "External API success, customerId:",
+        "Stripe Create Customer API success, customerId:",
         response
       );
 
@@ -432,7 +432,7 @@ async function stripeCustomerAPI(customerData: {
     );
 
     const result = await response.json();
-    console.log("Stripe customer API response:", result);
+    // console.log("Stripe customer API response:", result);
 
     if (response.ok && result.status) {
       return {

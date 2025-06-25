@@ -12,7 +12,7 @@ export default function Home() {
   useEffect(() => {
     // Only redirect if we're not loading and there's no session
     if (!loading && !session) {
-      console.log("No session and not loading, redirecting to login");
+      // console.log("No session and not loading, redirecting to login");
       router.push("/login");
     }
   }, [session, loading, router]);

@@ -87,9 +87,13 @@ const Leads = () => {
     return () => clearInterval(intervalId);
   }, [isConnected]);
 
-  const fetchLeads = async () => {
+  const fetchLeads = async (isRefresh: boolean = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        setBackgroundLoading(true);
+      } else {
+        setLoading(true);
+      }
       const res = await fetch("/api/leads");
       const data = await res.json();
       if (!Array.isArray(data.leads)) {
@@ -116,8 +120,15 @@ const Leads = () => {
       setLastFetchTime(new Date());
     } catch (error) {
       console.error("Error fetching leads:", error);
+      if (isRefresh) {
+        throw error; // Re-throw to let the table component handle the error notification
+      }
     } finally {
-      setLoading(false);
+      if (isRefresh) {
+        setBackgroundLoading(false);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
@@ -308,8 +319,7 @@ const Leads = () => {
       }
     } catch (error) {
       console.error("Error while assigning lead:", error);
-      alert("An error occurred while assigning the lead.");
-      return false; // Assignment failed with exception
+      return false;
     }
   };
 
@@ -488,6 +498,7 @@ const Leads = () => {
             showCreateButton={true}
             onCreateClick={() => setIsCreateModalOpen(true)}
             onDelete={handleDelete}
+            onRefresh={() => fetchLeads(true)}
           />
         )}
       </div>

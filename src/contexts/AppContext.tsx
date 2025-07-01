@@ -262,7 +262,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           } catch (error) {
             console.error("Error polling for notifications:", error);
           }
-        }, 10000); // Poll every 10 seconds (more frequent)
+        }, 60000); // Poll every 60 seconds (more frequent)
 
         setNotificationPolling(intervalId);
       }

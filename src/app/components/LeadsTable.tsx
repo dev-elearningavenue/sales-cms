@@ -38,6 +38,7 @@ interface LeadsTableProps {
   showCreateButton?: boolean;
   onCreateClick?: () => void;
   onDelete?: (leadId: string, isBatchOperation: boolean) => void;
+  onRefresh?: () => Promise<void>;
 }
 
 const LeadsTable: React.FC<LeadsTableProps> = ({
@@ -48,6 +49,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   showCreateButton = false,
   onCreateClick,
   onDelete,
+  onRefresh,
 }) => {
   const { session, addNotification } = useApp();
   const [currentPage, setCurrentPage] = useState(1);
@@ -78,6 +80,22 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   const [shownNotifications, setShownNotifications] = useState<Set<string>>(
     new Set()
   );
+
+  // Add state for refresh loading
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (!onRefresh || isRefreshing) return;
+
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } catch (error) {
+      console.error("Error refreshing leads:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Fetch available users for assignment
   useEffect(() => {
@@ -654,10 +672,18 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
           <div className="flex flex-col text-xs md:flex-row md:items-center gap-3">
             <div className="flex flex-wrap gap-2">
               <button
-                className="flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50"
-                onClick={() => {}}
+                className={`flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 ${
+                  isRefreshing ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                title="Refresh leads"
               >
-                <RefreshCcw className="h-5 w-5 text-gray-600" />
+                <RefreshCcw
+                  className={`h-5 w-5 text-gray-600 ${
+                    isRefreshing ? "animate-spin" : ""
+                  }`}
+                />
               </button>
 
               {/* Date Range Fields */}

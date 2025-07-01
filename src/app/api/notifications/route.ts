@@ -146,7 +146,7 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
-// DELETE to delete notifications
+// DELETE notifications
 export async function DELETE(req: NextRequest) {
   try {
     const { notificationIds, deleteAll } = await req.json();

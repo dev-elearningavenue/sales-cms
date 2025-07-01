@@ -31,7 +31,7 @@ export async function GET(req: Request) {
 
       return NextResponse.json(result, { status: 200 });
     } catch (error: any) {
-      console.error("Error in getUsers controller:", error);
+      console.error("Error in getUsers API:", error);
       return NextResponse.json(
         {
           success: false,

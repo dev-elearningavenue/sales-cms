@@ -1,6 +1,6 @@
 // src/app/leads/page.tsx
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { LoadingSkeleton } from "../components/LoadingSkeleton";
 import LeadsTable from "@/components/LeadsTable";
 import Head from "next/head";
@@ -29,6 +29,11 @@ const Leads = () => {
     courseName: "",
     quantity: 1,
   });
+
+  // Course search functionality
+  const [courseSearchResults, setCourseSearchResults] = useState<any[]>([]);
+  const [showCourseDropdown, setShowCourseDropdown] = useState(false);
+  const [courseSearchLoading, setCourseSearchLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
@@ -333,6 +338,13 @@ const Leads = () => {
       [name]: value,
     }));
 
+    // Clear course search when domain changes
+    if (name === "domain") {
+      setShowCourseDropdown(false);
+      setCourseSearchResults([]);
+      setCurrentCourse((prev) => ({ ...prev, courseName: "" }));
+    }
+
     // Clear error for field when user types
     if (formErrors[name]) {
       setFormErrors((prev) => {
@@ -343,6 +355,63 @@ const Leads = () => {
     }
   };
 
+  // Course search function
+  const searchCourses = async (query: string) => {
+    if (!query.trim() || query.length < 2) {
+      setCourseSearchResults([]);
+      setShowCourseDropdown(false);
+      return;
+    }
+
+    setCourseSearchLoading(true);
+    try {
+      const siteCode = "001"; // Use selected domain
+      const response = await fetch(
+        "https://freeoshacourses.com/api/api_search_products.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            site_name: siteCode,
+            q: query,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (
+        data.status === true &&
+        Array.isArray(data.data) &&
+        data.data.length > 0
+      ) {
+        console.log("Setting course results and showing dropdown");
+        setCourseSearchResults(data.data);
+        setShowCourseDropdown(true);
+      } else {
+        setCourseSearchResults([]);
+        setShowCourseDropdown(false);
+      }
+    } catch (error) {
+      console.error("Error searching courses:", error);
+      setCourseSearchResults([]);
+      setShowCourseDropdown(false);
+    } finally {
+      setCourseSearchLoading(false);
+    }
+  };
+
+  // Debounced search
+  const debounceSearch = useMemo(() => {
+    let timeoutId: NodeJS.Timeout;
+    return (query: string) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => searchCourses(query), 300);
+    };
+  }, [newLeadForm.domain]);
+
   // Handle course input changes
   const handleCourseInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -352,7 +421,50 @@ const Leads = () => {
       ...prev,
       [name]: name === "quantity" ? parseInt(value) || 1 : value,
     }));
+
+    // Trigger search for course name
+    if (name === "courseName") {
+      debounceSearch(value);
+    }
   };
+
+  // Handle course selection from dropdown
+  const selectCourse = (course: any) => {
+    console.log(course);
+    setCurrentCourse((prev) => ({
+      ...prev,
+      courseName: course.product_name,
+    }));
+    setShowCourseDropdown(false);
+    setCourseSearchResults([]);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        showCourseDropdown &&
+        !(event.target as Element).closest(".course-search-container")
+      ) {
+        setShowCourseDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showCourseDropdown]);
+
+  // Debug state changes
+  useEffect(() => {
+    console.log(
+      "State changed - showCourseDropdown:",
+      showCourseDropdown,
+      "results:",
+      courseSearchResults.length
+    );
+  }, [showCourseDropdown, courseSearchResults]);
 
   // Add course to the list
   const addCourse = () => {
@@ -506,7 +618,7 @@ const Leads = () => {
       {/* Create Lead Modal */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4 overflow-auto">
             <div className="flex items-center justify-between border-b px-6 py-4">
               <h2 className="text-xl font-bold text-gray-800">
                 Create New Lead
@@ -653,88 +765,110 @@ const Leads = () => {
                   Courses Interested*
                 </label>
 
-                <div className="mb-4">
-                  {formErrors.courses && (
-                    <p className="mt-1 text-sm text-red-600 mb-2">
-                      {formErrors.courses}
-                    </p>
-                  )}
+                {formErrors.courses && (
+                  <p className="mt-1 text-sm text-red-600 mb-2">
+                    {formErrors.courses}
+                  </p>
+                )}
 
-                  {newLeadForm.coursesInterested.length > 0 && (
-                    <div className="mb-4 border border-gray-200 rounded-md p-2">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left p-2">Course Name</th>
-                            <th className="text-center p-2">Quantity</th>
-                            <th className="text-right p-2">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {newLeadForm.coursesInterested.map(
-                            (course, index) => (
-                              <tr key={index} className="border-b">
-                                <td className="p-2">{course.courseName}</td>
-                                <td className="p-2 text-center">
-                                  {course.quantity}
-                                </td>
-                                <td className="p-2 text-right">
-                                  <button
-                                    type="button"
-                                    onClick={() => removeCourse(index)}
-                                    className="text-red-600 hover:text-red-800"
-                                  >
-                                    Remove
-                                  </button>
-                                </td>
-                              </tr>
-                            )
-                          )}
-                        </tbody>
-                      </table>
+                {/* Added Courses Display */}
+                {newLeadForm.coursesInterested.length > 0 && (
+                  <div className="mb-4 bg-gray-50 border border-gray-200 rounded-md p-3">
+                    <h4 className="font-medium mb-2">Selected Courses:</h4>
+                    <div className="space-y-2">
+                      {newLeadForm.coursesInterested.map((course, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between bg-white p-2 rounded border"
+                        >
+                          <span className="font-medium">
+                            {course.courseName}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">
+                              Qty: {course.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeCourse(index)}
+                              className="text-red-600 hover:text-red-800 text-sm"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-
-                  <div className="flex flex-col md:flex-row gap-2">
-                    <div className="flex-grow">
-                      <input
-                        type="text"
-                        name="courseName"
-                        placeholder="Course Name"
-                        value={currentCourse.courseName}
-                        onChange={handleCourseInputChange}
-                        className={`w-full p-2 border ${
-                          formErrors.courseName
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      />
-                      {formErrors.courseName && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {formErrors.courseName}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="w-full md:w-32">
-                      <input
-                        type="number"
-                        name="quantity"
-                        min="1"
-                        value={currentCourse.quantity}
-                        onChange={handleCourseInputChange}
-                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={addCourse}
-                      className="bg-blue-100 text-blue-700 px-4 py-2 rounded-md hover:bg-blue-200 transition-colors"
-                    >
-                      Add Course
-                    </button>
                   </div>
+                )}
+
+                {/* Course Search Input */}
+                <div className="flex flex-col md:flex-row gap-2">
+                  <div className="flex-grow relative course-search-container">
+                    <input
+                      type="text"
+                      name="courseName"
+                      placeholder="Type to search courses..."
+                      value={currentCourse.courseName}
+                      onChange={handleCourseInputChange}
+                      className={`w-full p-2 border ${
+                        formErrors.courseName
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    />
+
+                    {/* Loading indicator */}
+                    {courseSearchLoading && (
+                      <div className="absolute right-3 top-3">
+                        <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                      </div>
+                    )}
+
+                    {/* Search Results Dropdown */}
+                    {showCourseDropdown && courseSearchResults.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        {courseSearchResults.map((course, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => selectCourse(course)}
+                            className="w-full text-left px-3 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="font-medium">
+                              {course.product_name}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {formErrors.courseName && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {formErrors.courseName}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="w-full md:w-24">
+                    <input
+                      type="number"
+                      name="quantity"
+                      min="1"
+                      placeholder="Qty"
+                      value={currentCourse.quantity}
+                      onChange={handleCourseInputChange}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={addCourse}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
+                  >
+                    Add Course
+                  </button>
                 </div>
               </div>
 

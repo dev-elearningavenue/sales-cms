@@ -22,7 +22,7 @@ export const getUsers = async (userId: string, userType: number) => {
     }
     // Get users but exclude sensitive information
     const users = await User.find(query)
-      .select('_id full_name user_name user_type')
+      .select('_id full_name user_type')
       .sort({ user_type: 1, full_name: 1 });
 
       if (!users || users.length === 0) {

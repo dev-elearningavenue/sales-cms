@@ -18,7 +18,7 @@ export interface IInvoice extends Document {
   dueDate: string;
   coupon: string;
   agentName: string;
-  agentId: string;
+  agentId: mongoose.Types.ObjectId;
   subtotal: number;
   discount: number;
   totalPrice: number;
@@ -46,7 +46,11 @@ const InvoiceSchema = new Schema({
   dueDate: { type: String, required: true },
   coupon: { type: String, default: '' },
   agentName: { type: String, required: true },
-  agentId: { type: String, required: true },
+  agentId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "User", 
+    required: true 
+  },
   subtotal: { type: Number, required: true, min: 0 },
   discount: { type: Number, default: 0, min: 0 },
   totalPrice: { type: Number, required: true, min: 0 },

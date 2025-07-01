@@ -1,5 +1,6 @@
 import connectDB from "@/lib/db";
 import Invoice, { IInvoice, IInvoiceProduct } from "@/models/invoice";
+import mongoose from "mongoose";
 
 export interface CreateInvoiceRequest {
   customerId: string;
@@ -97,7 +98,7 @@ export const createInvoice = async (
       dueDate: invoiceData.dueDate,
       coupon: invoiceData.coupon || "",
       agentName: invoiceData.agentName,
-      agentId: invoiceData.agentId,
+      agentId: new mongoose.Types.ObjectId(invoiceData.agentId),
       subtotal: invoiceData.subtotal,
       discount: invoiceData.discount || 0,
       totalPrice: invoiceData.totalPrice,
@@ -151,7 +152,7 @@ export const getInvoiceById = async (
 ): Promise<IInvoice | null> => {
   try {
     await connectDB();
-    const invoice = await Invoice.findById(invoiceId);
+    const invoice = await Invoice.findById(invoiceId).populate('agentId', 'full_name');
     return invoice;
   } catch (error) {
     console.error("Error fetching invoice:", error);
@@ -164,10 +165,25 @@ export const getInvoicesByCustomer = async (
 ): Promise<IInvoice[]> => {
   try {
     await connectDB();
-    const invoices = await Invoice.find({ customerId }).sort({ createdAt: -1 });
+    const invoices = await Invoice.find({ customerId })
+      .populate('agentId', 'full_name')
+      .sort({ createdAt: -1 });
     return invoices;
   } catch (error) {
     console.error("Error fetching customer invoices:", error);
+    return [];
+  }
+};
+
+export const getAllInvoices = async (): Promise<IInvoice[]> => {
+  try {
+    await connectDB();
+    const invoices = await Invoice.find({})
+      .populate('agentId', 'full_name')
+      .sort({ createdAt: -1 });
+    return invoices;
+  } catch (error) {
+    console.error("Error fetching all invoices:", error);
     return [];
   }
 };

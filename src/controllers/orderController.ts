@@ -12,9 +12,11 @@ export const createOrder = async (orderData: any) => {
       };
     }
 
+    console.log("Order Controller: ", JSON.stringify(orderData, null, 2));
     // Create the order in paidorders collection
     const newOrder = new OrderCreation(orderData);
     const savedOrder = await newOrder.save();
+    console.log("Saved Order: ", );
 
     if (!savedOrder) {
       return {

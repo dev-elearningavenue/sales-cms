@@ -40,13 +40,27 @@ const Sidebar = () => {
 
     const fetchLeadCounts = async () => {
       try {
+        // Check if session is still valid
+        if (!session || !session._id) {
+          console.log("No valid session, stopping lead count polling");
+          return;
+        }
+
         // Fetch unassigned leads count
         const unassignedRes = await fetch("/api/leads/count?assigned=false");
+        if (unassignedRes.status === 401) {
+          console.log("Auth error in lead counts, user needs to re-login");
+          return;
+        }
         const unassignedData = await unassignedRes.json();
         setUnassignedLeads(unassignedData.count || 0);
 
         // Fetch unresolved assigned leads count
         const unresolvedRes = await fetch("/api/my-leads/count?resolved=false");
+        if (unresolvedRes.status === 401) {
+          console.log("Auth error in my-leads count, user needs to re-login");
+          return;
+        }
         const unresolvedData = await unresolvedRes.json();
         setUnresolvedLeads(unresolvedData.count || 0);
       } catch (error) {
@@ -57,8 +71,12 @@ const Sidebar = () => {
     // Initial fetch
     fetchLeadCounts();
 
-    // Set up interval to periodically refresh counts
-    const intervalId = setInterval(fetchLeadCounts, 60000);
+    // Set up interval to periodically refresh counts with auth check
+    const intervalId = setInterval(() => {
+      if (session && session._id) {
+        fetchLeadCounts();
+      }
+    }, 60000);
 
     // Clean up interval on unmount or when session changes
     return () => clearInterval(intervalId);

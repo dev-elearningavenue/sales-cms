@@ -3,6 +3,7 @@ import {
   getAllLeads,
   createLead,
   deleteLead,
+  batchDeleteLeads,
 } from "@/controllers/leadController";
 import connectDB from "@/lib/db";
 import "@/models/customer";
@@ -134,18 +135,20 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    // Get the lead ID from query parameters
+    // Get parameters from query or body
     const url = new URL(req.url);
     const leadId = url.searchParams.get("leadId");
-
-    if (!leadId) {
+    
+    // Check if it's a batch delete request
+    const isBatch = url.searchParams.get("batch") === "true";
+    
+    if (!leadId && !isBatch) {
       return NextResponse.json(
         { message: "Lead ID is required" },
         { status: 400 }
       );
     }
 
-    // Get user data and check authorization
     const tokenData = await getDataFromToken();
     if (!tokenData || typeof tokenData !== "object" || !tokenData._id) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -155,26 +158,67 @@ export async function DELETE(req: Request) {
     const userType =
       typeof tokenData.user_type === "number" ? tokenData.user_type : 3;
 
-    // Use the controller function to handle deletion
-    const result = await deleteLead(leadId, userId, userType);
+    // Handle batch delete
+    if (isBatch) {
+      const body = await req.json();
+      const leadIds = body.leadIds;
+      
+      if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
+        return NextResponse.json(
+          { message: "Lead IDs array is required for batch delete" },
+          { status: 400 }
+        );
+      }
 
-    if (!result.success) {
-      const statusCode =
-        result.message === "Lead not found"
-          ? 404
-          : result.message === "You don't have permission to delete leads"
-          ? 403
-          : 500;
+      const result = await batchDeleteLeads(leadIds, userId, userType);
 
-      return NextResponse.json(
-        { message: result.message },
-        { status: statusCode }
-      );
+      if (!result.success) {
+        const statusCode =
+          result.message === "No leads found"
+            ? 404
+            : result.message === "You don't have permission to delete leads"
+            ? 403
+            : 500;
+
+        return NextResponse.json(
+          { message: result.message },
+          { status: statusCode }
+        );
+      }
+
+      return NextResponse.json({ 
+        message: result.message,
+        deletedCount: result.deletedCount 
+      }, { status: 200 });
     }
 
-    return NextResponse.json({ message: result.message }, { status: 200 });
+    // Handle single delete
+    if (leadId) {
+      const result = await deleteLead(leadId, userId, userType);
+
+      if (!result.success) {
+        const statusCode =
+          result.message === "Lead not found"
+            ? 404
+            : result.message === "You don't have permission to delete leads"
+            ? 403
+            : 500;
+
+        return NextResponse.json(
+          { message: result.message },
+          { status: statusCode }
+        );
+      }
+
+      return NextResponse.json({ message: result.message }, { status: 200 });
+    }
+
+    return NextResponse.json(
+      { message: "Invalid request" },
+      { status: 400 }
+    );
   } catch (error) {
-    console.error("Error deleting lead:", error);
+    console.error("Error deleting lead(s):", error);
     return NextResponse.json(
       { message: "Internal Server Error" },
       { status: 500 }

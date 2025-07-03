@@ -5,14 +5,13 @@ import {
   ChangeStream,
   ReadPreference,
 } from "mongodb";
-import mongoose from "mongoose";
 import Log from "@/models/log";
 import Lead from "@/models/lead";
 import { createNewLeadNotification } from "@/services/notificationService";
 
 console.log("mongoListener.ts loaded");
-const mongoUri_Master = process.env.CLUSTER_MASTER as string;
-const mongoUri_Outreach = process.env.CLUSTER_OUTREACH as string;
+const mongoUri_Master = process.env.MONGODB_URI_OOC as string;
+const mongoUri_Outreach = process.env.MONGODB_URI_OUTREACH as string;
 
 // Connection options with better timeout and retry settings
 const CONNECTION_OPTIONS = {
@@ -44,8 +43,12 @@ async function ensureConnection(
   name: string
 ): Promise<MongoClient> {
   try {
+    // Validate URI before attempting connection
+    if (!uri || typeof uri !== 'string' || uri.trim() === '') {
+      throw new Error(`Invalid or missing URI for ${name} connection. URI: ${uri}`);
+    }
+
     if (!client) {
-      // console.log(`Establishing new ${name} connection...`);
       client = new MongoClient(uri, CONNECTION_OPTIONS);
       await client.connect();
       console.log(`${name} connection established successfully`);
@@ -186,8 +189,6 @@ export async function watchCollections() {
         "Osha Outreach - OOR",
         scholarshipCollection
       );
-
-      // You could add more specialized watchers here for contact forms, scholarship etc.
 
       setupConnectionMonitoring();
       break;
@@ -572,7 +573,7 @@ async function syncToTargetCollection(
   type: string,
   session?: any
 ) {
-  console.log(`${type} on ${domain.split(" - ")[1]}`);
+  // console.log(`${type} on ${domain.split(" - ")[1]}`);
 
   const exists = await targetCollection.findOne({
     originId: new ObjectId(document._id.toString()),
@@ -596,7 +597,7 @@ async function syncToTargetCollection(
     delete syncedData._id;
 
     const insertResult = await targetCollection.insertOne(syncedData);
-    console.log("inserted Result", insertResult);
+    // console.log("inserted Result", insertResult);
     if (!insertResult || !insertResult.insertedId)
       throw new Error(`Failed to insert into ${targetCollection}`);
 
@@ -622,7 +623,6 @@ async function syncToTargetCollection(
       insertResult.insertedId,
       domain
     );
-    // Now create a lead entry with custom data
     const leadData = new Lead({
       category: category,
       ...leadFields,
@@ -636,10 +636,8 @@ async function syncToTargetCollection(
       conversion_value: null,
     });
 
-    // Use the MongoDB session with Mongoose save
     const leadResult = await leadData.save();
-    console.log(`Lead created with ID: ${leadResult._id}`);
-
+    // console.log(`Lead created with ID: ${leadResult._id}`);
     createNewLeadNotification(leadResult);
 
     return insertResult;

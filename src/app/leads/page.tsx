@@ -83,14 +83,14 @@ const Leads = () => {
     fetchLeads();
     // We can still keep polling as a fallback mechanism, but with a longer interval
     const intervalId = setInterval(() => {
-      if (!isConnected) {
-        // Only use polling when WebSocket is not connected
+      if (!isConnected && session && session._id) {
+        // Only use polling when WebSocket is not connected AND session is valid
         fetchLeadsUpdates();
       }
     }, 60000 * 5); // Check for updates every 60 seconds as a fallback
 
     return () => clearInterval(intervalId);
-  }, [isConnected]);
+  }, [isConnected, session]);
 
   const fetchLeads = async (isRefresh: boolean = false) => {
     try {
@@ -143,6 +143,13 @@ const Leads = () => {
     try {
       const timestamp = lastFetchTime.toISOString();
       const res = await fetch(`/api/leads/updates?since=${timestamp}`);
+
+      // Check for auth errors
+      if (res.status === 401) {
+        console.log("Auth error in fetchLeadsUpdates, user needs to re-login");
+        return;
+      }
+
       const data = await res.json();
 
       if (data.newLeads && data.newLeads.length > 0) {
@@ -240,6 +247,48 @@ const Leads = () => {
       console.error("Error deleting lead:", error);
       addNotification({
         message: "Failed to delete lead",
+        type: "warning",
+        read: false,
+      });
+      return false;
+    }
+  };
+
+  // Add batch delete function
+  const handleBatchDelete = async (leadIds: string[]) => {
+    try {
+      const res = await fetch("/api/leads?batch=true", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ leadIds }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete leads");
+      }
+
+      const data = await res.json();
+
+      // Update state to remove deleted leads
+      setLeads((prevLeads) =>
+        prevLeads.filter((lead) => !leadIds.includes(lead._id as string))
+      );
+
+      // Show success notification
+      addNotification({
+        message:
+          data.message || `${data.deletedCount} leads deleted successfully`,
+        type: "info",
+        read: false,
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error batch deleting leads:", error);
+      addNotification({
+        message: "Failed to delete leads",
         type: "warning",
         read: false,
       });
@@ -610,6 +659,7 @@ const Leads = () => {
             showCreateButton={true}
             onCreateClick={() => setIsCreateModalOpen(true)}
             onDelete={handleDelete}
+            onBatchDelete={handleBatchDelete}
             onRefresh={() => fetchLeads(true)}
           />
         )}

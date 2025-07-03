@@ -1,6 +1,6 @@
 // src/types/next.d.ts
 import { NextApiRequest } from 'next';
-import { UserSession } from './auth'; // adjust import path as needed
+import { UserSession } from './auth';
 
 declare module 'next' {
   interface NextApiRequest {

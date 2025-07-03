@@ -45,6 +45,13 @@ export const useLeadsData = () => {
     try {
       const timestamp = lastFetchTime.toISOString();
       const res = await fetch(`/api/my-leads/updates?since=${timestamp}`);
+      
+      // Check for auth errors
+      if (res.status === 401) {
+        console.log("Auth error in fetchMyLeadsUpdates, user needs to re-login");
+        return;
+      }
+      
       const data = await res.json();
 
       if (data.newLeads && data.newLeads.length > 0) {

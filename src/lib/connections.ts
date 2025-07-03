@@ -14,7 +14,7 @@ export const connectDB = async () => {
 
   try {
     ensureModelsAreRegistered();
-    const dbUri = process.env.MONGODB_URI || "your_mongo_connection_string";
+    const dbUri = process.env.MONGODB_URI || "mongo_connection_string";
     await mongoose.connect(dbUri);
     isConnected = true;
     console.log("MongoDB connected successfully.");

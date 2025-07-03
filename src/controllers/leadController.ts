@@ -515,13 +515,67 @@ export const deleteLead = async (
       };
     }
 
-    // Delete the lead
+    // First, get the lead to see what associated records need to be deleted
+    const lead = await Lead.findById(leadId);
+
+    if (!lead) {
+      return {
+        success: false,
+        message: "Lead not found",
+      };
+    }
+
+    // Import the models for deletion (dynamic imports to avoid circular dependencies)
+    const { default: Contact } = await import("@/models/contact");
+    const { default: Customer } = await import("@/models/customer");
+    const { default: AbandonedCart } = await import("@/models/abandonedCart");
+    const { default: OrderCreation } = await import("@/models/orders");
+    const { default: CustomLead } = await import("@/models/customLead");
+    const { default: Scholarship } = await import("@/models/scholarship");
+
+    // Delete associated records based on lead type
+    const deletionPromises = [];
+
+    if (lead.contact_us) {
+      deletionPromises.push(Contact.findByIdAndDelete(lead.contact_us));
+      console.log(`Deleting contact record: ${lead.contact_us}`);
+    }
+
+    if (lead.free_signup) {
+      deletionPromises.push(Customer.findByIdAndDelete(lead.free_signup));
+      console.log(`Deleting customer record: ${lead.free_signup}`);
+    }
+
+    if (lead.abandoned_cart) {
+      deletionPromises.push(AbandonedCart.findByIdAndDelete(lead.abandoned_cart));
+      console.log(`Deleting abandoned cart record: ${lead.abandoned_cart}`);
+    }
+
+    if (lead.order_creation) {
+      deletionPromises.push(OrderCreation.findByIdAndDelete(lead.order_creation));
+      console.log(`Deleting order record: ${lead.order_creation}`);
+    }
+
+    if (lead.custom_lead) {
+      deletionPromises.push(CustomLead.findByIdAndDelete(lead.custom_lead));
+      console.log(`Deleting custom lead record: ${lead.custom_lead}`);
+    }
+
+    if (lead.scholarship) {
+      deletionPromises.push(Scholarship.findByIdAndDelete(lead.scholarship));
+      console.log(`Deleting scholarship record: ${lead.scholarship}`);
+    }
+
+    // Execute all deletions in parallel
+    await Promise.all(deletionPromises);
+
+    // Finally, delete the lead itself
     const result = await Lead.findByIdAndDelete(leadId);
 
     if (!result) {
       return {
         success: false,
-        message: "Lead not found",
+        message: "Failed to delete lead",
       };
     }
     // Emit socket event for lead deletion - only on server
@@ -531,13 +585,131 @@ export const deleteLead = async (
 
     return {
       success: true,
-      message: "Lead deleted successfully",
+      message: "Lead and all associated records deleted successfully",
     };
   } catch (error) {
     console.error("Error deleting lead:", error);
     return {
       success: false,
       message: "Failed to delete lead",
+    };
+  }
+};
+
+export const batchDeleteLeads = async (
+  leadIds: string[],
+  userId: string,
+  userType: number
+) => {
+  try {
+    // Check if the user is authorized to delete leads (userType != 3)
+    if (userType === 3) {
+      return {
+        success: false,
+        message: "You don't have permission to delete leads",
+      };
+    }
+
+    if (!leadIds || leadIds.length === 0) {
+      return {
+        success: false,
+        message: "No lead IDs provided",
+      };
+    }
+
+    // Get all leads to see what associated records need to be deleted
+    const leads = await Lead.find({ _id: { $in: leadIds } });
+
+    if (leads.length === 0) {
+      return {
+        success: false,
+        message: "No leads found",
+      };
+    }
+
+    // Import the models for deletion
+    const { default: Contact } = await import("@/models/contact");
+    const { default: Customer } = await import("@/models/customer");
+    const { default: AbandonedCart } = await import("@/models/abandonedCart");
+    const { default: OrderCreation } = await import("@/models/orders");
+    const { default: CustomLead } = await import("@/models/customLead");
+    const { default: Scholarship } = await import("@/models/scholarship");
+
+    // Collect all associated record IDs for bulk deletion
+    const contactIds: string[] = [];
+    const customerIds: string[] = [];
+    const abandonedCartIds: string[] = [];
+    const orderIds: string[] = [];
+    const customLeadIds: string[] = [];
+    const scholarshipIds: string[] = [];
+
+    leads.forEach(lead => {
+      if (lead.contact_us) contactIds.push(lead.contact_us.toString());
+      if (lead.free_signup) customerIds.push(lead.free_signup.toString());
+      if (lead.abandoned_cart) abandonedCartIds.push(lead.abandoned_cart.toString());
+      if (lead.order_creation) orderIds.push(lead.order_creation.toString());
+      if (lead.custom_lead) customLeadIds.push(lead.custom_lead.toString());
+      if (lead.scholarship) scholarshipIds.push(lead.scholarship.toString());
+    });
+
+    // Execute bulk deletions in parallel
+    const deletionPromises = [];
+
+    if (contactIds.length > 0) {
+      deletionPromises.push(Contact.deleteMany({ _id: { $in: contactIds } }));
+      console.log(`Deleting ${contactIds.length} contact records`);
+    }
+
+    if (customerIds.length > 0) {
+      deletionPromises.push(Customer.deleteMany({ _id: { $in: customerIds } }));
+      console.log(`Deleting ${customerIds.length} customer records`);
+    }
+
+    if (abandonedCartIds.length > 0) {
+      deletionPromises.push(AbandonedCart.deleteMany({ _id: { $in: abandonedCartIds } }));
+      console.log(`Deleting ${abandonedCartIds.length} abandoned cart records`);
+    }
+
+    if (orderIds.length > 0) {
+      deletionPromises.push(OrderCreation.deleteMany({ _id: { $in: orderIds } }));
+      console.log(`Deleting ${orderIds.length} order records`);
+    }
+
+    if (customLeadIds.length > 0) {
+      deletionPromises.push(CustomLead.deleteMany({ _id: { $in: customLeadIds } }));
+      console.log(`Deleting ${customLeadIds.length} custom lead records`);
+    }
+
+    if (scholarshipIds.length > 0) {
+      deletionPromises.push(Scholarship.deleteMany({ _id: { $in: scholarshipIds } }));
+      console.log(`Deleting ${scholarshipIds.length} scholarship records`);
+    }
+
+    // Execute all associated record deletions
+    await Promise.all(deletionPromises);
+
+    // Finally, delete all leads
+    const result = await Lead.deleteMany({ _id: { $in: leadIds } });
+
+    console.log(`Batch deleted ${result.deletedCount} leads and all associated records`);
+
+    // Emit socket events for lead deletions - only on server
+    if (socketServer) {
+      leadIds.forEach(leadId => {
+        socketServer.emitLeadDeleted(leadId);
+      });
+    }
+
+    return {
+      success: true,
+      message: `${result.deletedCount} leads and all associated records deleted successfully`,
+      deletedCount: result.deletedCount,
+    };
+  } catch (error) {
+    console.error("Error batch deleting leads:", error);
+    return {
+      success: false,
+      message: "Failed to delete leads",
     };
   }
 };

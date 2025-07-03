@@ -37,7 +37,8 @@ interface LeadsTableProps {
   isMyLeads?: boolean;
   showCreateButton?: boolean;
   onCreateClick?: () => void;
-  onDelete?: (leadId: string, isBatchOperation: boolean) => void;
+  onDelete?: (leadId: string, isBatchOperation: boolean) => Promise<boolean>;
+  onBatchDelete?: (leadIds: string[]) => Promise<boolean>;
   onRefresh?: () => Promise<void>;
 }
 
@@ -49,6 +50,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   showCreateButton = false,
   onCreateClick,
   onDelete,
+  onBatchDelete,
   onRefresh,
 }) => {
   const { session, addNotification } = useApp();
@@ -189,6 +191,20 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [openDropdownId]);
+
+  // Clear selected leads if they no longer exist in the leads array
+  useEffect(() => {
+    if (selectedLeads.length > 0) {
+      const existingLeadIds = new Set(leads.map((lead) => lead._id));
+      const validSelectedLeads = selectedLeads.filter((leadId) =>
+        existingLeadIds.has(leadId)
+      );
+
+      if (validSelectedLeads.length !== selectedLeads.length) {
+        setSelectedLeads(validSelectedLeads);
+      }
+    }
+  }, [leads, selectedLeads]);
 
   // Filter leads based on search query and other filters
   const filteredLeads = leads.filter((lead) => {
@@ -401,6 +417,27 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     }
   };
 
+  // Handle delete click
+  const handleDeleteClick = (leadId: string) => {
+    setLeadToDelete(leadId);
+    setShowDeleteModal(true);
+  };
+
+  // Confirm deletion
+  const confirmDelete = async () => {
+    if (leadToDelete && onDelete) {
+      const success = await onDelete(leadToDelete, false);
+
+      // If delete was successful, remove from selected leads if it was selected
+      if (success && selectedLeads.includes(leadToDelete)) {
+        setSelectedLeads((prev) => prev.filter((id) => id !== leadToDelete));
+      }
+
+      setShowDeleteModal(false);
+      setLeadToDelete(null);
+    }
+  };
+
   // Handle batch delete
   const handleBatchDelete = () => {
     if (selectedLeads.length > 0) {
@@ -410,28 +447,47 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
 
   // Confirm batch delete
   const confirmBatchDelete = async () => {
-    if (!onDelete || selectedLeads.length === 0) return;
+    if ((!onDelete && !onBatchDelete) || selectedLeads.length === 0) return;
 
     // Store count for notification
     const deletedCount = selectedLeads.length;
 
-    // Process each lead sequentially
+    setIsProcessing(true);
+
     try {
-      const deletePromises = selectedLeads.map((leadId) =>
-        onDelete(leadId, true)
-      );
-      setIsProcessing(true);
-      await Promise.all(deletePromises);
-      setIsProcessing(false);
-      if (window && window.dispatchEvent) {
-        window.dispatchEvent(
-          new CustomEvent("batchDelete", {
-            detail: { count: deletedCount },
-          })
+      // Use batch delete if available, otherwise fallback to individual deletes
+      if (onBatchDelete) {
+        const success = await onBatchDelete(selectedLeads);
+
+        if (success && window && window.dispatchEvent) {
+          window.dispatchEvent(
+            new CustomEvent("batchDelete", {
+              detail: { count: deletedCount },
+            })
+          );
+        }
+      } else if (onDelete) {
+        // Fallback to individual deletes
+        const deletePromises = selectedLeads.map((leadId) =>
+          onDelete(leadId, true)
         );
+        const results = await Promise.all(deletePromises);
+
+        // Count successful deletions
+        const successfulDeletes = results.filter(Boolean).length;
+
+        if (window && window.dispatchEvent) {
+          window.dispatchEvent(
+            new CustomEvent("batchDelete", {
+              detail: { count: successfulDeletes },
+            })
+          );
+        }
       }
     } catch (error) {
       console.error("Batch delete operation failed:", error);
+    } finally {
+      setIsProcessing(false);
     }
 
     setShowBatchDeleteModal(false);
@@ -461,21 +517,6 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     Scholarship: "bg-amber-500",
   };
 
-  // Handle delete click
-  const handleDeleteClick = (leadId: string) => {
-    setLeadToDelete(leadId);
-    setShowDeleteModal(true);
-  };
-
-  // Confirm deletion
-  const confirmDelete = () => {
-    if (leadToDelete && onDelete) {
-      onDelete(leadToDelete, false);
-      setShowDeleteModal(false);
-      setLeadToDelete(null);
-    }
-  };
-
   // Check if any selected lead is already assigned
   const isAnySelectedLeadAssigned = () => {
     if (selectedLeads.length === 0) return false;
@@ -484,114 +525,6 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
       const lead = leads.find((l) => l._id === leadId);
       return lead?.assigned === true; // True if it is assigned
     });
-  };
-
-  // Handle status change for leads
-  const isStatusDisabled = (lead: ILead, option: string) => {
-    // Disable status options when a lead is resolved
-    if (
-      lead.resolve_status &&
-      isResolvedStatus(lead.resolve_status) &&
-      lead.resolve_status !== "Pending"
-    ) {
-      return true;
-    }
-
-    // Disable previous follow-up options based on current status
-    if (lead.status && lead.status.startsWith("Follow Up")) {
-      const currentLevel = parseInt(lead.status.split(" ")[2] || "0", 10) || 0;
-      const optionLevel = parseInt(option.split(" ")[2] || "0", 10) || 0;
-
-      if (optionLevel < currentLevel) {
-        return true;
-      }
-    }
-
-    return false;
-  };
-
-  // Within the getStatusOptionsForCategory function, add logic to handle resolved statuses
-  const getStatusOptionsForCategory = (
-    category: string,
-    lead?: ILead
-  ): string[] => {
-    // Basic options by category
-    let options: string[];
-
-    switch (category) {
-      case "Order Creation":
-        options = ["Pending", "Assigned Order"];
-        break;
-      case "Contact Us":
-        options = ["Pending", "Resolved"];
-        break;
-      case "Scholarship":
-      case "Free SignUp":
-      case "Free Study Guide":
-        options = ["Pending", "Resolved"];
-        break;
-      default:
-        options = [
-          "Pending",
-          "Follow Up 1",
-          "Follow Up 2",
-          "Follow Up 3",
-          "Converted",
-          "Resolved",
-        ];
-        break;
-    }
-
-    // If lead exists and we need to modify options based on status
-    if (lead) {
-      const currentStatus = lead.status;
-      const currentResolveStatus = lead.resolve_status;
-
-      // If lead is resolved, only show the current status
-      if (
-        currentResolveStatus &&
-        isResolvedStatus(currentResolveStatus) &&
-        currentResolveStatus !== "Pending"
-      ) {
-        return [currentStatus || "Pending"];
-      }
-
-      // If status is not pending, remove pending option
-      if (currentStatus !== "Pending") {
-        options = options.filter((opt) => opt !== "Pending");
-      }
-
-      // Handle follow-up status progression
-      if (currentStatus === "Follow Up 1") {
-        // In Follow Up 1, remove Follow Up 1 option (since we're already here)
-        options = options.filter((opt) => opt !== "Follow Up 1");
-      } else if (currentStatus === "Follow Up 2") {
-        // In Follow Up 2, remove both Follow Up 1 and 2 options
-        options = options.filter(
-          (opt) => opt !== "Follow Up 1" && opt !== "Follow Up 2"
-        );
-      } else if (currentStatus === "Follow Up 3") {
-        // In Follow Up 3, remove all Follow Up options
-        options = options.filter((opt) => !opt.startsWith("Follow Up"));
-      } else if (
-        currentStatus === "Follow Up" &&
-        lead.next_follow_up &&
-        Array.isArray(lead.next_follow_up)
-      ) {
-        // Legacy "Follow Up" status with next_follow_up array
-        const count = lead.next_follow_up.length;
-
-        // Remove previous follow-up options
-        if (count >= 1)
-          options = options.filter((opt) => opt !== "Follow Up 1");
-        if (count >= 2)
-          options = options.filter((opt) => opt !== "Follow Up 2");
-        if (count >= 3)
-          options = options.filter((opt) => !opt.startsWith("Follow Up"));
-      }
-    }
-
-    return options;
   };
 
   // Reusable Modal Component

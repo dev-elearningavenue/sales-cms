@@ -66,7 +66,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Session states
   const [session, setSession] = useState<UserSession | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start as true to prevent premature redirects
   const [error, setError] = useState<string | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isInitialized, setIsInitialized] = useState(false);
@@ -226,6 +226,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!notificationPolling) {
         const intervalId = setInterval(async () => {
           try {
+            // Check if session is still valid before making API call
+            if (!session || !session._id) {
+              console.log("No valid session, stopping notification polling");
+              clearInterval(intervalId);
+              setNotificationPolling(null);
+              return;
+            }
+
             // Use the last poll time if available
             const lastPollTime = new Date();
             lastPollTime.setMinutes(lastPollTime.getMinutes() - 5); // 5 minute buffer (increased from 1 minute)
@@ -261,6 +269,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }
           } catch (error) {
             console.error("Error polling for notifications:", error);
+            // If it's auth error, stop polling
+            if (axios.isAxiosError(error) && error.response?.status === 401) {
+              console.log("Auth error, stopping notification polling");
+              clearInterval(intervalId);
+              setNotificationPolling(null);
+            }
           }
         }, 60000); // Poll every 60 seconds (more frequent)
 

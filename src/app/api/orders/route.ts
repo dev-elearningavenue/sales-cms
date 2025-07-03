@@ -1,59 +1,3 @@
-/**
- * WordPress Data Transformation Example
- * 
- * INPUT (from WordPress):
- * {
- *   user_data: {
- *     user_email: 'support@freeoshacourses.com',
- *     display_name: 'Farhan Siraj'
- *   },
- *   order_data: {
- *     first_name: 'Mustafa',
- *     last_name: 'Ahmed',
- *     company: '',
- *     address_1: 'Gulshan Iqbal',
- *     address_2: '',
- *     city: 'New York City',
- *     state: 'SD',
- *     postcode: '10001',
- *     country: 'PK',
- *     email: 'support@freeoshacourses.com',
- *     phone: '+92 332 8444028',
- *     id: 1551,
- *     items: [ { name: "Test Course", quantity: 1, price: 100 } ],
- *     type: 'Yourself',
- *     domain: 'oshapractice.com'
- *   }
- * }
- * 
- * OUTPUT (for our system):
- * {
- *   domain: 'OOC',                    // Mapped from oshapractice.com
- *   firstName: 'Mustafa',
- *   lastName: 'Ahmed',
- *   email: 'support@freeoshacourses.com',
- *   phone: '+92 332 8444028',
- *   company: '',
- *   address_1: 'Gulshan Iqbal',
- *   address_2: '',
- *   city: 'New York City',
- *   state: 'SD',
- *   postcode: '10001',
- *   country: 'PK',
- *   wordpress_order_id: 1551,
- *   order_type: 'Yourself',
- *   items: [ { name: "Test Course", quantity: 1, price: 100 } ],
- *   processed_by: {
- *     email: 'support@freeoshacourses.com',
- *     name: 'Farhan Siraj'
- *   },
- *   source_domain: 'oshapractice.com',
- *   source: 'wordpress',
- *   created_at: '2024-01-15T10:30:00.000Z',
- *   original_data: { ... }             // Stores original for reference
- * }
- */
-
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { createOrder, getAllOrders } from "@/controllers/orderController";
@@ -119,7 +63,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     console.log(JSON.stringify(body.order_data.items, null, 2));
-    console.dir(body.orderitems, { depth: null, colors: true });
+    console.dir(body.order_dataitems, { depth: null, colors: true });
 
     // Check if this is WordPress data (has user_data and order_data structure)
     const isWordPressData = body.order_data;

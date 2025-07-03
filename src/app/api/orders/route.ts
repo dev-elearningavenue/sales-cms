@@ -1,3 +1,59 @@
+/**
+ * WordPress Data Transformation Example
+ * 
+ * INPUT (from WordPress):
+ * {
+ *   user_data: {
+ *     user_email: 'support@freeoshacourses.com',
+ *     display_name: 'Farhan Siraj'
+ *   },
+ *   order_data: {
+ *     first_name: 'Mustafa',
+ *     last_name: 'Ahmed',
+ *     company: '',
+ *     address_1: 'Gulshan Iqbal',
+ *     address_2: '',
+ *     city: 'New York City',
+ *     state: 'SD',
+ *     postcode: '10001',
+ *     country: 'PK',
+ *     email: 'support@freeoshacourses.com',
+ *     phone: '+92 332 8444028',
+ *     id: 1551,
+ *     items: [ { name: "Test Course", quantity: 1, price: 100 } ],
+ *     type: 'Yourself',
+ *     domain: 'oshapractice.com'
+ *   }
+ * }
+ * 
+ * OUTPUT (for our system):
+ * {
+ *   domain: 'OOC',                    // Mapped from oshapractice.com
+ *   firstName: 'Mustafa',
+ *   lastName: 'Ahmed',
+ *   email: 'support@freeoshacourses.com',
+ *   phone: '+92 332 8444028',
+ *   company: '',
+ *   address_1: 'Gulshan Iqbal',
+ *   address_2: '',
+ *   city: 'New York City',
+ *   state: 'SD',
+ *   postcode: '10001',
+ *   country: 'PK',
+ *   wordpress_order_id: 1551,
+ *   order_type: 'Yourself',
+ *   items: [ { name: "Test Course", quantity: 1, price: 100 } ],
+ *   processed_by: {
+ *     email: 'support@freeoshacourses.com',
+ *     name: 'Farhan Siraj'
+ *   },
+ *   source_domain: 'oshapractice.com',
+ *   source: 'wordpress',
+ *   created_at: '2024-01-15T10:30:00.000Z',
+ *   original_data: { ... }             // Stores original for reference
+ * }
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { createOrder, getAllOrders } from "@/controllers/orderController";
@@ -9,6 +65,49 @@ async function connectDatabase() {
 }
 connectDatabase();
 
+// Function to transform WordPress data to our system format
+function transformWordPressData(wordpressData: any) {
+  const { user_data, order_data } = wordpressData;
+  
+  // Validate required fields
+  if (!order_data) {
+    throw new Error("Missing order_data in WordPress request");
+  }
+  
+  if (!order_data.domain) {
+    throw new Error("Missing domain in order_data");
+  }
+  
+  if (!order_data.first_name || !order_data.last_name) {
+    throw new Error("Missing customer name in order_data");
+  }
+  
+  if (!order_data.email) {
+    throw new Error("Missing customer email in order_data");
+  }
+
+  // Transform the data structure
+  const transformedData = {
+    firstName: order_data.first_name?.trim(),
+    lastName: order_data.last_name?.trim(),
+    email: order_data.email?.trim()?.toLowerCase(),
+    contactNo: order_data.phone?.trim() || '',
+    
+    // Address information
+    company: order_data.company?.trim(),
+    address: order_data.address_1?.trim() + " " + order_data.address_2?.trim(),
+    city: order_data.city?.trim(),
+    state: order_data.state?.trim(),
+    postcode: order_data.postcode?.trim(),
+    country: order_data.country?.trim(),
+    items: order_data.items || [],
+    
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  return transformedData;
+}
+
 export async function POST(request: NextRequest) {
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*", 
@@ -18,13 +117,26 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    console.log("Body Received.", body)
+
+    console.log(JSON.stringify(body.order_data.items, null, 2));
+    console.dir(body.orderitems, { depth: null, colors: true });
+
+    // Check if this is WordPress data (has user_data and order_data structure)
+    const isWordPressData = body.order_data;
+    
+    let orderData;
+    if (isWordPressData) {
+      orderData = transformWordPressData(body);
+      console.log("Transformed data:", orderData);
+    } else {
+      orderData = body;
+    }
 
     // Use the order controller to create order and lead
-    const result = await createOrder(body);
+    const result = await createOrder(orderData);
 
     if (!result.success) {
-      return NextResponse.json(result, { status: 400 });
+      return NextResponse.json(result, { status: 400, headers: corsHeaders });
     }
 
     return NextResponse.json(result, { status: 201, headers: corsHeaders });

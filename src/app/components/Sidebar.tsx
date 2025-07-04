@@ -197,12 +197,12 @@ const Sidebar = () => {
           badge={unresolvedLeads}
           isExpanded={isExpanded}
         />
-        <NavItem
+        {/* <NavItem
           icon={<Settings size={20} />}
           text="Settings"
           href="/settings"
           isExpanded={isExpanded}
-        />
+        /> */}
         <NavItem
           icon={<User size={20} />}
           text="Profile"

@@ -4,6 +4,7 @@ import { createNewLeadNotification } from "@/services/notificationService";
 
 export const createOrder = async (orderData: any) => {
   try {
+    console.log("Order Domain: ", orderData.domain);
     // Validate required fields
     if (!orderData.domain) {
       return {

@@ -45,7 +45,7 @@ function transformWordPressData(wordpressData: any) {
     postcode: order_data.postcode?.trim(),
     country: order_data.country?.trim(),
     items: order_data.items || [],
-    
+    domain: order_data.domain,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -77,7 +77,6 @@ export async function POST(request: NextRequest) {
       orderData = body;
     }
 
-    // Use the order controller to create order and lead
     const result = await createOrder(orderData);
 
     if (!result.success) {

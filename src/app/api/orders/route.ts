@@ -47,7 +47,7 @@ function transformWordPressData(wordpressData: any) {
     items: order_data.items || [],
     domain: order_data.domain,
     total_order_price: order_data.total_order_price || 0,
-    order_id: order_data.id,
+    order_id: `FOC-${order_data.id}`,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

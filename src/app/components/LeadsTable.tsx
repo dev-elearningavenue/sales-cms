@@ -37,7 +37,8 @@ interface LeadsTableProps {
   isMyLeads?: boolean;
   showCreateButton?: boolean;
   onCreateClick?: () => void;
-  onDelete?: (leadId: string, isBatchOperation: boolean) => void;
+  onDelete?: (leadId: string, isBatchOperation: boolean) => Promise<boolean>;
+  onBatchDelete?: (leadIds: string[]) => Promise<boolean>;
   onRefresh?: () => Promise<void>;
 }
 
@@ -49,6 +50,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   showCreateButton = false,
   onCreateClick,
   onDelete,
+  onBatchDelete,
   onRefresh,
 }) => {
   const { session, addNotification } = useApp();
@@ -190,6 +192,20 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     };
   }, [openDropdownId]);
 
+  // Clear selected leads if they no longer exist in the leads array
+  useEffect(() => {
+    if (selectedLeads.length > 0) {
+      const existingLeadIds = new Set(leads.map((lead) => lead._id));
+      const validSelectedLeads = selectedLeads.filter((leadId) =>
+        existingLeadIds.has(leadId)
+      );
+
+      if (validSelectedLeads.length !== selectedLeads.length) {
+        setSelectedLeads(validSelectedLeads);
+      }
+    }
+  }, [leads, selectedLeads]);
+
   // Filter leads based on search query and other filters
   const filteredLeads = leads.filter((lead) => {
     if (searchQuery) {
@@ -287,21 +303,14 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     "Osha Outreach": "OOR",
     "Osha Online Center": "OOC",
     "Osha Education School": "OES",
+    "Free Osha Courses": "FOC",
   };
 
   const handleFilterChange = (category: string, value: string) => {
     setFilters((prev) => {
       const newFilters = { ...prev };
 
-      if (category === "paymentStatus") {
-        if (newFilters.paymentStatus.includes(value)) {
-          newFilters.paymentStatus = newFilters.paymentStatus.filter(
-            (status) => status !== value
-          );
-        } else {
-          newFilters.paymentStatus = [...newFilters.paymentStatus, value];
-        }
-      } else if (category === "category") {
+      if (category === "category") {
         if (newFilters.category.includes(value)) {
           newFilters.category = newFilters.category.filter(
             (cat) => cat !== value
@@ -326,7 +335,6 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
       // If all are selected, unselect all
       setSelectedLeads([]);
     } else {
-      // Otherwise, select all
       const allLeadIds = currentLeads
         .filter((lead) => lead._id)
         .map((lead) => lead._id as string);
@@ -375,7 +383,6 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
         }
       }
 
-      // Show appropriate notifications
       if (successCount > 0) {
         addNotification({
           message: `${successCount} leads assigned successfully`,
@@ -410,30 +417,46 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
 
   // Confirm batch delete
   const confirmBatchDelete = async () => {
-    if (!onDelete || selectedLeads.length === 0) return;
+    if ((!onDelete && !onBatchDelete) || selectedLeads.length === 0) return;
 
-    // Store count for notification
     const deletedCount = selectedLeads.length;
+    setIsProcessing(true);
 
-    // Process each lead sequentially
     try {
-      const deletePromises = selectedLeads.map((leadId) =>
-        onDelete(leadId, true)
-      );
-      setIsProcessing(true);
-      await Promise.all(deletePromises);
-      setIsProcessing(false);
-      if (window && window.dispatchEvent) {
-        window.dispatchEvent(
-          new CustomEvent("batchDelete", {
-            detail: { count: deletedCount },
-          })
+      // Use batch delete if available, otherwise fallback to individual deletes
+      if (onBatchDelete) {
+        const success = await onBatchDelete(selectedLeads);
+
+        if (success && window && window.dispatchEvent) {
+          window.dispatchEvent(
+            new CustomEvent("batchDelete", {
+              detail: { count: deletedCount },
+            })
+          );
+        }
+      } else if (onDelete) {
+        // Fallback to individual deletes
+        const deletePromises = selectedLeads.map((leadId) =>
+          onDelete(leadId, true)
         );
+        const results = await Promise.all(deletePromises);
+
+        // Count successful deletions
+        const successfulDeletes = results.filter(Boolean).length;
+
+        if (window && window.dispatchEvent) {
+          window.dispatchEvent(
+            new CustomEvent("batchDelete", {
+              detail: { count: successfulDeletes },
+            })
+          );
+        }
       }
     } catch (error) {
       console.error("Batch delete operation failed:", error);
+    } finally {
+      setIsProcessing(false);
     }
-
     setShowBatchDeleteModal(false);
     setSelectedLeads([]);
   };
@@ -446,6 +469,8 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
         return "Osha Online Center";
       case "OES":
         return "Osha Education School";
+      case "FOC":
+        return "Free Osha Courses";
       default:
         return domain;
     }
@@ -458,19 +483,22 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     "Free SignUp": "bg-purple-500",
     "Free Study Guide": "bg-yellow-500",
     "Custom Lead": "bg-indigo-500",
+    "Unpaid Training": "bg-teal-500",
     Scholarship: "bg-amber-500",
   };
 
-  // Handle delete click
   const handleDeleteClick = (leadId: string) => {
     setLeadToDelete(leadId);
     setShowDeleteModal(true);
   };
 
-  // Confirm deletion
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (leadToDelete && onDelete) {
-      onDelete(leadToDelete, false);
+      const success = await onDelete(leadToDelete, false);
+      // onDelete(leadToDelete, false);
+      if (success && selectedLeads.includes(leadToDelete)) {
+        setSelectedLeads((prev) => prev.filter((id) => id !== leadToDelete));
+      }
       setShowDeleteModal(false);
       setLeadToDelete(null);
     }
@@ -875,6 +903,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                     "Osha Outreach",
                     "Osha Online Center",
                     "Osha Education School",
+                    "Free Osha Courses",
                   ].map((domain) => (
                     <label key={domain} className="flex items-center space-x-2">
                       <input

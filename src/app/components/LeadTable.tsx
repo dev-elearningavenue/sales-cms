@@ -1,5 +1,5 @@
 import React from "react";
-import { Eye, Plus } from "lucide-react";
+import { Eye, MessageSquare, Plus } from "lucide-react";
 import { ILead } from "@/types/leads";
 import { getLeadName } from "./LeadUtils";
 
@@ -185,10 +185,11 @@ const LeadTable: React.FC<LeadTableProps> = ({
                       </button>
 
                       <button
-                        className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-sm flex items-center"
+                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-md text-sm flex items-center"
                         onClick={() => handleViewNotes(lead)}
                       >
-                        Notes <Plus size={14} className="ml-1 mr-1" />
+                        <MessageSquare size={14} className="mr-1" /> Notes
+                        <Plus size={14} className="ml-1 mr-1" />
                         {lead.notes &&
                           Array.isArray(lead.notes) &&
                           lead.notes.length > 0 && (

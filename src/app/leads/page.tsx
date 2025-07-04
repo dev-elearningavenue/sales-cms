@@ -81,10 +81,8 @@ const Leads = () => {
 
   useEffect(() => {
     fetchLeads();
-    // We can still keep polling as a fallback mechanism, but with a longer interval
     const intervalId = setInterval(() => {
       if (!isConnected && session && session._id) {
-        // Only use polling when WebSocket is not connected AND session is valid
         fetchLeadsUpdates();
       }
     }, 60000 * 5); // Check for updates every 60 seconds as a fallback
@@ -126,7 +124,7 @@ const Leads = () => {
     } catch (error) {
       console.error("Error fetching leads:", error);
       if (isRefresh) {
-        throw error; // Re-throw to let the table component handle the error notification
+        throw error;
       }
     } finally {
       if (isRefresh) {
@@ -234,7 +232,6 @@ const Leads = () => {
 
       // Skip individual notifications for batch operations
       if (!isBatchOperation) {
-        // Show success notification
         addNotification({
           message: "Lead deleted successfully",
           type: "info",
@@ -599,7 +596,6 @@ const Leads = () => {
         resetForm();
         setIsCreateModalOpen(false);
       } else {
-        // Handle API errors
         setFormErrors({
           submit: data.message || "Failed to create lead",
         });
@@ -649,7 +645,7 @@ const Leads = () => {
             showCreateButton={true}
             onCreateClick={() => setIsCreateModalOpen(true)}
             onDelete={handleDelete}
-            // onBatchDelete={handleBatchDelete}
+            onBatchDelete={handleBatchDelete}
             onRefresh={() => fetchLeads(true)}
           />
         )}

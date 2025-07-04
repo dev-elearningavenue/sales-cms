@@ -9,7 +9,6 @@ import Log from "@/models/log";
 import Lead from "@/models/lead";
 import { createNewLeadNotification } from "@/services/notificationService";
 
-console.log("mongoListener.ts loaded");
 const mongoUri_Master = process.env.MONGODB_URI_OOC as string;
 const mongoUri_Outreach = process.env.MONGODB_URI_OUTREACH as string;
 
@@ -43,7 +42,6 @@ async function ensureConnection(
   name: string
 ): Promise<MongoClient> {
   try {
-    
     if (!client) {
       client = new MongoClient(uri, CONNECTION_OPTIONS);
       await client.connect();
@@ -463,10 +461,7 @@ function setupOrderCollectionWatch(
           : updatedOrder?.isPaid;
 
       if (wasPaidBefore === false && isPaidNow === true) {
-        console.log(
-          `Order is now paid on ${domain.split(" - ")[1]}:`,
-          orderId
-        );
+        console.log(`Order is now paid on ${domain.split(" - ")[1]}:`, orderId);
         pendingOrders.delete(orderId);
 
         const cartDeleted = await abandonedCartsCollection.deleteOne({
@@ -643,7 +638,11 @@ async function syncToTargetCollection(
   }
 }
 
-function getLeadDetails(type: string, insertedId: ObjectId, domain: string) {
+export function getLeadDetails(
+  type: string,
+  insertedId: ObjectId,
+  domain: string
+) {
   const getRandomCategory = () => {
     return Math.random() < 0.5 ? "Free SignUp" : "Free Study Guide";
   };
@@ -657,6 +656,7 @@ function getLeadDetails(type: string, insertedId: ObjectId, domain: string) {
     case "Order Creation":
     case "Contact Us":
     case "Scholarship":
+    case "Unpaid Training":
       category = type;
       break;
     default:
@@ -668,7 +668,7 @@ function getLeadDetails(type: string, insertedId: ObjectId, domain: string) {
     contact_us: type === "Contact Us" ? insertedId : null,
     scholarship: type === "Scholarship" ? insertedId : null,
     abandoned_cart: type === "Abandoned Cart" ? insertedId : null,
-    order_creation: type === "Order Creation" ? insertedId : null,
+    order_creation: type === "Order Creation" || "Unpaid Training" ? insertedId : null,
   };
 
   const formattedDomain =

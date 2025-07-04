@@ -3,10 +3,11 @@ import { ensureModelsAreRegistered } from "./models";
 
 let isConnected = false;
 
+/*
 export const connectDB = async () => {
   if (isConnected || mongoose.connections[0].readyState) {
     console.log(
-      "Already connected to MongoDB",
+      // "Already connected to MongoDB",
       mongoose.connections[0].readyState
     );
     return;
@@ -24,4 +25,5 @@ export const connectDB = async () => {
     throw new Error("MongoDB connection failed");
   }
 };
+*/
 

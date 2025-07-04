@@ -1,10 +1,11 @@
 import OrderCreation from "@/models/orders";
 import Lead from "@/models/lead";
 import { createNewLeadNotification } from "@/services/notificationService";
+import { getLeadDetails } from "@/lib/mongoListener";
+import { ObjectId } from "mongodb";
 
 export const createOrder = async (orderData: any) => {
   try {
-    console.log("Order Domain: ", orderData.domain);
     // Validate required fields
     if (!orderData.domain) {
       return {
@@ -13,8 +14,8 @@ export const createOrder = async (orderData: any) => {
       };
     }
 
-    console.log("Order Controller: ", JSON.stringify(orderData, null, 2));
-    // Create the order in paidorders collection
+    // console.log("Order Controller: ", JSON.stringify(orderData, null, 2));
+    
     const newOrder = new OrderCreation(orderData);
     const savedOrder = await newOrder.save();
     console.log("Saved Order: ", savedOrder);
@@ -26,11 +27,26 @@ export const createOrder = async (orderData: any) => {
       };
     }
 
-    // Create corresponding lead with "Order Creation" category
+    // const totalOrderPrice = orderData.items?.reduce((total: number, item: any) => {
+    //   const price = parseFloat(item.price) || 0;
+    //   return total + (price * (item.quantity || 1));
+    // }, 0) || 0;
+
+    const totalOrderPrice = orderData.total_order_price;
+    const orderType = totalOrderPrice === 0 ? "Unpaid Training" : "Order Creation";
+    
+    // Use getLeadDetails function for consistent lead creation
+    const { category, leadFields, formattedDomain } = getLeadDetails(
+      orderType,
+      new ObjectId(savedOrder._id),
+      orderData.domain
+    );
+
+    // Create corresponding lead with proper category and formatting
     const leadData = new Lead({
-      category: "Order Creation",
-      order_creation: savedOrder._id,
-      domain: orderData.domain,
+      category: category,
+      ...leadFields,
+      domain: formattedDomain,
       status: "Pending",
       resolve_status: "Pending",
       assigned: false,

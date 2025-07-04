@@ -5,13 +5,13 @@ import { watchCollections } from "./mongoListener";
 let isInitialized = false;
 async function initServer() {
   if (isInitialized) {
-    console.log("Streams already initialized");
+    // console.log("Streams already initialized");
     return;
   }
 
   try {
     await watchCollections();
-    console.log("MongoDB change streams initialized");
+    // console.log("MongoDB change streams initialized");
     await dbConnect();
 
     isInitialized = true;

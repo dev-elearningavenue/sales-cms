@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/db";
 import Notification from "@/models/notification";
 import { getDataFromToken } from "@/utils/get_token_data";
 import mongoose from "mongoose";
 export const dynamic = "force-dynamic";
-// Connect to database
-connectDB();
 
 // GET endpoint for polling new notifications
 export async function GET(req: NextRequest) {

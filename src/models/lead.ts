@@ -9,6 +9,7 @@ const lead_category_enum = [
   "Contact Us",
   "Scholarship",
   "Custom Lead",
+  "Unpaid Training",
   "Unknown"
 ] as const;
 

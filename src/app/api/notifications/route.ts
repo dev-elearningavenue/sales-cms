@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/db";
 import Notification from "@/models/notification";
 import { getDataFromToken } from "@/utils/get_token_data";
 import mongoose from "mongoose";
-
-// Connect to database
-connectDB();
 
 // GET notifications for the current user
 export async function GET(req: NextRequest) {

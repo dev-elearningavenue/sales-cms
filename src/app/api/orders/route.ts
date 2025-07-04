@@ -61,8 +61,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-
-    // Check if this is WordPress data (has user_data and order_data structure)
     const isWordPressData = body.order_data;
     
     if (isWordPressData && body.order_data.items) {

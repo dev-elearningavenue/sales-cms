@@ -31,7 +31,7 @@ export interface ILead extends Document {
   }>;
   assigned_to?: mongoose.Types.ObjectId;
   created_by?: mongoose.Types.ObjectId;
-  domain: "OOR" | "OOC" | "OES";
+  domain: "OOR" | "OOC" | "OES" | "FOC";
   next_follow_up?: NextFollowUp[];
   conversion_value?: number;
   createdAt?: Date;

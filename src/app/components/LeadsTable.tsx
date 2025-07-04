@@ -19,6 +19,7 @@ import {
 import { ILead } from "@/types/leads";
 import { useApp } from "@/contexts/AppContext";
 import { isResolvedStatus } from "@/lib/leadUtils";
+import { getLeadName } from "@/components/LeadUtils";
 
 // User type for the dropdown
 interface User {
@@ -881,51 +882,11 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
           <table className="w-full border-collapse text-xs">
             <thead className="bg-gray-50">
               <tr>
-                <th className="w-12 px-2 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300"
-                    checked={
-                      currentLeads.length > 0 &&
-                      selectedLeads.length === currentLeads.length
-                    }
-                    onChange={handleSelectAll}
-                  />
-                </th>
-                <th className="px-2 py-2 text-left font-medium text-gray-600 relative group">
-                  <span>TYPE</span>
-                  <button className="ml-1">
-                    <Filter className="h-4 w-4 text-gray-500" />
-                  </button>
-                  <div className="absolute left-0 mt-1 w-40 bg-white border border-gray-200 rounded shadow-lg z-30 hidden group-hover:block">
-                    {/* Reset option */}
-                    <button
-                      onClick={() => handleFilterChange("type", "")}
-                      className="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
-                    >
-                      Reset
-                    </button>
-                    {[
-                      "Abandoned Cart",
-                      "Order Creation",
-                      "Contact Us",
-                      "Free SignUp",
-                      "Free Study Guide",
-                      "Custom Lead",
-                      "Scholarship",
-                    ].map((option) => (
-                      <button
-                        key={option}
-                        onClick={() => handleFilterChange("type", option)}
-                        className="w-full text-left px-2 py-1 hover:bg-gray-100 text-sm"
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">
                   FULL NAME
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
+                  CATEGORY
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">
                   DOMAIN
@@ -934,30 +895,21 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   DATE CREATED
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">
-                  ACTION
+                  STATUS
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
+                  ACTIONS
                 </th>
               </tr>
             </thead>
-
             <tbody className="divide-y divide-gray-200">
               {currentLeads.map((lead, index) => (
                 <tr key={lead._id || index} className="hover:bg-gray-50">
-                  {/* CheckBox */}
-                  <td className="w-12 px-2 py-4">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300"
-                      checked={
-                        lead._id
-                          ? selectedLeads.includes(lead._id as string)
-                          : false
-                      }
-                      onChange={() =>
-                        lead._id && handleSelectLead(lead._id as string)
-                      }
-                    />
+                  {/* Full Name */}
+                  <td className="px-4 py-4 text-sm font-medium text-gray-800">
+                    {getLeadName(lead)}
                   </td>
-                  {/* TYPE */}
+                  {/* Category */}
                   <td className="px-4 py-4">
                     <div
                       className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
@@ -967,51 +919,49 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                       {lead?.category}
                     </div>
                   </td>
-                  {/* Full Name */}
+                  {/* Domain */}
+                  <td className="px-4 py-4 text-sm">{lead.domain}</td>
+                  {/* Date Created */}
+                  <td className="px-4 py-4 text-sm">
+                    {lead.createdAt
+                      ? new Date(lead.createdAt).toLocaleString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "N/A"}
+                  </td>
+                  {/* Status */}
+                  <td className="px-4 py-4 text-sm">
+                    {handleStatusChange ? (
+                      <select
+                        className={`px-3 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          lead.status === "Closed"
+                            ? "bg-blue-100 text-blue-800 border-blue-200"
+                            : "bg-gray-100 text-gray-800 border-gray-200"
+                        }`}
+                        value={lead.status}
+                        onChange={(e) =>
+                          handleStatusChange(lead._id as string, e.target.value)
+                        }
+                      >
+                        {["Closed", "Pending"].map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="px-3 py-2 rounded-md bg-gray-100 text-gray-800 border border-gray-200">
+                        {lead.status}
+                      </span>
+                    )}
+                  </td>
+                  {/* Actions */}
                   <td className="px-4 py-4">
-                    <div className="py-4 text-sm font-medium text-gray-600">
-                      {(lead.contact_us as any)?.name ||
-                        [
-                          lead.free_signup,
-                          lead.order_creation,
-                          lead.scholarship,
-                          lead.custom_lead,
-                          lead.abandoned_cart,
-                        ]
-                          .map((entry) =>
-                            entry &&
-                            typeof entry === "object" &&
-                            "firstName" in entry &&
-                            "lastName" in entry
-                              ? `${entry.firstName} ${entry.lastName ?? ""}`
-                              : null
-                          )
-                          .filter(Boolean)[0] ||
-                        "No Data Available"}
-                    </div>
-                  </td>
-                  {/* DOMAIN (LEAD SOURCE) */}
-                  <td className="px-4 py-4 text-sm">
-                    <div className="py-4 text-sm font-medium text-gray-600">
-                      {getDomainLabel(lead.domain || "")}
-                    </div>
-                  </td>
-                  {/* DATE CREATED */}
-                  <td className="px-4 py-4 text-sm">
-                    <div className="py-4 text-sm font-medium text-gray-600">
-                      {lead.createdAt
-                        ? new Date(lead.createdAt).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })
-                        : "N/A"}
-                    </div>
-                  </td>
-                  {/* ACTION */}
-                  <td className="py-4">
-                    <div className="flex items-center justify-start gap-2">
-                      {/* View Button */}
+                    <div className="flex items-center gap-2">
                       {handleViewLead && (
                         <button
                           className="flex items-center px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm"
@@ -1021,110 +971,13 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                           View
                         </button>
                       )}
-
-                      {/* Notes Button */}
                       {handleViewNotes && (
                         <button
-                          className="flex items-center px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md text-sm"
+                          className="flex items-center px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-md text-sm"
                           onClick={() => handleViewNotes(lead)}
                         >
-                          <MessageSquare size={14} className="mr-1" />
-                          Notes
+                          Notes +
                         </button>
-                      )}
-
-                      {lead.assigned ? (
-                        <div className="flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600">
-                          <span className="text-sm">
-                            Assigned to{" "}
-                            {lead.assigned_to &&
-                            typeof lead.assigned_to === "object"
-                              ? (lead.assigned_to as any).full_name
-                              : "Unknown User"}
-                          </span>
-                        </div>
-                      ) : (
-                        <>
-                          {session?.user_type !== 3 ? (
-                            <>
-                              <div className="dropdown relative mr-2">
-                                <button
-                                  className="flex items-center justify-center px-4 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50 min-w-[120px]"
-                                  onClick={() =>
-                                    toggleDropdown(lead._id as string)
-                                  }
-                                >
-                                  <UserPlus className="h-4 w-4 mr-2" />
-                                  <span className="mr-1">Assign</span>
-                                  <ChevronDown className="h-4 w-4" />
-                                </button>
-
-                                {openDropdownId === lead._id && (
-                                  <div className="dropdown-menu absolute left-0 top-full mt-1 w-60 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-                                    <button
-                                      onClick={() => {
-                                        if (lead._id && onAssign)
-                                          onAssign(lead._id);
-                                        setOpenDropdownId(null);
-                                      }}
-                                      className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm border-b border-gray-100"
-                                    >
-                                      Assign to Me
-                                    </button>
-
-                                    {loadingUsers ? (
-                                      <div className="px-4 py-2 text-sm text-gray-500">
-                                        Loading users...
-                                      </div>
-                                    ) : (
-                                      availableUsers.length > 0 && (
-                                        <div className="max-h-48 overflow-y-auto">
-                                          {availableUsers.map((user) => (
-                                            <button
-                                              key={user._id}
-                                              onClick={() =>
-                                                confirmAssign(
-                                                  lead._id as string,
-                                                  user._id
-                                                )
-                                              }
-                                              className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm flex items-center justify-between"
-                                            >
-                                              <span>
-                                                {user.full_name ||
-                                                  user.user_name}
-                                              </span>
-                                            </button>
-                                          ))}
-                                        </div>
-                                      )
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                              {/* Delete button */}
-                              <button
-                                className="flex items-center px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm"
-                                onClick={() =>
-                                  handleDeleteClick(lead._id as string)
-                                }
-                              >
-                                <Trash2 size={14} className="mr-1" />
-                                Delete
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              className="flex items-center px-4 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50 mr-2"
-                              onClick={() => {
-                                if (lead._id && onAssign) onAssign(lead._id);
-                              }}
-                            >
-                              <UserPlus className="h-4 w-4 mr-2" />
-                              Assign Me
-                            </button>
-                          )}
-                        </>
                       )}
                     </div>
                   </td>

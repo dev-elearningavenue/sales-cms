@@ -46,6 +46,7 @@ function transformWordPressData(wordpressData: any) {
     country: order_data.country?.trim(),
     items: order_data.items || [],
     domain: order_data.domain,
+    total_order_price: order_data.total_order_price || 0,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

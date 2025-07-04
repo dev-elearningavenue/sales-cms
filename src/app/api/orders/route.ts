@@ -12,20 +12,20 @@ connectDatabase();
 // Function to transform WordPress data to our system format
 function transformWordPressData(wordpressData: any) {
   const { user_data, order_data } = wordpressData;
-  
+
   // Validate required fields
   if (!order_data) {
     throw new Error("Missing order_data in WordPress request");
   }
-  
+
   if (!order_data.domain) {
     throw new Error("Missing domain in order_data");
   }
-  
+
   if (!order_data.first_name || !order_data.last_name) {
     throw new Error("Missing customer name in order_data");
   }
-  
+
   if (!order_data.email) {
     throw new Error("Missing customer email in order_data");
   }
@@ -35,8 +35,8 @@ function transformWordPressData(wordpressData: any) {
     firstName: order_data.first_name?.trim(),
     lastName: order_data.last_name?.trim(),
     email: order_data.email?.trim()?.toLowerCase(),
-    contactNo: order_data.phone?.trim() || '',
-    
+    contactNo: order_data.phone?.trim() || "",
+
     // Address information
     company: order_data.company?.trim(),
     address: order_data.address_1?.trim() + " " + order_data.address_2?.trim(),
@@ -47,6 +47,7 @@ function transformWordPressData(wordpressData: any) {
     items: order_data.items || [],
     domain: order_data.domain,
     total_order_price: order_data.total_order_price || 0,
+    order_id: order_data.id,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -55,7 +56,7 @@ function transformWordPressData(wordpressData: any) {
 
 export async function POST(request: NextRequest) {
   const corsHeaders = {
-    "Access-Control-Allow-Origin": "*", 
+    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
@@ -63,11 +64,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const isWordPressData = body.order_data;
-    
+
     if (isWordPressData && body.order_data.items) {
       console.log(JSON.stringify(body.order_data.items, null, 2));
     }
-    
+
     let orderData;
     if (isWordPressData) {
       orderData = transformWordPressData(body);
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     if (!result.success) {
       return NextResponse.json(result, { status: 400, headers: corsHeaders });
     }
-    
+
     return NextResponse.json(result, { status: 201, headers: corsHeaders });
   } catch (error: any) {
     console.error("Error in orders API:", error);

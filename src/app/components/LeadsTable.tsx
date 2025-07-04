@@ -13,13 +13,10 @@ import {
   Plus,
   Trash2,
   ChevronDown,
-  Eye,
-  MessageSquare,
 } from "lucide-react";
 import { ILead } from "@/types/leads";
 import { useApp } from "@/contexts/AppContext";
 import { isResolvedStatus } from "@/lib/leadUtils";
-import { getLeadName } from "@/components/LeadUtils";
 
 // User type for the dropdown
 interface User {
@@ -40,12 +37,8 @@ interface LeadsTableProps {
   isMyLeads?: boolean;
   showCreateButton?: boolean;
   onCreateClick?: () => void;
-  onDelete?: (leadId: string, isBatchOperation: boolean) => Promise<boolean>;
-  onBatchDelete?: (leadIds: string[]) => Promise<boolean>;
+  onDelete?: (leadId: string, isBatchOperation: boolean) => void;
   onRefresh?: () => Promise<void>;
-  handleViewLead?: (leadIdOrLead: string | ILead) => void;
-  handleViewNotes?: (lead: ILead) => void;
-  handleStatusChange?: (leadId: string, newStatus: string) => void;
 }
 
 const LeadsTable: React.FC<LeadsTableProps> = ({
@@ -56,11 +49,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   showCreateButton = false,
   onCreateClick,
   onDelete,
-  onBatchDelete,
   onRefresh,
-  handleViewLead,
-  handleViewNotes,
-  handleStatusChange,
 }) => {
   const { session, addNotification } = useApp();
   const [currentPage, setCurrentPage] = useState(1);
@@ -200,20 +189,6 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [openDropdownId]);
-
-  // Clear selected leads if they no longer exist in the leads array
-  useEffect(() => {
-    if (selectedLeads.length > 0) {
-      const existingLeadIds = new Set(leads.map((lead) => lead._id));
-      const validSelectedLeads = selectedLeads.filter((leadId) =>
-        existingLeadIds.has(leadId)
-      );
-
-      if (validSelectedLeads.length !== selectedLeads.length) {
-        setSelectedLeads(validSelectedLeads);
-      }
-    }
-  }, [leads, selectedLeads]);
 
   // Filter leads based on search query and other filters
   const filteredLeads = leads.filter((lead) => {
@@ -426,27 +401,6 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     }
   };
 
-  // Handle delete click
-  const handleDeleteClick = (leadId: string) => {
-    setLeadToDelete(leadId);
-    setShowDeleteModal(true);
-  };
-
-  // Confirm deletion
-  const confirmDelete = async () => {
-    if (leadToDelete && onDelete) {
-      const success = await onDelete(leadToDelete, false);
-
-      // If delete was successful, remove from selected leads if it was selected
-      if (success && selectedLeads.includes(leadToDelete)) {
-        setSelectedLeads((prev) => prev.filter((id) => id !== leadToDelete));
-      }
-
-      setShowDeleteModal(false);
-      setLeadToDelete(null);
-    }
-  };
-
   // Handle batch delete
   const handleBatchDelete = () => {
     if (selectedLeads.length > 0) {
@@ -456,47 +410,28 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
 
   // Confirm batch delete
   const confirmBatchDelete = async () => {
-    if ((!onDelete && !onBatchDelete) || selectedLeads.length === 0) return;
+    if (!onDelete || selectedLeads.length === 0) return;
 
     // Store count for notification
     const deletedCount = selectedLeads.length;
 
-    setIsProcessing(true);
-
+    // Process each lead sequentially
     try {
-      // Use batch delete if available, otherwise fallback to individual deletes
-      if (onBatchDelete) {
-        const success = await onBatchDelete(selectedLeads);
-
-        if (success && window && window.dispatchEvent) {
-          window.dispatchEvent(
-            new CustomEvent("batchDelete", {
-              detail: { count: deletedCount },
-            })
-          );
-        }
-      } else if (onDelete) {
-        // Fallback to individual deletes
-        const deletePromises = selectedLeads.map((leadId) =>
-          onDelete(leadId, true)
+      const deletePromises = selectedLeads.map((leadId) =>
+        onDelete(leadId, true)
+      );
+      setIsProcessing(true);
+      await Promise.all(deletePromises);
+      setIsProcessing(false);
+      if (window && window.dispatchEvent) {
+        window.dispatchEvent(
+          new CustomEvent("batchDelete", {
+            detail: { count: deletedCount },
+          })
         );
-        const results = await Promise.all(deletePromises);
-
-        // Count successful deletions
-        const successfulDeletes = results.filter(Boolean).length;
-
-        if (window && window.dispatchEvent) {
-          window.dispatchEvent(
-            new CustomEvent("batchDelete", {
-              detail: { count: successfulDeletes },
-            })
-          );
-        }
       }
     } catch (error) {
       console.error("Batch delete operation failed:", error);
-    } finally {
-      setIsProcessing(false);
     }
 
     setShowBatchDeleteModal(false);
@@ -526,6 +461,21 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     Scholarship: "bg-amber-500",
   };
 
+  // Handle delete click
+  const handleDeleteClick = (leadId: string) => {
+    setLeadToDelete(leadId);
+    setShowDeleteModal(true);
+  };
+
+  // Confirm deletion
+  const confirmDelete = () => {
+    if (leadToDelete && onDelete) {
+      onDelete(leadToDelete, false);
+      setShowDeleteModal(false);
+      setLeadToDelete(null);
+    }
+  };
+
   // Check if any selected lead is already assigned
   const isAnySelectedLeadAssigned = () => {
     if (selectedLeads.length === 0) return false;
@@ -534,6 +484,114 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
       const lead = leads.find((l) => l._id === leadId);
       return lead?.assigned === true; // True if it is assigned
     });
+  };
+
+  // Handle status change for leads
+  const isStatusDisabled = (lead: ILead, option: string) => {
+    // Disable status options when a lead is resolved
+    if (
+      lead.resolve_status &&
+      isResolvedStatus(lead.resolve_status) &&
+      lead.resolve_status !== "Pending"
+    ) {
+      return true;
+    }
+
+    // Disable previous follow-up options based on current status
+    if (lead.status && lead.status.startsWith("Follow Up")) {
+      const currentLevel = parseInt(lead.status.split(" ")[2] || "0", 10) || 0;
+      const optionLevel = parseInt(option.split(" ")[2] || "0", 10) || 0;
+
+      if (optionLevel < currentLevel) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  // Within the getStatusOptionsForCategory function, add logic to handle resolved statuses
+  const getStatusOptionsForCategory = (
+    category: string,
+    lead?: ILead
+  ): string[] => {
+    // Basic options by category
+    let options: string[];
+
+    switch (category) {
+      case "Order Creation":
+        options = ["Pending", "Assigned Order"];
+        break;
+      case "Contact Us":
+        options = ["Pending", "Resolved"];
+        break;
+      case "Scholarship":
+      case "Free SignUp":
+      case "Free Study Guide":
+        options = ["Pending", "Resolved"];
+        break;
+      default:
+        options = [
+          "Pending",
+          "Follow Up 1",
+          "Follow Up 2",
+          "Follow Up 3",
+          "Converted",
+          "Resolved",
+        ];
+        break;
+    }
+
+    // If lead exists and we need to modify options based on status
+    if (lead) {
+      const currentStatus = lead.status;
+      const currentResolveStatus = lead.resolve_status;
+
+      // If lead is resolved, only show the current status
+      if (
+        currentResolveStatus &&
+        isResolvedStatus(currentResolveStatus) &&
+        currentResolveStatus !== "Pending"
+      ) {
+        return [currentStatus || "Pending"];
+      }
+
+      // If status is not pending, remove pending option
+      if (currentStatus !== "Pending") {
+        options = options.filter((opt) => opt !== "Pending");
+      }
+
+      // Handle follow-up status progression
+      if (currentStatus === "Follow Up 1") {
+        // In Follow Up 1, remove Follow Up 1 option (since we're already here)
+        options = options.filter((opt) => opt !== "Follow Up 1");
+      } else if (currentStatus === "Follow Up 2") {
+        // In Follow Up 2, remove both Follow Up 1 and 2 options
+        options = options.filter(
+          (opt) => opt !== "Follow Up 1" && opt !== "Follow Up 2"
+        );
+      } else if (currentStatus === "Follow Up 3") {
+        // In Follow Up 3, remove all Follow Up options
+        options = options.filter((opt) => !opt.startsWith("Follow Up"));
+      } else if (
+        currentStatus === "Follow Up" &&
+        lead.next_follow_up &&
+        Array.isArray(lead.next_follow_up)
+      ) {
+        // Legacy "Follow Up" status with next_follow_up array
+        const count = lead.next_follow_up.length;
+
+        // Remove previous follow-up options
+        if (count >= 1)
+          options = options.filter((opt) => opt !== "Follow Up 1");
+        if (count >= 2)
+          options = options.filter((opt) => opt !== "Follow Up 2");
+        if (count >= 3)
+          options = options.filter((opt) => !opt.startsWith("Follow Up"));
+      }
+    }
+
+    return options;
   };
 
   // Reusable Modal Component
@@ -882,11 +940,51 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
           <table className="w-full border-collapse text-xs">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">
-                  FULL NAME
+                <th className="w-12 px-2 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-gray-300"
+                    checked={
+                      currentLeads.length > 0 &&
+                      selectedLeads.length === currentLeads.length
+                    }
+                    onChange={handleSelectAll}
+                  />
+                </th>
+                <th className="px-2 py-2 text-left font-medium text-gray-600 relative group">
+                  <span>TYPE</span>
+                  <button className="ml-1">
+                    <Filter className="h-4 w-4 text-gray-500" />
+                  </button>
+                  <div className="absolute left-0 mt-1 w-40 bg-white border border-gray-200 rounded shadow-lg z-30 hidden group-hover:block">
+                    {/* Reset option */}
+                    <button
+                      onClick={() => handleFilterChange("type", "")}
+                      className="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
+                    >
+                      Reset
+                    </button>
+                    {[
+                      "Abandoned Cart",
+                      "Order Creation",
+                      "Contact Us",
+                      "Free SignUp",
+                      "Free Study Guide",
+                      "Custom Lead",
+                      "Scholarship",
+                    ].map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => handleFilterChange("type", option)}
+                        className="w-full text-left px-2 py-1 hover:bg-gray-100 text-sm"
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">
-                  CATEGORY
+                  FULL NAME
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">
                   DOMAIN
@@ -895,21 +993,30 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   DATE CREATED
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">
-                  STATUS
-                </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">
-                  ACTIONS
+                  ACTION
                 </th>
               </tr>
             </thead>
+
             <tbody className="divide-y divide-gray-200">
               {currentLeads.map((lead, index) => (
                 <tr key={lead._id || index} className="hover:bg-gray-50">
-                  {/* Full Name */}
-                  <td className="px-4 py-4 text-sm font-medium text-gray-800">
-                    {getLeadName(lead)}
+                  {/* CheckBox */}
+                  <td className="w-12 px-2 py-4">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gray-300"
+                      checked={
+                        lead._id
+                          ? selectedLeads.includes(lead._id as string)
+                          : false
+                      }
+                      onChange={() =>
+                        lead._id && handleSelectLead(lead._id as string)
+                      }
+                    />
                   </td>
-                  {/* Category */}
+                  {/* TYPE */}
                   <td className="px-4 py-4">
                     <div
                       className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
@@ -919,65 +1026,142 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                       {lead?.category}
                     </div>
                   </td>
-                  {/* Domain */}
-                  <td className="px-4 py-4 text-sm">{lead.domain}</td>
-                  {/* Date Created */}
-                  <td className="px-4 py-4 text-sm">
-                    {lead.createdAt
-                      ? new Date(lead.createdAt).toLocaleString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "N/A"}
-                  </td>
-                  {/* Status */}
-                  <td className="px-4 py-4 text-sm">
-                    {handleStatusChange ? (
-                      <select
-                        className={`px-3 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          lead.status === "Closed"
-                            ? "bg-blue-100 text-blue-800 border-blue-200"
-                            : "bg-gray-100 text-gray-800 border-gray-200"
-                        }`}
-                        value={lead.status}
-                        onChange={(e) =>
-                          handleStatusChange(lead._id as string, e.target.value)
-                        }
-                      >
-                        {["Closed", "Pending"].map((status) => (
-                          <option key={status} value={status}>
-                            {status}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className="px-3 py-2 rounded-md bg-gray-100 text-gray-800 border border-gray-200">
-                        {lead.status}
-                      </span>
-                    )}
-                  </td>
-                  {/* Actions */}
+                  {/* Full Name */}
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-2">
-                      {handleViewLead && (
-                        <button
-                          className="flex items-center px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm"
-                          onClick={() => handleViewLead(lead)}
-                        >
-                          <Eye size={14} className="mr-1" />
-                          View
-                        </button>
-                      )}
-                      {handleViewNotes && (
-                        <button
-                          className="flex items-center px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-md text-sm"
-                          onClick={() => handleViewNotes(lead)}
-                        >
-                          Notes +
-                        </button>
+                    <div className="py-4 text-sm font-medium text-gray-600">
+                      {(lead.contact_us as any)?.name ||
+                        [
+                          lead.free_signup,
+                          lead.order_creation,
+                          lead.scholarship,
+                          lead.custom_lead,
+                          lead.abandoned_cart,
+                        ]
+                          .map((entry) =>
+                            entry &&
+                            typeof entry === "object" &&
+                            "firstName" in entry &&
+                            "lastName" in entry
+                              ? `${entry.firstName} ${entry.lastName ?? ""}`
+                              : null
+                          )
+                          .filter(Boolean)[0] ||
+                        "No Data Available"}
+                    </div>
+                  </td>
+                  {/* DOMAIN (LEAD SOURCE) */}
+                  <td className="px-4 py-4 text-sm">
+                    <div className="py-4 text-sm font-medium text-gray-600">
+                      {getDomainLabel(lead.domain || "")}
+                    </div>
+                  </td>
+                  {/* DATE CREATED */}
+                  <td className="px-4 py-4 text-sm">
+                    <div className="py-4 text-sm font-medium text-gray-600">
+                      {lead.createdAt
+                        ? new Date(lead.createdAt).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : "N/A"}
+                    </div>
+                  </td>
+                  {/* ACTION */}
+                  <td className="py-4">
+                    <div className="flex items-center justify-start gap-2">
+                      {lead.assigned ? (
+                        <div className="flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600">
+                          <span className="text-sm">
+                            Assigned to{" "}
+                            {lead.assigned_to &&
+                            typeof lead.assigned_to === "object"
+                              ? (lead.assigned_to as any).full_name
+                              : "Unknown User"}
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          {session?.user_type !== 3 ? (
+                            <>
+                              <div className="dropdown relative mr-2">
+                                <button
+                                  className="flex items-center justify-center px-4 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50 min-w-[120px]"
+                                  onClick={() =>
+                                    toggleDropdown(lead._id as string)
+                                  }
+                                >
+                                  <UserPlus className="h-4 w-4 mr-2" />
+                                  <span className="mr-1">Assign</span>
+                                  <ChevronDown className="h-4 w-4" />
+                                </button>
+
+                                {openDropdownId === lead._id && (
+                                  <div className="dropdown-menu absolute left-0 top-full mt-1 w-60 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                                    <button
+                                      onClick={() => {
+                                        if (lead._id && onAssign)
+                                          onAssign(lead._id);
+                                        setOpenDropdownId(null);
+                                      }}
+                                      className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm border-b border-gray-100"
+                                    >
+                                      Assign to Me
+                                    </button>
+
+                                    {loadingUsers ? (
+                                      <div className="px-4 py-2 text-sm text-gray-500">
+                                        Loading users...
+                                      </div>
+                                    ) : (
+                                      availableUsers.length > 0 && (
+                                        <div className="max-h-48 overflow-y-auto">
+                                          {availableUsers.map((user) => (
+                                            <button
+                                              key={user._id}
+                                              onClick={() =>
+                                                confirmAssign(
+                                                  lead._id as string,
+                                                  user._id
+                                                )
+                                              }
+                                              className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm flex items-center justify-between"
+                                            >
+                                              <span>
+                                                {user.full_name ||
+                                                  user.user_name}
+                                              </span>
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              {/* Delete button */}
+                              <button
+                                className="flex items-center px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm"
+                                onClick={() =>
+                                  handleDeleteClick(lead._id as string)
+                                }
+                              >
+                                <Trash2 size={14} className="mr-1" />
+                                Delete
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              className="flex items-center px-4 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50 mr-2"
+                              onClick={() => {
+                                if (lead._id && onAssign) onAssign(lead._id);
+                              }}
+                            >
+                              <UserPlus className="h-4 w-4 mr-2" />
+                              Assign Me
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
                   </td>

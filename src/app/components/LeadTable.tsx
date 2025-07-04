@@ -1,6 +1,7 @@
 import React from "react";
 import { Eye, Plus } from "lucide-react";
 import { ILead } from "@/types/leads";
+import { getLeadName } from "./LeadUtils";
 
 interface LeadTableProps {
   currentLeads: ILead[];
@@ -103,48 +104,14 @@ const LeadTable: React.FC<LeadTableProps> = ({
                   {/* Full Name */}
                   <td className="px-4 py-3">
                     <div className="py-1 px-2 inline-block rounded-lg text-sm font-medium text-gray-900 break-words">
-                      {(() => {
-                        const populatedKey = [
-                          "contact_us",
-                          "free_signup",
-                          "order_creation",
-                          "custom_lead",
-                          "abandoned_cart",
-                          "scholarship",
-                        ].find((key) => lead[key as keyof ILead]);
-
-                        if (!populatedKey) return "Unknown";
-
-                        const leadData = lead[populatedKey as keyof ILead];
-
-                        // Handle name formatting based on the populated key
-                        if (populatedKey === "contact_us") {
-                          return (leadData as any)?.name || "Unknown";
-                        }
-
-                        if (
-                          populatedKey === "order_creation" ||
-                          populatedKey === "abandoned_cart" ||
-                          populatedKey === "free_signup" ||
-                          populatedKey === "scholarship" ||
-                          populatedKey === "custom_lead"
-                        ) {
-                          return (
-                            `${(leadData as any)?.firstName ?? ""} ${
-                              (leadData as any)?.lastName ?? ""
-                            }`.trim() || "No Data Available"
-                          );
-                        }
-
-                        return "Unknown";
-                      })()}
+                      {getLeadName(lead)}
                     </div>
                   </td>
 
                   {/* Category */}
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div
-                      className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
+                      className={`py-1 px-2 inline-block rounded-lg text-sm font-medium text-white ${
                         categoryColors[lead?.category ?? ""] || "bg-gray-500"
                       }`}
                     >

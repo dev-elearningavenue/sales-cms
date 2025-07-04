@@ -24,7 +24,7 @@ import { useLeadsData, SortConfig, FilterConfig } from "@/hooks/useLeadsData";
 
 // Import reusable components
 import LeadFilterPanel from "@/components/LeadFilterPanel";
-import LeadsTable from "@/components/LeadsTable";
+import LeadTable from "@/components/LeadTable";
 import LeadStatusModals from "@/components/LeadStatusModals";
 import Pagination from "@/components/Pagination";
 
@@ -144,8 +144,8 @@ const MyLeads = () => {
 
       // Set up polling for assigned lead updates - as a backup for websockets
       const intervalId = setInterval(() => {
-        if (!isConnected && session && session._id) {
-          // Only use polling if websocket is not connected AND session is valid
+        if (!isConnected) {
+          // Only use polling if websocket is not connected
           fetchMyLeadsUpdates();
         }
       }, 30000); // Check for updates every 30 seconds as fallback
@@ -443,155 +443,6 @@ const MyLeads = () => {
   const endIndex = Math.min(startIndex + itemsPerPage, totalLeadCount);
   const currentLeads = processedLeads.slice(startIndex, endIndex);
 
-  const handleDelete = async (
-    leadId: string,
-    isBatchOperation: boolean = false
-  ) => {
-    try {
-      const res = await fetch(`/api/leads?leadId=${leadId}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to delete lead");
-      }
-
-      // Update state
-      setLeads((prevLeads) => prevLeads.filter((lead) => lead._id !== leadId));
-
-      // Skip individual notifications for batch operations
-      if (!isBatchOperation) {
-        addNotification({
-          message: "Lead deleted successfully",
-          type: "info",
-          read: false,
-        });
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Error deleting lead:", error);
-      addNotification({
-        message: "Failed to delete lead",
-        type: "warning",
-        read: false,
-      });
-      return false;
-    }
-  };
-
-  // Add batch delete function
-  const handleBatchDelete = async (leadIds: string[]) => {
-    try {
-      const res = await fetch("/api/leads?batch=true", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ leadIds }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to delete leads");
-      }
-
-      const data = await res.json();
-
-      // Update state to remove deleted leads
-      setLeads((prevLeads) =>
-        prevLeads.filter((lead) => !leadIds.includes(lead._id as string))
-      );
-
-      // Show success notification
-      addNotification({
-        message:
-          data.message || `${data.deletedCount} leads deleted successfully`,
-        type: "info",
-        read: false,
-      });
-
-      return true;
-    } catch (error) {
-      console.error("Error batch deleting leads:", error);
-      addNotification({
-        message: "Failed to delete leads",
-        type: "warning",
-        read: false,
-      });
-      return false;
-    }
-  };
-
-  // Add assign function for my-leads
-  const handleAssign = async (
-    leadId: string,
-    userId?: string,
-    isBatchOperation = false
-  ) => {
-    try {
-      const res = await fetch("/api/leads/assign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadId, userId }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        // Update leads state
-        setLeads((prevLeads) => {
-          return prevLeads.map((lead) => {
-            if (lead._id === leadId) {
-              const updatedLead = { ...lead };
-              updatedLead.assigned = true;
-              updatedLead.assignedAt = new Date();
-              if (data.assignedTo) {
-                (updatedLead as any).assigned_to = data.assignedTo;
-              } else if (session?._id) {
-                (updatedLead as any).assigned_to = {
-                  _id: session._id,
-                  full_name: session.full_name || "User",
-                  user_name: session.user_name || "User",
-                };
-              }
-              return updatedLead;
-            }
-            return lead;
-          });
-        });
-
-        if (!isBatchOperation) {
-          addNotification({
-            message: `Lead assigned successfully`,
-            type: "info",
-            read: false,
-          });
-        }
-
-        return true;
-      } else {
-        if (!isBatchOperation) {
-          addNotification({
-            message: data.error || data.message || "Failed to assign lead",
-            type: "warning",
-            read: false,
-          });
-        }
-        return false;
-      }
-    } catch (error) {
-      console.error("Error assigning lead:", error);
-      if (!isBatchOperation) {
-        addNotification({
-          message: "Failed to assign lead",
-          type: "warning",
-          read: false,
-        });
-      }
-      return false;
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       {loading ? (
@@ -642,17 +493,19 @@ const MyLeads = () => {
             )}
 
             {/* Leads Table */}
-            <LeadsTable
-              leads={currentLeads}
-              onAssign={handleAssign}
-              title="My Leads"
-              isMyLeads={true}
-              onDelete={handleDelete}
-              onBatchDelete={handleBatchDelete}
-              onRefresh={fetchMyLeads}
+            <LeadTable
+              currentLeads={currentLeads}
               handleViewLead={handleViewLead}
               handleViewNotes={handleViewNotes}
               handleStatusChange={handleStatusChange}
+              getFollowUpDisplayStatus={getFollowUpDisplayStatus}
+              getStatusOptionsForCategory={getStatusOptionsForCategory}
+              handleSortChange={(field: string) =>
+                handleSortChange(field as "createdAt" | "category" | "domain")
+              }
+              sort={sort}
+              categoryColors={categoryColors}
+              getDomainLabel={getDomainLabel}
             />
 
             {/* Pagination */}
@@ -722,7 +575,8 @@ const MyLeads = () => {
 
                 {/* Course Information */}
                 {(selectedLead?.category === "Order Creation" ||
-                  selectedLead?.category === "Abandoned Cart") && (
+                  selectedLead?.category === "Abandoned Cart" ||
+                  selectedLead?.category === "Unpaid Training") && (
                   <CourseInfo selectedLead={selectedLead} />
                 )}
 

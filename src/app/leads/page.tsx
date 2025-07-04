@@ -649,7 +649,7 @@ const Leads = () => {
             showCreateButton={true}
             onCreateClick={() => setIsCreateModalOpen(true)}
             onDelete={handleDelete}
-            onBatchDelete={handleBatchDelete}
+            // onBatchDelete={handleBatchDelete}
             onRefresh={() => fetchLeads(true)}
           />
         )}

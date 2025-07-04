@@ -226,6 +226,12 @@ export const getLeadsByUser = async (userId: string) => {
     if (await Lead.exists({ custom_lead: { $ne: null } })) {
       populations.push({ path: "custom_lead", model: "CustomLead" });
     }
+    // Add assigned_to population - this was missing!
+    populations.push({
+      path: "assigned_to",
+      model: "User",
+      select: "full_name",
+    });
 
     const leads = await Lead.find({
       assigned_to: userId,
@@ -422,7 +428,10 @@ export const createCustomLead = async (
     createNewLeadNotification(lead);
 
     // Populate the custom_lead field to return complete data
-    const populatedLead = await Lead.findById(lead._id).populate("custom_lead");
+    const populatedLead = await Lead.findById(lead._id).populate([
+      "custom_lead",
+      { path: "assigned_to", model: "User", select: "full_name user_name" }
+    ]);
 
     return {
       success: true,

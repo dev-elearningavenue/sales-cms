@@ -16,7 +16,7 @@ export const createOrder = async (orderData: any) => {
     // Create the order in paidorders collection
     const newOrder = new OrderCreation(orderData);
     const savedOrder = await newOrder.save();
-    console.log("Saved Order: ", );
+    console.log("Saved Order: ", savedOrder);
 
     if (!savedOrder) {
       return {

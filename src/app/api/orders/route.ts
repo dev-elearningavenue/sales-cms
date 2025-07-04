@@ -62,11 +62,12 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    console.log(JSON.stringify(body.order_data.items, null, 2));
-    console.dir(body.order_dataitems, { depth: null, colors: true });
-
     // Check if this is WordPress data (has user_data and order_data structure)
     const isWordPressData = body.order_data;
+    
+    if (isWordPressData && body.order_data.items) {
+      console.log(JSON.stringify(body.order_data.items, null, 2));
+    }
     
     let orderData;
     if (isWordPressData) {
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
     if (!result.success) {
       return NextResponse.json(result, { status: 400, headers: corsHeaders });
     }
-
+    
     return NextResponse.json(result, { status: 201, headers: corsHeaders });
   } catch (error: any) {
     console.error("Error in orders API:", error);

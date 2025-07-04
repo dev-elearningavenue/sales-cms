@@ -505,16 +505,6 @@ const Leads = () => {
     };
   }, [showCourseDropdown]);
 
-  // Debug state changes
-  useEffect(() => {
-    console.log(
-      "State changed - showCourseDropdown:",
-      showCourseDropdown,
-      "results:",
-      courseSearchResults.length
-    );
-  }, [showCourseDropdown, courseSearchResults]);
-
   // Add course to the list
   const addCourse = () => {
     if (!currentCourse.courseName.trim()) {

@@ -1,8 +1,8 @@
 import { MongoClient } from "mongodb";
 
 // Import database URIs
-const mongoUri_Master = process.env.CLUSTER_MASTER as string;
-const mongoUri_Outreach = process.env.CLUSTER_OUTREACH as string;
+const mongoUri_Master = process.env.MONGODB_URI_OOC as string;
+const mongoUri_Outreach = process.env.MONGODB_URI_OUTREACH as string;
 
 // Connection options
 const CONNECTION_OPTIONS = {
@@ -153,10 +153,7 @@ export const createCustomer = async (
         throw new Error(`Stripe Customer API error: ${response.error}`);
       }
 
-      console.log(
-        "Stripe Create Customer API success, customerId:",
-        response
-      );
+      // console.log("Stripe Create Customer API success, customerId:", response);
 
       return {
         success: true,
@@ -194,10 +191,7 @@ export const createCustomer = async (
         throw new Error(`External API error: ${stripeApiResponse.error}`);
       }
 
-      console.log(
-        "Stripe API success, customerId:",
-        stripeApiResponse
-      );
+      console.log("Stripe API success, customerId:", stripeApiResponse);
 
       // Get database configuration for the site
       const siteConfig =
@@ -418,7 +412,7 @@ async function stripeCustomerAPI(customerData: {
   send_invoice: number;
 }): Promise<{ success: boolean; customerId?: string; error?: string }> {
   try {
-    console.log("Calling stripe customer API with data:", customerData);
+    // console.log("Calling stripe customer API with data:", customerData);
 
     const response = await fetch(
       "https://freeoshacourses.com/api/api_create_customer.php",

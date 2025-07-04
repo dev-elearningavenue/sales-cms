@@ -48,7 +48,17 @@ export async function GET(request: NextRequest) {
         // Existing leads that were assigned to this user after the timestamp
         { assignedAt: { $gt: sinceDate } },
       ],
-    }).sort({ createdAt: -1 });
+    })
+    .populate([
+      { path: "free_signup", model: "Customer" },
+      { path: "contact_us", model: "Contact" },
+      { path: "abandoned_cart", model: "AbandonedCart" },
+      { path: "scholarship", model: "Scholarship" },
+      { path: "order_creation", model: "OrderCreation" },
+      { path: "custom_lead", model: "CustomLead" },
+      { path: "assigned_to", model: "User", select: "full_name user_name" },
+    ])
+    .sort({ createdAt: -1 });
 
     return NextResponse.json({
       newLeads,

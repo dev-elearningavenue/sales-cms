@@ -43,11 +43,7 @@ async function ensureConnection(
   name: string
 ): Promise<MongoClient> {
   try {
-    // Validate URI before attempting connection
-    if (!uri || typeof uri !== 'string' || uri.trim() === '') {
-      throw new Error(`Invalid or missing URI for ${name} connection. URI: ${uri}`);
-    }
-
+    
     if (!client) {
       client = new MongoClient(uri, CONNECTION_OPTIONS);
       await client.connect();

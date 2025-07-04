@@ -41,6 +41,7 @@ const DOMAIN_LABELS = {
   OOR: "Osha Outreach",
   OOC: "Osha Online Center",
   OES: "Osha Education School",
+  FOC: "Free Osha Courses",
 };
 
 // Add type definition for contact type
@@ -649,6 +650,9 @@ const MyLeads = () => {
               onDelete={handleDelete}
               onBatchDelete={handleBatchDelete}
               onRefresh={fetchMyLeads}
+              handleViewLead={handleViewLead}
+              handleViewNotes={handleViewNotes}
+              handleStatusChange={handleStatusChange}
             />
 
             {/* Pagination */}

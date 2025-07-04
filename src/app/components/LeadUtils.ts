@@ -6,6 +6,7 @@ export const DOMAIN_LABELS: Record<string, string> = {
   OOR: "Osha Outreach",
   OOC: "Osha Online Center",
   OES: "Osha Education School",
+  FOC: "Free Osha Courses",
 };
 
 // Category colors

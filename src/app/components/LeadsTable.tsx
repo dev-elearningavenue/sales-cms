@@ -13,6 +13,8 @@ import {
   Plus,
   Trash2,
   ChevronDown,
+  Eye,
+  MessageSquare,
 } from "lucide-react";
 import { ILead } from "@/types/leads";
 import { useApp } from "@/contexts/AppContext";
@@ -40,6 +42,9 @@ interface LeadsTableProps {
   onDelete?: (leadId: string, isBatchOperation: boolean) => Promise<boolean>;
   onBatchDelete?: (leadIds: string[]) => Promise<boolean>;
   onRefresh?: () => Promise<void>;
+  handleViewLead?: (leadIdOrLead: string | ILead) => void;
+  handleViewNotes?: (lead: ILead) => void;
+  handleStatusChange?: (leadId: string, newStatus: string) => void;
 }
 
 const LeadsTable: React.FC<LeadsTableProps> = ({
@@ -52,6 +57,9 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   onDelete,
   onBatchDelete,
   onRefresh,
+  handleViewLead,
+  handleViewNotes,
+  handleStatusChange,
 }) => {
   const { session, addNotification } = useApp();
   const [currentPage, setCurrentPage] = useState(1);
@@ -1003,6 +1011,28 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   {/* ACTION */}
                   <td className="py-4">
                     <div className="flex items-center justify-start gap-2">
+                      {/* View Button */}
+                      {handleViewLead && (
+                        <button
+                          className="flex items-center px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm"
+                          onClick={() => handleViewLead(lead)}
+                        >
+                          <Eye size={14} className="mr-1" />
+                          View
+                        </button>
+                      )}
+
+                      {/* Notes Button */}
+                      {handleViewNotes && (
+                        <button
+                          className="flex items-center px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md text-sm"
+                          onClick={() => handleViewNotes(lead)}
+                        >
+                          <MessageSquare size={14} className="mr-1" />
+                          Notes
+                        </button>
+                      )}
+
                       {lead.assigned ? (
                         <div className="flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600">
                           <span className="text-sm">

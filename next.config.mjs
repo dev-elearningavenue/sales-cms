@@ -3,7 +3,30 @@ const nextConfig = {
   // typescript: {
   //   ignoreBuildErrors: true,
   // },
-  // reactStrictMode: false,
+  reactStrictMode: false,
+
+  // Fix chunk loading errors
+  webpack: (config, { dev, isServer }) => {
+    if (!dev && !isServer) {
+      // Optimize chunks for better loading
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+        },
+      };
+    }
+    return config;
+  },
+
+  // Improve loading performance
+  experimental: {
+    optimizeCss: true,
+  },
 
   // async headers() {
   //   return [

@@ -209,10 +209,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setTheme(isDark ? "dark" : "light");
       document.documentElement.classList.toggle("dark", isDark);
     }
-    // Initial session fetch
+
+    // Initial session fetch with timeout protection
     if (!isInitialized) {
-      fetchSession();
-      setIsInitialized(true);
+      const initializeApp = async () => {
+        try {
+          await fetchSession();
+        } catch (error) {
+          console.error("Failed to initialize session:", error);
+          // Ensure loading state is cleared even on error
+          setLoading(false);
+        } finally {
+          setIsInitialized(true);
+        }
+      };
+
+      // Add timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.warn("Session fetch timeout - proceeding without session");
+        setLoading(false);
+        setIsInitialized(true);
+      }, 10000); // 10 second timeout
+
+      initializeApp().finally(() => {
+        clearTimeout(timeoutId);
+      });
     }
   }, [isInitialized]);
 
@@ -328,7 +349,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const fetchSession = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("/api/auth/session");
+
+      // Add timeout to the axios request
+      const response = await axios.get("/api/auth/session", {
+        timeout: 5000, // 5 second timeout
+      });
 
       if (JSON.stringify(session) !== JSON.stringify(response.data)) {
         setSession(response.data);
@@ -336,12 +361,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       setError(null);
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        // Expected state for non-authenticated users
-        setSession(null);
-        setError(null);
+      console.error("Session fetch error:", err);
+
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 401) {
+          setSession(null);
+          setError(null);
+        } else if (err.code === "ECONNABORTED") {
+          // Timeout error
+          console.warn("Session fetch timeout - continuing without session");
+          setSession(null);
+          setError("Connection timeout");
+        } else {
+          setError("Failed to load session");
+          setSession(null);
+        }
       } else {
-        setError("Failed to load session");
+        setError("Network error");
         setSession(null);
       }
     } finally {
@@ -402,7 +438,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={value}>
-      {children}
+      {loading && !isInitialized ? (
+        // Show loading screen during initial app load
+        <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600 font-medium">Loading...</p>
+          </div>
+        </div>
+      ) : (
+        children
+      )}
       {/* Toast notification */}
       {toast && (
         <div

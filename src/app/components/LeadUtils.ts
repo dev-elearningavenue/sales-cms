@@ -1,30 +1,6 @@
 import { ILead } from "@/types/leads";
 import { isResolvedStatus } from "@/lib/leadUtils";
 
-// Domain mapping for labels
-export const DOMAIN_LABELS: Record<string, string> = {
-  OOR: "Osha Outreach",
-  OOC: "Osha Online Center",
-  OES: "Osha Education School",
-  FOC: "Free Osha Courses",
-};
-
-// Category colors
-export const categoryColors: Record<string, string> = {
-  "Abandoned Cart": "bg-red-500",
-  "Order Creation": "bg-green-500",
-  "Contact Us": "bg-blue-500",
-  "Free SignUp": "bg-purple-500",
-  "Free Study Guide": "bg-yellow-500",
-  "Custom Lead": "bg-indigo-500",
-  Scholarship: "bg-amber-500",
-};
-
-// Get domain label
-export const getDomainLabel = (domain: string): string => {
-  return DOMAIN_LABELS[domain as keyof typeof DOMAIN_LABELS] || domain;
-};
-
 // Helper function to get lead name
 export const getLeadName = (lead: ILead): string => {
   if (
@@ -55,6 +31,34 @@ export const getLeadName = (lead: ILead): string => {
   }
 
   return "Distinct Lead";
+};
+
+// Helper function to get domain labels
+export const getDomainLabel = (domain: string): string => {
+  switch (domain) {
+    case "OOR":
+      return "Osha Outreach";
+    case "OOC":
+      return "Osha Online Center";
+    case "OES":
+      return "Osha Education School";
+    case "FOC":
+      return "Free Osha Courses";
+    default:
+      return domain;
+  }
+};
+
+// Category colors mapping
+export const categoryColors: Record<string, string> = {
+  "Contact Us": "bg-blue-500",
+  "Order Creation": "bg-green-500",
+  "Abandoned Cart": "bg-red-500",
+  "Free SignUp": "bg-purple-500",
+  "Free Study Guide": "bg-yellow-500",
+  "Custom Lead": "bg-indigo-500",
+  "Unpaid Training": "bg-teal-500",
+  Scholarship: "bg-amber-500",
 };
 
 // Get the follow-up level for display purposes

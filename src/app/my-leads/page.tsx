@@ -24,7 +24,7 @@ import { useLeadsData, SortConfig, FilterConfig } from "@/hooks/useLeadsData";
 
 // Import reusable components
 import LeadFilterPanel from "@/components/LeadFilterPanel";
-import LeadTable from "@/components/LeadTable";
+import MyLeadTable from "@/components/MyLeadTable";
 import LeadStatusModals from "@/components/LeadStatusModals";
 import Pagination from "@/components/Pagination";
 
@@ -493,7 +493,7 @@ const MyLeads = () => {
             )}
 
             {/* Leads Table */}
-            <LeadTable
+            <MyLeadTable
               currentLeads={currentLeads}
               handleViewLead={handleViewLead}
               handleViewNotes={handleViewNotes}

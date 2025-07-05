@@ -13,10 +13,18 @@ import {
   Plus,
   Trash2,
   ChevronDown,
+  Eye,
+  X,
 } from "lucide-react";
 import { ILead } from "@/types/leads";
 import { useApp } from "@/contexts/AppContext";
 import { isResolvedStatus } from "@/lib/leadUtils";
+import {
+  getLeadName,
+  getDomainLabel,
+  categoryColors,
+} from "@/components/LeadUtils";
+import LeadDetailsModal from "@/components/LeadDetailsModal";
 
 // User type for the dropdown
 interface User {
@@ -77,6 +85,11 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
   const [showBatchDeleteModal, setShowBatchDeleteModal] = useState(false);
+
+  // Add state for lead details modal
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedLeadForDetails, setSelectedLeadForDetails] =
+    useState<ILead | null>(null);
 
   // Add state to track shown notifications
   const [shownNotifications, setShownNotifications] = useState<Set<string>>(
@@ -299,13 +312,6 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   const endIndex = Math.min(startIndex + itemsPerPage, filteredLeads.length);
   const currentLeads = filteredLeads.slice(startIndex, endIndex);
 
-  const domainMapping: Record<string, string> = {
-    "Osha Outreach": "OOR",
-    "Osha Online Center": "OOC",
-    "Osha Education School": "OES",
-    "Free Osha Courses": "FOC",
-  };
-
   const handleFilterChange = (category: string, value: string) => {
     setFilters((prev) => {
       const newFilters = { ...prev };
@@ -321,7 +327,18 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
       } else if (category === "type") {
         newFilters.type = value;
       } else if (category === "domain") {
-        newFilters.domain = domainMapping[value] || "";
+        // Convert domain label back to domain code
+        const domainCode =
+          value === "Osha Outreach"
+            ? "OOR"
+            : value === "Osha Online Center"
+            ? "OOC"
+            : value === "Osha Education School"
+            ? "OES"
+            : value === "Free Osha Courses"
+            ? "FOC"
+            : "";
+        newFilters.domain = domainCode;
       } else {
         (newFilters as any)[category] = value;
       }
@@ -459,32 +476,6 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     }
     setShowBatchDeleteModal(false);
     setSelectedLeads([]);
-  };
-
-  const getDomainLabel = (domain: string) => {
-    switch (domain) {
-      case "OOR":
-        return "Osha Outreach";
-      case "OOC":
-        return "Osha Online Center";
-      case "OES":
-        return "Osha Education School";
-      case "FOC":
-        return "Free Osha Courses";
-      default:
-        return domain;
-    }
-  };
-
-  const categoryColors: Record<string, string> = {
-    "Abandoned Cart": "bg-red-500",
-    "Order Creation": "bg-green-500",
-    "Contact Us": "bg-blue-500",
-    "Free SignUp": "bg-purple-500",
-    "Free Study Guide": "bg-yellow-500",
-    "Custom Lead": "bg-indigo-500",
-    "Unpaid Training": "bg-teal-500",
-    Scholarship: "bg-amber-500",
   };
 
   const handleDeleteClick = (leadId: string) => {
@@ -908,7 +899,18 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                     <label key={domain} className="flex items-center space-x-2">
                       <input
                         type="radio"
-                        checked={filters.domain === domainMapping[domain]}
+                        checked={
+                          filters.domain ===
+                          (domain === "Osha Outreach"
+                            ? "OOR"
+                            : domain === "Osha Online Center"
+                            ? "OOC"
+                            : domain === "Osha Education School"
+                            ? "OES"
+                            : domain === "Free Osha Courses"
+                            ? "FOC"
+                            : "")
+                        }
                         onChange={() => handleFilterChange("domain", domain)}
                         className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
@@ -1047,12 +1049,20 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   </td>
                   {/* TYPE */}
                   <td className="px-4 py-4">
-                    <div
-                      className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
-                        categoryColors[lead?.category ?? " "] || "bg-gray-500"
-                      }`}
-                    >
-                      {lead?.category}
+                    <div className="flex flex-col items-start gap-1">
+                      <div
+                        className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
+                          categoryColors[lead?.category ?? " "] || "bg-gray-500"
+                        }`}
+                      >
+                        {lead?.category}
+                      </div>
+                      {/* Show status for users other than usertype 3 */}
+                      {session?.user_type !== 3 && (
+                        <div className="text-xs text-gray-500 font-medium">
+                          Status: {lead.status || "Pending"}
+                        </div>
+                      )}
                     </div>
                   </td>
                   {/* Full Name */}
@@ -1099,6 +1109,21 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   {/* ACTION */}
                   <td className="py-4">
                     <div className="flex items-center justify-start gap-2">
+                      {/* View Details Button - Only for usertype 1 and 2 */}
+                      {session?.user_type !== 3 && (
+                        <button
+                          className="flex items-center px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm"
+                          onClick={() => {
+                            // Handle view details - you can add modal or navigation logic here
+                            setSelectedLeadForDetails(lead);
+                            setShowDetailsModal(true);
+                          }}
+                        >
+                          <Eye size={14} className="mr-1" />
+                          View
+                        </button>
+                      )}
+
                       {lead.assigned ? (
                         <div className="flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600">
                           <span className="text-sm">
@@ -1180,15 +1205,17 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                               </button>
                             </>
                           ) : (
-                            <button
-                              className="flex items-center px-4 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50 mr-2"
-                              onClick={() => {
-                                if (lead._id && onAssign) onAssign(lead._id);
-                              }}
-                            >
-                              <UserPlus className="h-4 w-4 mr-2" />
-                              Assign Me
-                            </button>
+                            <>
+                              <button
+                                className="flex items-center px-4 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50 mr-2"
+                                onClick={() => {
+                                  if (lead._id && onAssign) onAssign(lead._id);
+                                }}
+                              >
+                                <UserPlus className="h-4 w-4 mr-2" />
+                                Assign Me
+                              </button>
+                            </>
                           )}
                         </>
                       )}
@@ -1294,6 +1321,20 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Lead Details Modal */}
+      {showDetailsModal && selectedLeadForDetails && (
+        <LeadDetailsModal
+          isOpen={showDetailsModal}
+          lead={selectedLeadForDetails}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setSelectedLeadForDetails(null);
+          }}
+          categoryColors={categoryColors}
+          getDomainLabel={getDomainLabel}
+        />
       )}
     </div>
   );

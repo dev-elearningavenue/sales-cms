@@ -3,7 +3,7 @@ import { Eye, MessageSquare, Plus } from "lucide-react";
 import { ILead } from "@/types/leads";
 import { getLeadName } from "./LeadUtils";
 
-interface LeadTableProps {
+interface MyLeadTableProps {
   currentLeads: ILead[];
   handleViewLead: (lead: ILead) => void;
   handleViewNotes: (lead: ILead) => void;
@@ -16,7 +16,7 @@ interface LeadTableProps {
   getDomainLabel: (domain: string) => string;
 }
 
-const LeadTable: React.FC<LeadTableProps> = ({
+const MyLeadTable: React.FC<MyLeadTableProps> = ({
   currentLeads,
   handleViewLead,
   handleViewNotes,
@@ -221,4 +221,4 @@ const LeadTable: React.FC<LeadTableProps> = ({
   );
 };
 
-export default LeadTable;
+export default MyLeadTable;

@@ -3,26 +3,14 @@ import { useEffect, useState } from "react";
 import { LoadingSkeleton } from "../components/LoadingSkeleton";
 import { ILead } from "@/types/leads";
 import { useApp } from "@/contexts/AppContext";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Filter,
-  Eye,
-  X,
-  Plus,
-} from "lucide-react";
+import { Filter, X } from "lucide-react";
 import { Dialog } from "@/components/Dialog";
 import { Customer, Field } from "@/components/Customer";
 import CourseInfo from "@/components/CourseInfo";
-// import mongoose from "mongoose";
 import LeadNotes from "../components/LeadNotes";
 import { useSocket } from "@/hooks/useSocket";
-import { isResolvedStatus } from "@/lib/leadUtils";
 import { useLeadsData, SortConfig, FilterConfig } from "@/hooks/useLeadsData";
 
-// Import reusable components
 import LeadFilterPanel from "@/components/LeadFilterPanel";
 import MyLeadTable from "@/components/MyLeadTable";
 import LeadStatusModals from "@/components/LeadStatusModals";
@@ -47,6 +35,63 @@ const DOMAIN_LABELS = {
 // Add type definition for contact type
 type ContactType = "email" | "call" | "chat";
 
+// Helper function to get lead email
+const getLeadEmail = (lead: ILead): string => {
+  // Check different lead types for email
+  if (
+    lead.contact_us &&
+    typeof lead.contact_us === "object" &&
+    (lead.contact_us as any).email
+  ) {
+    return (lead.contact_us as any).email;
+  }
+
+  if (
+    lead.free_signup &&
+    typeof lead.free_signup === "object" &&
+    (lead.free_signup as any).email
+  ) {
+    return (lead.free_signup as any).email;
+  }
+
+  if (
+    lead.custom_lead &&
+    typeof lead.custom_lead === "object" &&
+    (lead.custom_lead as any).email
+  ) {
+    return (lead.custom_lead as any).email;
+  }
+
+  if (
+    lead.scholarship &&
+    typeof lead.scholarship === "object" &&
+    (lead.scholarship as any).email
+  ) {
+    return (lead.scholarship as any).email;
+  }
+
+  if (
+    lead.abandoned_cart &&
+    typeof lead.abandoned_cart === "object" &&
+    (lead.abandoned_cart as any).email
+  ) {
+    return (lead.abandoned_cart as any).email;
+  }
+
+  return ""; // No email found
+};
+
+// Helper function to get domain email
+const getDomainEmail = (domain: string): string => {
+  const domainEmails = {
+    OOR: "support@oshaoutreachcourses.com",
+    OOC: "support@oshaonlinecenter.com",
+    OES: "Support@oshaeducationschool.com",
+    FOC: "support@freeoshacourses.com",
+  };
+  return domainEmails[domain as keyof typeof domainEmails] || "";
+};
+
 const MyLeads = () => {
   const {
     leads,
@@ -62,7 +107,6 @@ const MyLeads = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const { session, addNotification } = useApp();
-  const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
 
   // Filtering and sorting state
   const [filters, setFilters] = useState<FilterConfig>({
@@ -84,6 +128,7 @@ const MyLeads = () => {
   const [showConversionModal, setShowConversionModal] = useState(false);
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [showLvmModal, setShowLvmModal] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [conversionValue, setConversionValue] = useState<number | undefined>();
   const [followUpDate, setFollowUpDate] = useState<string>("");
@@ -101,9 +146,14 @@ const MyLeads = () => {
   const [contactTypes, setContactTypes] = useState<ContactType[]>([]);
   const [followUpNote, setFollowUpNote] = useState("");
 
-  // Add state for delete confirmation
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
+  // LVM email modal state
+  const [lvmEmailData, setLvmEmailData] = useState({
+    from: "",
+    to: "",
+    cc: "",
+    subject: "Follow-up: Your Recent Inquiry",
+    body: "",
+  });
 
   // Initialize WebSocket connection with event handlers
   const { isConnected } = useSocket({
@@ -169,7 +219,6 @@ const MyLeads = () => {
     const lead = leads.find((l) => l._id === leadId);
     if (!lead) return;
 
-    // Handle special status types
     let actualStatus = newStatus;
 
     // Convert legacy "Follow-up #X" format to new format
@@ -187,17 +236,97 @@ const MyLeads = () => {
       setShowConversionModal(true);
     } else if (actualStatus.startsWith("Follow Up")) {
       // Always show follow-up modal for any follow-up level
-      setContactTypes([]); // Reset contact types
-      setFollowUpDate(""); // Reset follow-up date
-      setFollowUpNote(""); // Reset follow-up note
+      setContactTypes([]);
+      setFollowUpDate("");
+      setFollowUpNote("");
       setShowFollowUpModal(true);
+    } else if (actualStatus === "LVM") {
+      // Get lead email and domain email for the form
+      const leadEmail = getLeadEmail(lead);
+      const domainEmail = getDomainEmail(lead.domain);
+      setLvmEmailData({
+        from: domainEmail,
+        to: leadEmail,
+        cc: "",
+        subject: "Follow-up: Your Recent Inquiry",
+        body: "",
+      });
+      setShowLvmModal(true);
     } else {
-      // For other statuses, prompt for a note (optional)
       setShowNoteModal(true);
     }
   };
 
   // Apply status change with additional data
+  // Handle LVM email sending
+  const sendLvmEmail = async () => {
+    if (
+      !currentLeadId ||
+      !lvmEmailData.to ||
+      !lvmEmailData.subject ||
+      !lvmEmailData.body
+    ) {
+      addNotification({
+        message: "Please fill in all required email fields",
+        type: "warning",
+        read: false,
+      });
+      return;
+    }
+
+    // Get the lead to access its domain
+    const lead = leads.find((l) => l._id === currentLeadId);
+    if (!lead) {
+      addNotification({
+        message: "Lead not found",
+        type: "warning",
+        read: false,
+      });
+      return;
+    }
+
+    try {
+      // Send email via API with domain
+      const emailResponse = await fetch("/api/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: lvmEmailData.to,
+          cc: lvmEmailData.cc,
+          subject: lvmEmailData.subject,
+          body: lvmEmailData.body,
+          leadId: currentLeadId,
+          domain: lead.domain,
+        }),
+      });
+
+      if (!emailResponse.ok) {
+        throw new Error("Failed to send email");
+      }
+
+      // Update lead status to LVM
+      setPendingStatusChange("LVM");
+      await applyStatusChange();
+
+      addNotification({
+        message: "Email sent successfully.",
+        type: "info",
+        read: false,
+      });
+
+      closeAllModals();
+    } catch (error) {
+      console.error("Error sending LVM email:", error);
+      addNotification({
+        message: "Failed to send email. Please try again.",
+        type: "warning",
+        read: false,
+      });
+    }
+  };
+
   const applyStatusChange = async () => {
     if (!currentLeadId || !pendingStatusChange) return;
 
@@ -347,6 +476,9 @@ const MyLeads = () => {
     setShowConversionModal(false);
     setShowFollowUpModal(false);
     setShowNoteModal(false);
+    setShowLvmModal(false);
+    setShowNotesModal(false);
+    setIsModalOpen(false);
     setCurrentLeadId(null);
     setPendingStatusChange(null);
     setConversionValue(undefined);
@@ -354,6 +486,13 @@ const MyLeads = () => {
     setNewNote("");
     setContactTypes([]);
     setFollowUpNote("");
+    setLvmEmailData({
+      from: "",
+      to: "",
+      cc: "",
+      subject: "Follow-up: Your Recent Inquiry",
+      body: "",
+    });
   };
 
   // Handle sort changes
@@ -632,6 +771,7 @@ const MyLeads = () => {
         showConversionModal={showConversionModal}
         showFollowUpModal={showFollowUpModal}
         showNoteModal={showNoteModal}
+        showLvmModal={showLvmModal}
         pendingStatusChange={pendingStatusChange}
         conversionValue={conversionValue}
         setConversionValue={setConversionValue}
@@ -643,8 +783,11 @@ const MyLeads = () => {
         toggleContactType={toggleContactType}
         followUpNote={followUpNote}
         setFollowUpNote={setFollowUpNote}
+        lvmEmailData={lvmEmailData}
+        setLvmEmailData={setLvmEmailData}
         closeAllModals={closeAllModals}
         applyStatusChange={applyStatusChange}
+        sendLvmEmail={sendLvmEmail}
       />
 
       {/* Lead Notes Modal */}

@@ -7,6 +7,7 @@ interface LeadStatusModalsProps {
   showConversionModal: boolean;
   showFollowUpModal: boolean;
   showNoteModal: boolean;
+  showLvmModal: boolean;
   pendingStatusChange: string | null;
   conversionValue?: number;
   setConversionValue: (value: number | undefined) => void;
@@ -18,14 +19,30 @@ interface LeadStatusModalsProps {
   toggleContactType: (type: ContactType) => void;
   followUpNote: string;
   setFollowUpNote: (note: string) => void;
+  lvmEmailData: {
+    from: string;
+    to: string;
+    cc: string;
+    subject: string;
+    body: string;
+  };
+  setLvmEmailData: (data: {
+    from: string;
+    to: string;
+    cc: string;
+    subject: string;
+    body: string;
+  }) => void;
   closeAllModals: () => void;
   applyStatusChange: () => void;
+  sendLvmEmail: () => void;
 }
 
 const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
   showConversionModal,
   showFollowUpModal,
   showNoteModal,
+  showLvmModal,
   pendingStatusChange,
   conversionValue,
   setConversionValue,
@@ -37,8 +54,11 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
   toggleContactType,
   followUpNote,
   setFollowUpNote,
+  lvmEmailData,
+  setLvmEmailData,
   closeAllModals,
   applyStatusChange,
+  sendLvmEmail,
 }) => {
   return (
     <>
@@ -106,9 +126,9 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
             <h2 className="text-xl font-bold text-gray-800 mb-4">
               Schedule Follow Up
             </h2>
-            <p className="text-gray-600 mb-4">
+            {/* <p className="text-gray-600 mb-4">
               Please set a date and contact methods for the follow up:
-            </p>
+            </p> */}
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -189,7 +209,7 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
               />
             </div>
 
-            <div className="mb-4">
+            {/* <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Additional Note (Optional)
               </label>
@@ -200,7 +220,7 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
                 placeholder="Add additional notes"
                 rows={2}
               />
-            </div>
+            </div> */}
 
             <div className="flex justify-end gap-3">
               <button
@@ -264,6 +284,147 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
                 {pendingStatusChange === "Resolved"
                   ? "Resolve Lead"
                   : "Update Status"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LVM Email Modal */}
+      {showLvmModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Send LVM Email
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Compose an email to follow up with this lead:
+            </p>
+
+            <div className="space-y-4">
+              {/* From Field (disabled) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  From: <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={lvmEmailData.from}
+                  disabled
+                  className="w-full p-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+                  placeholder="Domain email will appear here"
+                />
+                {!lvmEmailData.from && (
+                  <p className="text-sm text-red-500 mt-1">
+                    No email configuration found for this domain
+                  </p>
+                )}
+              </div>
+
+              {/* To Field (disabled) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  To: <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={lvmEmailData.to}
+                  disabled
+                  className="w-full p-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+                  placeholder="Lead email will appear here"
+                />
+                {!lvmEmailData.to && (
+                  <p className="text-sm text-red-500 mt-1">
+                    No email address found for this lead
+                  </p>
+                )}
+              </div>
+
+              {/* CC Field */}
+              {/* <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  CC: (Optional)
+                </label>
+                <input
+                  type="email"
+                  value={lvmEmailData.cc}
+                  onChange={(e) =>
+                    setLvmEmailData({ ...lvmEmailData, cc: e.target.value })
+                  }
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Additional email addresses (comma separated)"
+                />
+              </div> */}
+
+              {/* Subject Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Subject: <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={lvmEmailData.subject}
+                  onChange={(e) =>
+                    setLvmEmailData({
+                      ...lvmEmailData,
+                      subject: e.target.value,
+                    })
+                  }
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Email subject"
+                  required
+                />
+              </div>
+
+              {/* Email Body */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Body: <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={lvmEmailData.body}
+                  onChange={(e) =>
+                    setLvmEmailData({ ...lvmEmailData, body: e.target.value })
+                  }
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Compose your email message here..."
+                  rows={10}
+                  required
+                />
+              </div>
+
+              {/* Additional Note */}
+              {/* <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Internal Note (Optional)
+                </label>
+                <textarea
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Add internal notes about this LVM action"
+                  rows={2}
+                />
+              </div> */}
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={closeAllModals}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={sendLvmEmail}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                disabled={
+                  !lvmEmailData.to ||
+                  !lvmEmailData.subject ||
+                  !lvmEmailData.body
+                }
+              >
+                Send Email & Update Status
               </button>
             </div>
           </div>

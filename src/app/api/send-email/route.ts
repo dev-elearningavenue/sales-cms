@@ -1,0 +1,101 @@
+import { NextRequest, NextResponse } from "next/server";
+import { verifyToken } from "@/utils/auth";
+import nodemailer from "nodemailer";
+import { getDomainSMTPConfig } from "@/utils/helper";
+
+export async function POST(req: NextRequest) {
+  try {
+    const token = req.cookies.get("token")?.value;
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const decoded: any = await verifyToken(token);
+    if (!decoded.data._id) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+    const { to, cc, subject, body, domain } = await req.json();
+    // Validate required fields
+    if (!to || !subject || !body || !domain) {
+      return NextResponse.json(
+        { error: "Missing required fields: to, subject, body, domain" },
+        { status: 400 }
+      );
+    }
+    const smtpConfig = getDomainSMTPConfig(domain);
+    
+    // Validate domain-specific environment variables
+    if (!smtpConfig || !smtpConfig.user || !smtpConfig.password) {
+      console.error(`SMTP configuration missing for domain ${domain}: Check PMTA_* environment variables for ${domain}`);
+      return NextResponse.json(
+        { error: `Email service not configured for ${domain} domain. Please contact administrator.` },
+        { status: 500 }
+      );
+    }
+
+    // Configure nodemailer transporter with domain-specific SMTP settings
+    const transporter = nodemailer.createTransport({
+      host: smtpConfig.host,
+      port: smtpConfig.port,
+      secure: false,
+      auth: {
+        user: smtpConfig.user,
+        pass: smtpConfig.password,
+      },
+    });
+
+    // Prepare email options with domain-specific sender
+    const mailOptions = {
+      from: `${smtpConfig.name} <${smtpConfig.from}>`,
+      to: to,
+      cc: cc || smtpConfig.cc,
+      subject: subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          ${body.replace(/\n/g, '<br>')}
+          
+          <br><br>
+        </div>
+      `,
+      text: body, // Plain text version
+    };
+
+    // console.log(`Sending email from ${smtpConfig.name} (${smtpConfig.from}) to:`, to, "Subject:", subject);
+
+    // Send the actual email
+    const emailResult = await transporter.sendMail(mailOptions);
+    
+    // console.log("Email sent successfully:", emailResult.messageId);
+
+    return NextResponse.json({
+      success: true,
+      message: "Email sent successfully",
+      emailId: emailResult.messageId,
+      response: emailResult.response
+    });
+
+  } catch (error: any) {
+    console.error("Error sending email:", error);
+    
+    // More detailed error handling
+    let errorMessage = "Failed to send email";
+    if (error.code === "EAUTH") {
+      errorMessage = "Email authentication failed. Please check your email credentials.";
+    } else if (error.code === "ENOTFOUND") {
+      errorMessage = "Email service not found. Please check your network connection.";
+    } else if (error.responseCode === 535) {
+      errorMessage = "Invalid email credentials. Please check EMAIL_USER and EMAIL_PASSWORD.";
+    } else if (error.responseCode === 550) {
+      errorMessage = "Invalid recipient email address.";
+    }
+    
+    return NextResponse.json(
+      { 
+        error: errorMessage,
+        details: error.message || "Unknown error",
+        code: error.code || "UNKNOWN"
+      },
+      { status: 500 }
+    );
+  }
+}

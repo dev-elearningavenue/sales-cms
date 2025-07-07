@@ -14,12 +14,13 @@ const lead_category_enum = [
 ] as const;
 
 const status_enum = [
+  "Pending",
+  "LVM",
   "Follow Up",
   "Follow Up 1",
   "Follow Up 2",
   "Follow Up 3",
   "Closed",
-  "Pending",
 ] as const;
 
 const resolve_status_enum = [

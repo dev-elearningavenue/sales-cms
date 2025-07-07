@@ -117,6 +117,7 @@ export const getStatusOptionsForCategory = (
         "Follow Up 1",
         "Follow Up 2",
         "Follow Up 3",
+        "LVM",
         "Converted",
         "Resolved",
       ];

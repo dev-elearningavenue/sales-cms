@@ -5,10 +5,8 @@ import { verifyToken } from "@/utils/auth";
 import { assignLeadToUser } from "@/controllers/leadController";
 
 export async function POST(req: NextRequest) {
-  // await dbConnect();
   try {
     const { leadId, userId: targetUserId } = await req.json();
-    // console.log("Assign Lead API")
     const token = req.cookies.get("token")?.value;
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -33,7 +31,7 @@ export async function POST(req: NextRequest) {
       }
       
       // Get target user to verify their type
-      const targetUser = await User.findById(targetUserId).select('user_type full_name user_name');
+      const targetUser = await User.findById(targetUserId).select('user_type full_name');
       if (!targetUser) {
         return NextResponse.json({ error: "Target user not found" }, { status: 404 });
       }
@@ -49,7 +47,7 @@ export async function POST(req: NextRequest) {
       
       if (targetUser.user_type && targetUser.user_type <= currentUserType) {
         return NextResponse.json({ 
-          error: "You can only assign leads to users with higher type numbers" 
+          error: "You can only assign leads to users with lower type numbers" 
         }, { 
           status: 403 
         });
@@ -57,7 +55,7 @@ export async function POST(req: NextRequest) {
     }
     
     // Get user details of the target user (who will be assigned the lead)
-    const assignedUser = await User.findById(assignToUserId).select('full_name user_name');
+    const assignedUser = await User.findById(assignToUserId).select('full_name');
     if (!assignedUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
     
     // Use the controller to assign lead and create notification
@@ -88,7 +86,6 @@ export async function POST(req: NextRequest) {
       assignedTo: {
         _id: assignedUser._id,
         full_name: assignedUser.full_name,
-        user_name: assignedUser.user_name
       }
     });
   } catch (error) {

@@ -1120,7 +1120,7 @@ const Invoice = () => {
                         name="siteName"
                         value={formData.siteName}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border-2 border-blue-300 rounded-md focus:outline-none focus:border-blue-500 pr-10 appearance-none bg-white"
+                        className="w-full px-4 py-3 text-gray-700 border-2 border-blue-300 rounded-md focus:outline-none focus:border-blue-500 pr-10 appearance-none bg-white"
                         required
                       >
                         <option value="">— Select a site —</option>
@@ -1146,7 +1146,7 @@ const Invoice = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+                      className="w-full px-4 py-3 text-gray-700 border-2 border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
                       placeholder="john@example.com"
                       required
                     />
@@ -1242,7 +1242,7 @@ const Invoice = () => {
                               name="firstName"
                               value={formData.firstName}
                               onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
+                              className="w-full px-3 py-2 text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
                               placeholder="First Name*"
                               autoComplete="given-name"
                               required
@@ -1254,7 +1254,7 @@ const Invoice = () => {
                               name="lastName"
                               value={formData.lastName}
                               onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
+                              className="w-full px-3 py-2 text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
                               placeholder="Last Name*"
                               autoComplete="family-name"
                               required
@@ -1266,7 +1266,7 @@ const Invoice = () => {
                               name="email"
                               value={formData.email}
                               disabled
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed text-sm"
+                              className="w-full px-3 py-2 text-gray-700 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed text-sm"
                               placeholder="Email*"
                             />
                           </div>
@@ -1278,7 +1278,7 @@ const Invoice = () => {
                               name="password"
                               value="Apple@123!"
                               disabled
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed text-sm"
+                              className="w-full px-3 py-2 text-gray-700 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed text-sm"
                               placeholder="Password*"
                             />
                           </div>
@@ -1287,7 +1287,7 @@ const Invoice = () => {
                               name="userType"
                               value={formData.userType}
                               onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
+                              className="w-full px-3 py-2 text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
                               required
                             >
                               <option value="">Select User Role*</option>
@@ -1350,7 +1350,7 @@ const Invoice = () => {
                               name="address"
                               value={formData.address}
                               onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
+                              className="w-full px-3 py-2 text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
                               placeholder="Address"
                               autoComplete="street-address"
                             />
@@ -1361,7 +1361,7 @@ const Invoice = () => {
                               name="city"
                               value={formData.city}
                               onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
+                              className="w-full px-3 py-2 text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
                               placeholder="City"
                               autoComplete="address-level2"
                             />
@@ -1372,7 +1372,7 @@ const Invoice = () => {
                               name="state"
                               value={formData.state}
                               onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
+                              className="w-full px-3 py-2 text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
                               placeholder="State"
                               autoComplete="address-level1"
                             />
@@ -1385,7 +1385,7 @@ const Invoice = () => {
                               name="country"
                               value={formData.country}
                               onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
+                              className="w-full px-3 py-2 text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
                               placeholder="Country"
                               autoComplete="country"
                             />
@@ -1396,7 +1396,7 @@ const Invoice = () => {
                               name="zipCode"
                               value={formData.zipCode}
                               onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
+                              className="w-full px-3 py-2 text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
                               placeholder="ZipCode"
                               autoComplete="postal-code"
                             />
@@ -1407,7 +1407,7 @@ const Invoice = () => {
                               name="company"
                               value={formData.company}
                               onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
+                              className="w-full px-3 py-2 text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-sm"
                               placeholder="Company"
                               autoComplete="organization"
                             />
@@ -1508,7 +1508,7 @@ const Invoice = () => {
                                     index
                                   );
                                 }}
-                                className="w-full px-2 py-1.5 pr-6 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-xs"
+                                className="w-full px-2 text-gray-700 py-1.5 pr-6 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-xs"
                               />
                               <Search
                                 size={14}
@@ -1536,7 +1536,7 @@ const Invoice = () => {
                                         onClick={() =>
                                           handleProductSelect(option, index)
                                         }
-                                        className="w-full px-2 py-1.5 text-left hover:bg-blue-50 border-b border-gray-100 last:border-b-0 text-xs"
+                                        className="w-full px-2 text-gray-700 py-1.5 text-left hover:bg-blue-50 border-b border-gray-100 last:border-b-0 text-xs"
                                       >
                                         {option.product_name}
                                       </button>
@@ -1571,7 +1571,7 @@ const Invoice = () => {
                               disabled={
                                 !product.product_id || isLoadingPrices[index]
                               }
-                              className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-xs disabled:bg-gray-100 disabled:cursor-not-allowed"
+                              className="w-full px-2 text-gray-700 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-xs disabled:bg-gray-100 disabled:cursor-not-allowed"
                             >
                               <option value="">
                                 {isLoadingPrices[index]
@@ -1609,7 +1609,7 @@ const Invoice = () => {
                                   parseInt(e.target.value) || 0
                                 )
                               }
-                              className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-xs"
+                              className="w-full px-2 text-gray-700 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 text-xs"
                               min="0"
                               disabled={!product.price_id}
                             />
@@ -1671,7 +1671,7 @@ const Invoice = () => {
                     </button>
 
                     {/* Subtotal and Discount */}
-                    <div className="space-y-2 p-3 bg-blue-50 rounded-lg">
+                    <div className="space-y-2 p-3 text-gray-700 bg-blue-50 rounded-lg">
                       <div className="flex justify-between text-sm">
                         <span className="font-medium">Subtotal:</span>
                         <span>
@@ -1731,7 +1731,7 @@ const Invoice = () => {
                           value={invoiceData.dueDate}
                           min={new Date().toISOString().split("T")[0]}
                           onChange={handleInvoiceInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+                          className="w-full px-3 text-gray-700 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
                         />
                       </div>
                       <div className="flex-1">
@@ -1743,7 +1743,7 @@ const Invoice = () => {
                           value={invoiceData.coupon}
                           onChange={handleInvoiceInputChange}
                           disabled={isLoadingCoupons}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 disabled:bg-gray-100"
+                          className="w-full px-3 text-gray-700 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 disabled:bg-gray-100"
                         >
                           <option value="">
                             {isLoadingCoupons

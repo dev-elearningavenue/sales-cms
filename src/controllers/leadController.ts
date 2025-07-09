@@ -37,7 +37,7 @@ export const resolve_status_enum = [
   "Pending",
   "Resolved",
   "Converted",
-  "Assigned Order",
+  "Order Assigned",
   "Paid",
 ] as const;
 
@@ -324,7 +324,7 @@ export const updateLeadStatus = async (
       updateData.next_follow_up.push(newFollowUp);
     }
 
-    if (["Resolved", "Assigned Order", "Paid"].includes(newStatus)) {
+    if (["Resolved", "Order Assigned", "Paid"].includes(newStatus)) {
       updateData.status = "Closed";
       updateData.resolved = true;
       updateData.resolvedAt = new Date();

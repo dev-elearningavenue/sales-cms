@@ -16,7 +16,7 @@ export const RESOLVE_STATUS = {
   PENDING: "Pending",
   RESOLVED: "Resolved",
   CONVERTED: "Converted",
-  ASSIGNED_ORDER: "Assigned Order",
+  ASSIGNED_ORDER: "Order Assigned",
   PAID: "Paid"
 } as const;
 

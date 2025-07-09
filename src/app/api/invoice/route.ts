@@ -116,10 +116,10 @@ export async function POST(request: NextRequest) {
 
     // Create the invoice on stripe first
     const externalResult = await processExternalInvoice(externalInvoiceData);
-    console.log("Stripe invoice result: ", externalResult)
+    // console.log("Stripe invoice result: ", externalResult)
     if (externalResult.success) {
       if (externalResult.success && externalResult.data.data?.hostedUrl) {
-        console.log("here...")
+        // console.log("here...")
         invoiceData.hostedUrl = externalResult.data.data.hostedUrl;
         invoiceData.invoiceNumber = externalResult.data.data.invoiceNumber;
       }

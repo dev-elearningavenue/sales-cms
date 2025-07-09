@@ -8,12 +8,14 @@ export async function getDataFromToken() {
   const token = cookieStore.get('token')?.value;
   
   if (!token) {
-    throw new Error('No token found');
+    // throw new Error('No token found');
+    return null;
   }
 
   const result = await verifyToken(token);
   if (!result.success) {
-    throw new Error('Invalid token');
+    // throw new Error('Invalid token');
+    return null;
   }
 
   return result.data;

@@ -35,6 +35,16 @@ const DOMAIN_LABELS = {
 // Add type definition for contact type
 type ContactType = "email" | "call" | "chat";
 
+// Helper to check if HTML content has actual text
+const hasActualContent = (htmlString: string): boolean => {
+  if (!htmlString) return false;
+  // Create a temporary div to extract text content
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = htmlString;
+  const textContent = tempDiv.textContent || tempDiv.innerText || "";
+  return textContent.trim().length > 0;
+};
+
 // Helper function to get lead email
 const getLeadEmail = (lead: ILead): string => {
   // Check different lead types for email
@@ -236,9 +246,21 @@ const MyLeads = () => {
       setShowConversionModal(true);
     } else if (actualStatus.startsWith("Follow Up")) {
       // Always show follow-up modal for any follow-up level
-      setContactTypes([]);
+      setContactTypes(["email"]);
       setFollowUpDate("");
       setFollowUpNote("");
+
+      // Also populate email data in case user selects email as contact method
+      const leadEmail = getLeadEmail(lead);
+      const domainEmail = getDomainEmail(lead.domain);
+      setLvmEmailData({
+        from: domainEmail,
+        to: leadEmail,
+        cc: "",
+        subject: "Follow-up: Your Recent Inquiry",
+        body: "",
+      });
+
       setShowFollowUpModal(true);
     } else if (actualStatus === "LVM") {
       // Get lead email and domain email for the form
@@ -264,7 +286,7 @@ const MyLeads = () => {
       !currentLeadId ||
       !lvmEmailData.to ||
       !lvmEmailData.subject ||
-      !lvmEmailData.body
+      !hasActualContent(lvmEmailData.body)
     ) {
       addNotification({
         message: "Please fill in all required email fields",
@@ -321,6 +343,76 @@ const MyLeads = () => {
       console.error("Error sending LVM email:", error);
       addNotification({
         message: "Failed to send email. Please try again.",
+        type: "warning",
+        read: false,
+      });
+    }
+  };
+
+  // Handle Follow-Up with optional email sending
+  const applyFollowUpWithEmail = async () => {
+    if (!currentLeadId || !pendingStatusChange) return;
+
+    // Get the lead to access its domain
+    const lead = leads.find((l) => l._id === currentLeadId);
+    if (!lead) {
+      addNotification({
+        message: "Lead not found",
+        type: "warning",
+        read: false,
+      });
+      return;
+    }
+
+    try {
+      // If email is selected as contact method, send email first
+      if (contactTypes.includes("email")) {
+        if (
+          !lvmEmailData.to ||
+          !lvmEmailData.subject ||
+          !hasActualContent(lvmEmailData.body)
+        ) {
+          addNotification({
+            message: "Please fill in all required email fields",
+            type: "warning",
+            read: false,
+          });
+          return;
+        }
+
+        // Send email via API with domain
+        const emailResponse = await fetch("/api/send-email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            to: lvmEmailData.to,
+            cc: lvmEmailData.cc,
+            subject: lvmEmailData.subject,
+            body: lvmEmailData.body,
+            leadId: currentLeadId,
+            domain: lead.domain,
+          }),
+        });
+
+        if (!emailResponse.ok) {
+          throw new Error("Failed to send email");
+        }
+
+        addNotification({
+          message: "Email sent successfully.",
+          type: "info",
+          read: false,
+        });
+      }
+
+      // Then apply the follow-up status change
+      await applyStatusChange();
+    } catch (error) {
+      console.error("Error in follow-up with email:", error);
+      addNotification({
+        message: "Failed to process follow-up. Please try again.",
         type: "warning",
         read: false,
       });
@@ -788,6 +880,7 @@ const MyLeads = () => {
         closeAllModals={closeAllModals}
         applyStatusChange={applyStatusChange}
         sendLvmEmail={sendLvmEmail}
+        applyFollowUpWithEmail={applyFollowUpWithEmail}
       />
 
       {/* Lead Notes Modal */}

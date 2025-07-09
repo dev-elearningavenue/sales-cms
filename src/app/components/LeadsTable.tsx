@@ -23,6 +23,7 @@ import {
   getLeadName,
   getDomainLabel,
   categoryColors,
+  getStatusOptionsForCategory,
 } from "@/components/LeadUtils";
 import LeadDetailsModal from "@/components/LeadDetailsModal";
 
@@ -529,7 +530,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     return false;
   };
 
-  // Within the getStatusOptionsForCategory function, add logic to handle resolved statuses
+  // Within the function, add logic to handle resolved statuses
   const getStatusOptionsForCategory = (
     category: string,
     lead?: ILead
@@ -539,7 +540,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
 
     switch (category) {
       case "Order Creation":
-        options = ["Pending", "Assigned Order"];
+        options = ["Pending", "Order Assigned"];
         break;
       case "Contact Us":
         options = ["Pending", "Resolved"];
@@ -547,7 +548,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
       case "Scholarship":
       case "Free SignUp":
       case "Free Study Guide":
-        options = ["Pending", "Resolved"];
+        options = ["Pending", "Converted", "Resolved"];
         break;
       default:
         options = [
@@ -987,7 +988,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   <button className="ml-1">
                     <Filter className="h-4 w-4 text-gray-500" />
                   </button>
-                  <div className="absolute left-0 mt-1 w-40 bg-white border border-gray-200 rounded shadow-lg z-30 hidden group-hover:block">
+                  <div className="absolute left-0 mt-1 w-40 bg-white border border-gray-200 rounded shadow-lg z-30 hidden group-hover:block z-50">
                     {/* Reset option */}
                     <button
                       onClick={() => handleFilterChange("type", "")}

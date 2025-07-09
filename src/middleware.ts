@@ -13,7 +13,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
   if (!token && !isAuthPage) {
-    console.log("No token found, can't access protected routes");
+    // console.log("No token found, can't access protected routes");
     return NextResponse.redirect(new URL("/login", req.url));
   }
   if (token) {

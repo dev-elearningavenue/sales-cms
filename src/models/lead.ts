@@ -27,7 +27,7 @@ const resolve_status_enum = [
   "Pending",
   "Resolved",
   "Converted",
-  "Assigned Order",
+  "Order Assigned",
   "Paid",
 ] as const;
 

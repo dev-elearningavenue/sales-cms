@@ -15,9 +15,7 @@ export async function GET(req: NextRequest) {
         { status: 401 }
       );
     }
-
     const userId = tokenData._id.toString();
-    
     // Parse query parameters
     const url = new URL(req.url);
     const timestamp = url.searchParams.get("since");
@@ -67,8 +65,8 @@ export async function GET(req: NextRequest) {
       unreadCount,
       timestamp: new Date()
     });
-  } catch (error) {
-    console.error("Error fetching notification updates:", error);
+  } catch (error: any) {
+    console.error("Error fetching notification updates:", error.message);
     return NextResponse.json(
       { message: "Internal Server Error" },
       { status: 500 }

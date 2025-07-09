@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
     const count = await Lead.countDocuments(filter);
 
     return NextResponse.json({ count });
-  } catch (error) {
-    console.error("Error fetching my lead count:", error);
+  } catch (error: any) {
+    console.error("Error fetching my lead count:", error.message);
     return NextResponse.json(
       { error: "Failed to fetch lead count" },
       { status: 500 }

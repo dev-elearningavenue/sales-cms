@@ -18,7 +18,7 @@ export const createOrder = async (orderData: any) => {
     
     const newOrder = new OrderCreation(orderData);
     const savedOrder = await newOrder.save();
-    console.log("Saved Order: ", savedOrder);
+    // console.log("Saved Order: ", savedOrder);
 
     if (!savedOrder) {
       return {
@@ -34,7 +34,7 @@ export const createOrder = async (orderData: any) => {
 
     const totalOrderPrice = orderData.total_order_price;
     const orderType = totalOrderPrice === 0 ? "Unpaid Training" : "Order Creation";
-    console.log("Order Type: ", orderType, " ", totalOrderPrice);
+    // console.log("Order Type: ", orderType, " ", totalOrderPrice);
     // Use getLeadDetails function for consistent lead creation
     const { category, leadFields, formattedDomain } = getLeadDetails(
       orderType,

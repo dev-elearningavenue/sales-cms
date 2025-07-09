@@ -10,6 +10,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ckeditor/ckeditor5-build-classic": "^35.2.0",
+    "@ckeditor/ckeditor5-react": "^5.0.2",
     "@types/nodemailer": "^6.4.17",
     "autoprefixer": "^10.4.20",
     "axios": "^1.7.9",

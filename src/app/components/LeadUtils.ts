@@ -91,77 +91,67 @@ export const getFollowUpCount = (lead: ILead): number => {
   return lead.next_follow_up.length;
 };
 
-// Update the getStatusOptionsForCategory function to use the helpers
+// Update the function to use the helpers
 export const getStatusOptionsForCategory = (
   category: string,
   lead?: ILead
 ): string[] => {
-  // Basic options by category
-  let options: string[];
-
+  // Special categories with limited options
   switch (category) {
     case "Order Creation":
-      options = ["Pending", "Assigned Order"];
-      break;
+      return ["Pending", "Assigned Order"];
     case "Contact Us":
-      options = ["Pending", "Resolved"];
-      break;
+      return ["Pending", "Resolved"];
     case "Scholarship":
     case "Free SignUp":
     case "Free Study Guide":
-      options = ["Pending", "Resolved"];
-      break;
+      return ["Pending", "Converted", "Resolved"];
     default:
-      options = [
-        "Pending",
-        "Follow Up 1",
-        "Follow Up 2",
-        "Follow Up 3",
-        "LVM",
-        "Converted",
-        "Resolved",
-      ];
-      break;
+      // For default categories, implement progressive follow-up flow
+      if (!lead) {
+        // If no lead provided, return all options (fallback)
+        return ["Pending", "Follow Up 1", "Follow Up 2", "Follow Up 3", "LVM", "Converted", "Resolved"];
+      }
+
+      const currentStatus = lead.status || "Pending";
+      let options: string[] = [];
+
+      // Progressive follow-up flow based on current status
+      switch (currentStatus) {
+        case "Pending":
+          options = ["Pending", "Follow Up 1", "Converted"];
+          break;
+        
+        case "Follow Up 1":
+          options = ["Follow Up 1", "Follow Up 2", "Converted", "Resolved"];
+          break;
+        
+        case "Follow Up 2":
+          options = ["Follow Up 2", "Follow Up 3", "Converted", "Resolved"];
+          break;
+        
+        case "Follow Up 3":
+          options = ["Follow Up 3", "LVM", "Converted", "Resolved"];
+          break;
+        
+        case "LVM":
+          options = ["LVM", "Converted", "Resolved"];
+          break;
+        
+        case "Converted":
+        case "Resolved":
+          // Terminal states - only show current status
+          options = [currentStatus];
+          break;
+        
+        default:
+          // Fallback for any other status
+          options = [currentStatus, "Converted", "Resolved"];
+          break;
+      }
+
+      return options;
   }
-
-  // If lead exists and we need to modify options based on status
-  if (lead) {
-    const currentStatus = lead.status;
-
-    // If status is not pending, remove pending option
-    if (currentStatus !== "Pending") {
-      options = options.filter((opt) => opt !== "Pending");
-    }
-
-    // Handle follow-up status progression
-    if (currentStatus === "Follow Up 1") {
-      // In Follow Up 1, remove Follow Up 1 option (since we're already here)
-      options = options.filter((opt) => opt !== "Follow Up 1");
-    } else if (currentStatus === "Follow Up 2") {
-      // In Follow Up 2, remove both Follow Up 1 and 2 options
-      options = options.filter(
-        (opt) => opt !== "Follow Up 1" && opt !== "Follow Up 2"
-      );
-    } else if (currentStatus === "Follow Up 3") {
-      // In Follow Up 3, remove all Follow Up options
-      options = options.filter((opt) => !opt.startsWith("Follow Up"));
-    } else if (
-      currentStatus === "Follow Up" &&
-      lead.next_follow_up &&
-      Array.isArray(lead.next_follow_up)
-    ) {
-      // Legacy "Follow Up" status with next_follow_up array
-      const count = lead.next_follow_up.length;
-
-      // Remove previous follow-up options
-      if (count >= 1) options = options.filter((opt) => opt !== "Follow Up 1");
-      if (count >= 2) options = options.filter((opt) => opt !== "Follow Up 2");
-      if (count >= 3)
-        options = options.filter((opt) => !opt.startsWith("Follow Up"));
-    }
-  }
-
-  return options;
 };
 
 // Add this utility function to check if status options should be disabled

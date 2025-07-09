@@ -147,7 +147,7 @@ const ProfilePage = () => {
                   </div>
                   <div className="flex-1">
                     <h4 className="text-sm font-medium text-purple-800 dark:text-purple-300 mb-1">
-                      Username
+                      Username:
                     </h4>
                     <p className="text-gray-800 dark:text-gray-200">
                       {session?.user_name}

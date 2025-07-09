@@ -224,50 +224,46 @@ function setupScholarshipCollectionWatch(
   activeChangeStreams.push(changeStream);
 
   changeStream.on("change", async (change) => {
-    console.log(
-      `Change event in Scholarship's collection of ${domain.split(" - ")[1]}:`,
-      change
-    );
-    if (change.operationType === "insert") {
-      const newUser = change.fullDocument;
-      const type = "Scholarship";
-      await syncToTargetCollection(
-        newUser,
-        `${domain}`,
-        scholarshipCollection,
-        type
+    try {
+      // console.log(
+      //   `Change event in Scholarship's collection of ${
+      //     domain.split(" - ")[1]
+      //   }:`,
+      //   change
+      // );
+      if (change.operationType === "insert") {
+        const newUser = change.fullDocument;
+        const type = "Scholarship";
+        await syncToTargetCollection(
+          newUser,
+          `${domain}`,
+          scholarshipCollection,
+          type
+        );
+      }
+    } catch (error) {
+      console.error(
+        `Error processing change in ${domain} scholarship watch:`,
+        error
       );
     }
   });
 
   changeStream.on("error", (err) => {
     console.error(
-      `Change Stream Error in ${domain.split(" - ")[1]}:`,
-      err.message
+      `Change Stream Error in ${domain} scholarship watch, triggering restart:`,
+      err
     );
-    const index = activeChangeStreams.indexOf(changeStream);
-    if (index !== -1) {
-      activeChangeStreams.splice(index, 1);
-    }
-    changeStream
-      .close()
-      .catch((e) => console.error("Error closing stream:", e));
-    setTimeout(
-      () =>
-        setupScholarshipCollectionWatch(
-          sourceDbCollection,
-          domain,
-          scholarshipCollection
-        ),
-      3000
-    );
+    restartWatchers().catch((restartErr) => {
+      console.error("Failed to trigger watcher restart:", restartErr);
+    });
   });
 
-  console.log(
-    `${domain.split(" - ")[1]} Scholarship collection: ${
-      activeChangeStreams.length
-    }`
-  );
+  // console.log(
+  //   `${domain.split(" - ")[1]} Scholarship collection: ${
+  //     activeChangeStreams.length
+  //   }`
+  // );
   return changeStream;
 }
 
@@ -280,57 +276,48 @@ function setupUserCollectionWatch(
   activeChangeStreams.push(changeStream);
 
   changeStream.on("change", async (change) => {
-    console.log(
-      `Change event in User's collection of ${domain.split(" - ")[1]}:`,
-      change
-    );
-    if (change.operationType === "insert") {
-      const newUser = change.fullDocument;
+    try {
+      // console.log(
+      //   `Change event in User's collection of ${domain.split(" - ")[1]}:`,
+      //   change
+      // );
+      if (change.operationType === "insert") {
+        const newUser = change.fullDocument;
 
-      if (newUser?.freeSignUp === true) {
-        const type = "Free SignUp";
-        await syncToTargetCollection(
-          newUser,
-          `${domain}`,
-          customersCollection,
-          type
-        );
-      } else {
-        console.log(
-          `Skipping ${domain.split(" - ")[1]} user, because of non free_signup`,
-          newUser
-        );
+        if (newUser?.freeSignUp === true) {
+          const type = "Free SignUp";
+          await syncToTargetCollection(
+            newUser,
+            `${domain}`,
+            customersCollection,
+            type
+          );
+        } else {
+          console.log(
+            `Skipping ${
+              domain.split(" - ")[1]
+            } user, because of non free_signup`
+          );
+        }
       }
+    } catch (error) {
+      console.error(`Error processing change in ${domain} user watch:`, error);
     }
   });
 
   changeStream.on("error", (err) => {
     console.error(
-      `Change Stream Error in ${domain.split(" - ")[1]}:`,
-      err.message
+      `Change Stream Error in ${domain} user watch, triggering restart:`,
+      err
     );
-    // Remove this stream from activeChangeStreams
-    const index = activeChangeStreams.indexOf(changeStream);
-    if (index !== -1) {
-      activeChangeStreams.splice(index, 1); // Remove from array
-    }
-    changeStream
-      .close()
-      .catch((e) => console.error("Error closing stream:", e));
-    setTimeout(
-      () =>
-        setupUserCollectionWatch(
-          sourceDbCollection,
-          domain,
-          customersCollection
-        ),
-      3000
-    );
+    restartWatchers().catch((restartErr) => {
+      console.error("Failed to trigger watcher restart:", restartErr);
+    });
   });
 
-  console.log(
-    `${domain.split(" - ")[1]} users collection ${activeChangeStreams.length}`
-  );
+  // console.log(
+  //   `${domain.split(" - ")[1]} users collection ${activeChangeStreams.length}`
+  // );
   return changeStream;
 }
 
@@ -343,47 +330,41 @@ function setupContactUsCollectionWatch(
   activeChangeStreams.push(changeStream);
 
   changeStream.on("change", async (change) => {
-    console.log(
-      `Change event in Contact us collection of ${domain.split(" - ")[1]}:`,
-      change
-    );
-    if (change.operationType === "insert") {
-      const newContact = change.fullDocument;
-      const type = "Contact Us";
-      await syncToTargetCollection(
-        newContact,
-        `${domain}`,
-        ContactUsCollection,
-        type
+    try {
+      // console.log(
+      //   `Change event in Contact us collection of ${domain.split(" - ")[1]}:`,
+      //   change
+      // );
+      if (change.operationType === "insert") {
+        const newContact = change.fullDocument;
+        const type = "Contact Us";
+        await syncToTargetCollection(
+          newContact,
+          `${domain}`,
+          ContactUsCollection,
+          type
+        );
+      }
+    } catch (error) {
+      console.error(
+        `Error processing change in ${domain} contact watch:`,
+        error
       );
     }
   });
 
   changeStream.on("error", (err) => {
     console.error(
-      `Change Stream Error in ${domain.split(" - ")[1]}:`,
-      err.message
+      `Change Stream Error in ${domain} contact watch, triggering restart:`,
+      err
     );
-    const index = activeChangeStreams.indexOf(changeStream);
-    if (index !== -1) {
-      activeChangeStreams.splice(index, 1);
-    }
-    changeStream
-      .close()
-      .catch((e) => console.error("Error closing stream:", e));
-    setTimeout(
-      () =>
-        setupUserCollectionWatch(
-          sourceDbCollection,
-          domain,
-          ContactUsCollection
-        ),
-      3000
-    );
+    restartWatchers().catch((restartErr) => {
+      console.error("Failed to trigger watcher restart:", restartErr);
+    });
   });
-  console.log(
-    `${domain.split(" - ")[1]} users collection ${activeChangeStreams.length}`
-  );
+  // console.log(
+  //   `${domain.split(" - ")[1]} users collection ${activeChangeStreams.length}`
+  // );
   return changeStream;
 }
 
@@ -397,163 +378,159 @@ function setupOrderCollectionWatch(
   activeChangeStreams.push(changeStream);
 
   changeStream.on("change", async (change) => {
-    if (change.operationType === "insert") {
-      const newOrder = change.fullDocument;
+    try {
+      if (change.operationType === "insert") {
+        const newOrder = change.fullDocument;
 
-      if (newOrder?.isPaid === false) {
-        // Store the order ID in a temporary map with a timestamp
-        const orderId = newOrder._id.toString();
-        pendingOrders.set(orderId, {
-          timestamp: Date.now(),
-          processed: false,
-        });
+        if (newOrder?.isPaid === false) {
+          // Store the order ID in a temporary map with a timestamp
+          const orderId = newOrder._id.toString();
+          pendingOrders.set(orderId, {
+            timestamp: Date.now(),
+            processed: false,
+          });
 
-        setTimeout(() => {
-          (async () => {
-            try {
-              const pendingInfo = pendingOrders.get(orderId);
-              if (!pendingInfo || pendingInfo.processed) return;
+          setTimeout(() => {
+            (async () => {
+              try {
+                const pendingInfo = pendingOrders.get(orderId);
+                if (!pendingInfo || pendingInfo.processed) return;
 
-              // Check if order is still unpaid after delay
-              const orderStatus = await collection.findOne({
-                _id: newOrder._id,
-              });
+                // Check if order is still unpaid after delay
+                const orderStatus = await collection.findOne({
+                  _id: newOrder._id,
+                });
 
-              if (!orderStatus || orderStatus.isPaid === true) {
+                if (!orderStatus || orderStatus.isPaid === true) {
+                  pendingOrders.delete(orderId);
+                  return;
+                }
+                // avoid double processing
+                pendingInfo.processed = true;
+
+                await syncToTargetCollection(
+                  newOrder,
+                  `${domain} (Unpaid)`,
+                  abandonedCartsCollection,
+                  "Abandoned Cart"
+                );
+                // console.log(
+                //   `Unpaid Order on ${
+                //     domain.split(" - ")[1]
+                //   } successfully processed: ${newOrder._id}`
+                // );
+
+                if (orderStatus?.isPaid === false) {
+                  // Use the same client for all operations
+                }
+              } catch (error) {
+                console.error("Error processing abandoned cart:", error);
                 pendingOrders.delete(orderId);
-                return;
               }
-              // avoid double processing
-              pendingInfo.processed = true;
-
-              await syncToTargetCollection(
-                newOrder,
-                `${domain} (Unpaid)`,
-                abandonedCartsCollection,
-                "Abandoned Cart"
-              );
-              console.log(
-                `Unpaid Order on ${
-                  domain.split(" - ")[1]
-                } successfully processed: ${newOrder._id}`
-              );
-
-              if (orderStatus?.isPaid === false) {
-                // Use the same client for all operations
-              }
-            } catch (error) {
-              console.error("Error processing abandoned cart:", error);
-              pendingOrders.delete(orderId);
-            }
-          })();
-        }, 6 * 60 * 1000);
-      }
-    } else if (change.operationType === "update") {
-      const updatedOrder = await collection.findOne({
-        _id: change.documentKey._id,
-      });
-
-      const orderId = change.documentKey._id.toString();
-      const isPaidNow = updatedOrder?.isPaid;
-      const wasPaidBefore =
-        change.updateDescription?.updatedFields?.isPaid !== undefined
-          ? !change.updateDescription.updatedFields.isPaid
-          : updatedOrder?.isPaid;
-
-      if (wasPaidBefore === false && isPaidNow === true) {
-        console.log(`Order is now paid on ${domain.split(" - ")[1]}:`, orderId);
-        pendingOrders.delete(orderId);
-
-        const cartDeleted = await abandonedCartsCollection.deleteOne({
-          originId: new ObjectId(orderId),
+            })();
+          }, 6 * 60 * 1000);
+        }
+      } else if (change.operationType === "update") {
+        const updatedOrder = await collection.findOne({
+          _id: change.documentKey._id,
         });
 
-        if (cartDeleted.deletedCount > 0) {
+        const orderId = change.documentKey._id.toString();
+        const isPaidNow = updatedOrder?.isPaid;
+        const wasPaidBefore =
+          change.updateDescription?.updatedFields?.isPaid !== undefined
+            ? !change.updateDescription.updatedFields.isPaid
+            : updatedOrder?.isPaid;
+
+        if (wasPaidBefore === false && isPaidNow === true) {
           console.log(
-            `Removed abandoned cart for order ${orderId} that was subsequently paid`
+            `Order is now paid on ${domain.split(" - ")[1]}:`,
+            orderId
           );
+          pendingOrders.delete(orderId);
 
-          // Optionally, clean up the associated logs and leads
-          // This can be done by finding and deleting them
-          // Or you can add a flag in the schema that marks them as "converted"
+          const cartDeleted = await abandonedCartsCollection.deleteOne({
+            originId: new ObjectId(orderId),
+          });
 
-          await Log.findOneAndUpdate(
-            { syncedId: new ObjectId(orderId) },
-            {
-              $set: {
-                synced: "unpaid to paid & discarded abandoned cart",
-              },
-            }
-          );
+          if (cartDeleted.deletedCount > 0) {
+            console.log(
+              `Removed abandoned cart for order ${orderId} that was subsequently paid`
+            );
 
-          await Lead.findOneAndUpdate(
-            { abandoned_cart: new ObjectId(orderId) },
-            {
-              $set: {
-                status: "Paid",
-                resolve_status: "Paid",
-                abandoned_cart: null,
-                assigned: null,
-              },
-            }
-          );
-        }
+            // Optionally, clean up the associated logs and leads
+            // This can be done by finding and deleting them
+            // Or you can add a flag in the schema that marks them as "converted"
 
-        try {
-          // Create new paid order entry
-          const orderResult = await syncToTargetCollection(
-            updatedOrder,
-            `${domain} (Paid)`,
-            ordersCollection,
-            "Order Creation"
-          );
-          console.log(`Successfully processed paid order ${updatedOrder._id}`);
+            await Log.findOneAndUpdate(
+              { syncedId: new ObjectId(orderId) },
+              {
+                $set: {
+                  synced: "unpaid to paid & discarded abandoned cart",
+                },
+              }
+            );
 
-          // If we have the order result, update the lead with the new order reference
-          if (orderResult?.insertedId) {
             await Lead.findOneAndUpdate(
               { abandoned_cart: new ObjectId(orderId) },
               {
                 $set: {
-                  order_creation: orderResult.insertedId,
-                  category: "Order Creation",
+                  status: "Paid",
+                  resolve_status: "Paid",
+                  abandoned_cart: null,
+                  assigned: null,
                 },
               }
             );
           }
-        } catch (error) {
-          console.error("Error processing paid order:", error);
+
+          try {
+            // Create new paid order entry
+            const orderResult = await syncToTargetCollection(
+              updatedOrder,
+              `${domain} (Paid)`,
+              ordersCollection,
+              "Order Creation"
+            );
+            // console.log(
+            //   `Successfully processed paid order ${updatedOrder._id}`
+            // );
+
+            // If we have the order result, update the lead with the new order reference
+            if (orderResult?.insertedId) {
+              await Lead.findOneAndUpdate(
+                { abandoned_cart: new ObjectId(orderId) },
+                {
+                  $set: {
+                    order_creation: orderResult.insertedId,
+                    category: "Order Creation",
+                  },
+                }
+              );
+            }
+          } catch (error) {
+            console.error("Error processing paid order:", error);
+          }
         }
       }
+    } catch (error) {
+      console.error(`Error processing change in ${domain} order watch:`, error);
     }
   });
 
   changeStream.on("error", (err) => {
-    console.error(`Change Stream Error in Orders ${domain}:`, err.message);
-    const index = activeChangeStreams.indexOf(changeStream);
-    if (index !== -1) {
-      activeChangeStreams.splice(index, 1);
-    }
-    changeStream
-      .close()
-      .catch((e) => console.error("Error closing stream:", e));
-
-    // Only restart if the listener is still active
-    if (isListenerActive) {
-      setTimeout(() => {
-        setupOrderCollectionWatch(
-          collection,
-          domain,
-          abandonedCartsCollection,
-          ordersCollection
-        );
-      }, 5000);
-    }
+    console.error(
+      `Change Stream Error in ${domain} orders watch, triggering restart:`,
+      err
+    );
+    restartWatchers().catch((restartErr) => {
+      console.error("Failed to trigger watcher restart:", restartErr);
+    });
   });
 
-  console.log(
-    `${domain.split(" - ")[1]} orders collection: ${activeChangeStreams.length}`
-  );
+  // console.log(
+  //   `${domain.split(" - ")[1]} orders collection: ${activeChangeStreams.length}`
+  // );
   return changeStream;
 }
 
@@ -571,10 +548,10 @@ async function syncToTargetCollection(
   });
 
   if (exists) {
-    console.log(
-      `Skipping duplicate entry from ${domain.split(" - ")[1]}`,
-      document._id
-    );
+    // console.log(
+    //   `Skipping duplicate entry from ${domain.split(" - ")[1]}`,
+    //   document._id
+    // );
     return null;
   }
 
@@ -592,9 +569,9 @@ async function syncToTargetCollection(
     if (!insertResult || !insertResult.insertedId)
       throw new Error(`Failed to insert into ${targetCollection}`);
 
-    console.log(
-      `Successfully inserted into ${type} collection: ${insertResult.insertedId}`
-    );
+    // console.log(
+    //   `Successfully inserted into ${type} collection: ${insertResult.insertedId}`
+    // );
 
     const logData = new Log({
       sourceDbId: new ObjectId(document._id.toString()),
@@ -668,7 +645,10 @@ export function getLeadDetails(
     contact_us: type === "Contact Us" ? insertedId : null,
     scholarship: type === "Scholarship" ? insertedId : null,
     abandoned_cart: type === "Abandoned Cart" ? insertedId : null,
-    order_creation: type === "Order Creation" || "Unpaid Training" ? insertedId : null,
+    order_creation:
+      type === "Order Creation" || type === "Unpaid Training"
+        ? insertedId
+        : null,
   };
 
   const formattedDomain =
@@ -681,8 +661,8 @@ export function getLeadDetails(
 
 // Improve connection monitoring
 function setupConnectionMonitoring() {
-  const CHECK_INTERVAL = 10 * 60 * 1000; // Check every 5 minutes
-  const HEALTH_CHECK_TIMEOUT = 5 * 60000; // 1 min timeout for health checks
+  const CHECK_INTERVAL = 30 * 60 * 1000; // Check every 30 minutes
+  const HEALTH_CHECK_TIMEOUT = 30 * 60000; // 30 min timeout for health checks
 
   setInterval(async () => {
     try {
@@ -718,11 +698,12 @@ function setupConnectionMonitoring() {
       if (!healthChecks[0] || !healthChecks[1]) {
         console.warn("Health check failed, restarting watchers...");
         await restartWatchers();
-      } else {
-        console.log(
-          `Health check passed: ${activeChangeStreams.length} active streams`
-        );
       }
+      // else {
+      //   console.log(
+      //     `Health check passed: ${activeChangeStreams.length} active streams`
+      //   );
+      // }
     } catch (error) {
       console.error("Health check failed with error:", error);
       await restartWatchers();
@@ -731,6 +712,7 @@ function setupConnectionMonitoring() {
 }
 
 async function restartWatchers() {
+  if (!isListenerActive) return;
   console.log("Initiating watcher restart sequence...");
   await stopWatching();
 
@@ -747,15 +729,20 @@ async function restartWatchers() {
 
 // Function to stop all active change streams
 export async function stopWatching() {
-  activeChangeStreams.forEach((stream) => {
-    try {
-      stream.close();
-    } catch (err) {
-      console.error("Error closing change stream: ", err);
-    }
-  });
-  activeChangeStreams = [];
   isListenerActive = false;
+  // console.log(`Closing ${activeChangeStreams.length} active streams...`);
+
+  try {
+    await Promise.all(
+      activeChangeStreams.map((stream) =>
+        stream.close().catch((e) => console.error("Error closing stream:", e))
+      )
+    );
+  } catch (err) {
+    console.error("Error during batch-closing of change streams: ", err);
+  }
+
+  activeChangeStreams = [];
 
   if (master_client) {
     try {

@@ -60,12 +60,12 @@ export async function POST(req: NextRequest) {
       text: body, // Plain text version
     };
 
-    // console.log(`Sending email from ${smtpConfig.name} (${smtpConfig.from}) to:`, to, "Subject:", subject);
+    console.log(`Sending email from ${smtpConfig.name} (${smtpConfig.from}) to:`, to, "Subject:", subject);
 
     // Send the actual email
     const emailResult = await transporter.sendMail(mailOptions);
     
-    // console.log("Email sent successfully:", emailResult.messageId);
+    console.log("Email sent successfully:", emailResult.messageId);
 
     return NextResponse.json({
       success: true,

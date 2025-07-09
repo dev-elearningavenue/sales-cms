@@ -51,3 +51,93 @@ body {
 .animate-fade-in-right {
   animation: fadeInRight 0.3s ease-out;
 }
+
+/* CKEditor5 Styles */
+.ck-editor__editable {
+  min-height: 150px !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+.ck-editor__editable_inline {
+  min-height: 150px !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+.ck.ck-editor {
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.375rem !important;
+}
+
+.ck.ck-editor__main > .ck-editor__editable {
+  border: none !important;
+  padding-left: 10px !important;
+}
+
+.ck.ck-toolbar {
+  border: none !important;
+  border-bottom: 1px solid #d1d5db !important;
+  border-radius: 0.375rem 0.375rem 0 0 !important;
+  background: #f9fafb !important;
+}
+
+.ck.ck-toolbar .ck-toolbar__items {
+  flex-wrap: wrap !important;
+}
+
+/* Focus state for CKEditor */
+.ckeditor-wrapper:focus-within .ck.ck-editor {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 640px) {
+  .ck.ck-toolbar .ck-toolbar__items {
+    flex-wrap: wrap !important;
+  }
+  
+  .ck.ck-toolbar .ck-toolbar__items > * {
+    margin: 2px !important;
+  }
+}
+
+/* Ensure modal content doesn't get cut off with CKEditor */
+.modal-with-editor {
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+}
+.ck-content {
+  margin-top: 0 !important;
+  padding-top: 4px !important; /* You can reduce this further if needed */
+}
+.ck-content h1 {
+  margin-top: 0 !important;
+  font-size: 2rem !important;
+  font-weight: bold !important;
+  /* margin: 1em 0 0.5em 0 !important; */
+}
+.ck-content h2 {
+  font-size: 1.5rem !important;
+  font-weight: bold !important;
+  /* margin: 1em 0 0.5em 0 !important; */
+}
+.ck-content h3 {
+  font-size: 1.2rem !important;
+  font-weight: bold !important;
+  /* margin: 1em 0 0.5em 0 !important; */
+}
+/* ... aur agar zarurat ho toh h4, h5, h6 bhi add kar sakte hain */
+
+
+.ck.ck-toolbar + .ck-editor__main {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.ck.ck-toolbar {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom: 1px solid #d1d5db !important; /* Optional: subtle border */
+}

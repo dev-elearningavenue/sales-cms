@@ -1,5 +1,28 @@
-import React from "react";
 import { X } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useState, useEffect } from "react";
+// Dynamically import CKEditor to avoid SSR issues
+const CKEditorWrapper = dynamic(
+  () => import("@/app/components/CKEditorWrapper"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="border border-gray-300 rounded-md p-4 min-h-[150px] bg-gray-50 animate-pulse">
+        Loading editor...
+      </div>
+    ),
+  }
+);
+
+// Helper to check if HTML content has actual text
+const hasActualContent = (htmlString: string): boolean => {
+  if (!htmlString) return false;
+  // Create a temporary div to extract text content
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = htmlString;
+  const textContent = tempDiv.textContent || tempDiv.innerText || "";
+  return textContent.trim().length > 0;
+};
 
 type ContactType = "email" | "call" | "chat";
 
@@ -36,6 +59,7 @@ interface LeadStatusModalsProps {
   closeAllModals: () => void;
   applyStatusChange: () => void;
   sendLvmEmail: () => void;
+  applyFollowUpWithEmail: () => void;
 }
 
 const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
@@ -59,6 +83,7 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
   closeAllModals,
   applyStatusChange,
   sendLvmEmail,
+  applyFollowUpWithEmail,
 }) => {
   return (
     <>
@@ -122,7 +147,11 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
       {/* Follow Up Modal with contact type checkboxes */}
       {showFollowUpModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+          <div
+            className={`bg-white rounded-lg shadow-xl p-6 w-full mx-4 max-h-[90vh] overflow-y-auto ${
+              contactTypes.includes("email") ? "max-w-4xl" : "max-w-md"
+            }`}
+          >
             <h2 className="text-xl font-bold text-gray-800 mb-4">
               Schedule Follow Up
             </h2>
@@ -130,68 +159,88 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
               Please set a date and contact methods for the follow up:
             </p> */}
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Follow Up Date
-              </label>
-              <input
-                type="date"
-                value={followUpDate}
-                onChange={(e) => setFollowUpDate(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
+            <div
+              className={`mb-4 gap-4 ${
+                contactTypes.includes("email")
+                  ? "flex flex-row items-end"
+                  : "flex flex-col"
+              }`}
+            >
+              <div
+                className={contactTypes.includes("email") ? "w-1/2" : "w-full"}
+              >
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Follow Up Date
+                </label>
+                <input
+                  type="date"
+                  value={followUpDate}
+                  onChange={(e) => setFollowUpDate(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Contact Method (select at least one)
-              </label>
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="contact-email"
-                    checked={contactTypes.includes("email")}
-                    onChange={() => toggleContactType("email")}
-                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                  />
-                  <label
-                    htmlFor="contact-email"
-                    className="ml-2 text-sm text-gray-700"
-                  >
-                    Email
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="contact-call"
-                    checked={contactTypes.includes("call")}
-                    onChange={() => toggleContactType("call")}
-                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                  />
-                  <label
-                    htmlFor="contact-call"
-                    className="ml-2 text-sm text-gray-700"
-                  >
-                    Phone Call
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="contact-chat"
-                    checked={contactTypes.includes("chat")}
-                    onChange={() => toggleContactType("chat")}
-                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                  />
-                  <label
-                    htmlFor="contact-chat"
-                    className="ml-2 text-sm text-gray-700"
-                  >
-                    Chat
-                  </label>
+              <div
+                className={contactTypes.includes("email") ? "w-1/2" : "w-full"}
+              >
+                <label
+                  className={`block text-sm font-medium text-gray-700 mb-2  ${
+                    contactTypes.includes("email") ? "px-4" : ""
+                  }`}
+                >
+                  Contact Method (select at least one)
+                </label>
+                <div
+                  className={`flex items-center space-x-6 ${
+                    contactTypes.includes("email") ? "h-11 p-4" : ""
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="contact-email"
+                      checked={contactTypes.includes("email")}
+                      onChange={() => toggleContactType("email")}
+                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <label
+                      htmlFor="contact-email"
+                      className="ml-2 text-sm text-gray-700"
+                    >
+                      Email
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="contact-call"
+                      checked={contactTypes.includes("call")}
+                      onChange={() => toggleContactType("call")}
+                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <label
+                      htmlFor="contact-call"
+                      className="ml-2 text-sm text-gray-700"
+                    >
+                      Phone Call
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="contact-chat"
+                      checked={contactTypes.includes("chat")}
+                      onChange={() => toggleContactType("chat")}
+                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <label
+                      htmlFor="contact-chat"
+                      className="ml-2 text-sm text-gray-700"
+                    >
+                      Chat
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
@@ -208,6 +257,83 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
                 rows={2}
               />
             </div>
+
+            {/* Email Fields - Show only when Email is selected as contact method */}
+            {contactTypes.includes("email") && (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="text-sm font-medium text-blue-800 mb-3">
+                  Email Details
+                </h3>
+
+                {/* From and To Fields in a single row */}
+                <div className="mb-3 flex flex-row gap-4">
+                  <div className="w-1/2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      From:
+                    </label>
+                    <input
+                      type="email"
+                      value={lvmEmailData.from}
+                      disabled
+                      className="w-full p-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed text-sm"
+                      placeholder="Domain email will appear here"
+                    />
+                  </div>
+                  <div className="w-1/2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      To:
+                    </label>
+                    <input
+                      type="email"
+                      value={lvmEmailData.to}
+                      disabled={!!lvmEmailData.to}
+                      onChange={(e) =>
+                        setLvmEmailData({ ...lvmEmailData, to: e.target.value })
+                      }
+                      className={`w-full p-2 border border-gray-300 rounded-md text-sm ${
+                        !!lvmEmailData.to
+                          ? "bg-gray-100 text-gray-600 cursor-not-allowed"
+                          : "bg-white text-gray-900 cursor-text"
+                      }`}
+                      placeholder="Only PASTE the Email Address"
+                    />
+                  </div>
+                </div>
+
+                {/* Subject Field */}
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Subject: <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={lvmEmailData.subject}
+                    onChange={(e) =>
+                      setLvmEmailData({
+                        ...lvmEmailData,
+                        subject: e.target.value,
+                      })
+                    }
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="Email subject"
+                    required
+                  />
+                </div>
+
+                {/* Email Body */}
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Message: <span className="text-red-500">*</span>
+                  </label>
+                  <CKEditorWrapper
+                    value={lvmEmailData.body}
+                    onChange={(data: string) =>
+                      setLvmEmailData({ ...lvmEmailData, body: data })
+                    }
+                  />
+                </div>
+              </div>
+            )}
 
             {/* <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -230,11 +356,19 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
                 Cancel
               </button>
               <button
-                onClick={applyStatusChange}
+                onClick={applyFollowUpWithEmail}
                 className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
-                disabled={!followUpDate || contactTypes.length === 0}
+                disabled={
+                  !followUpDate ||
+                  contactTypes.length === 0 ||
+                  (contactTypes.includes("email") &&
+                    (!lvmEmailData.subject ||
+                      !hasActualContent(lvmEmailData.body)))
+                }
               >
-                Schedule
+                {contactTypes.includes("email")
+                  ? "Schedule & Send Email"
+                  : "Schedule"}
               </button>
             </div>
           </div>
@@ -329,8 +463,15 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
                 <input
                   type="email"
                   value={lvmEmailData.to}
-                  disabled
-                  className="w-full p-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+                  disabled={!!lvmEmailData.to}
+                  onChange={(e) =>
+                    setLvmEmailData({ ...lvmEmailData, to: e.target.value })
+                  }
+                  className={`w-full p-2 border border-gray-300 rounded-md text-sm ${
+                    lvmEmailData.to
+                      ? "bg-gray-100 text-gray-600 cursor-not-allowed"
+                      : "bg-white text-gray-900 cursor-text"
+                  }`}
                   placeholder="Lead email will appear here"
                 />
                 {!lvmEmailData.to && (
@@ -381,15 +522,11 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email Body: <span className="text-red-500">*</span>
                 </label>
-                <textarea
+                <CKEditorWrapper
                   value={lvmEmailData.body}
-                  onChange={(e) =>
-                    setLvmEmailData({ ...lvmEmailData, body: e.target.value })
+                  onChange={(data: string) =>
+                    setLvmEmailData({ ...lvmEmailData, body: data })
                   }
-                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Compose your email message here..."
-                  rows={10}
-                  required
                 />
               </div>
 
@@ -421,7 +558,7 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
                 disabled={
                   !lvmEmailData.to ||
                   !lvmEmailData.subject ||
-                  !lvmEmailData.body
+                  !hasActualContent(lvmEmailData.body)
                 }
               >
                 Send Email & Update Status
@@ -435,3 +572,6 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
 };
 
 export default LeadStatusModals;
+// function useState(arg0: boolean): [any, any] {
+//   throw new Error("Function not implemented.");
+// }

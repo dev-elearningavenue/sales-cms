@@ -94,10 +94,10 @@ const getLeadEmail = (lead: ILead): string => {
 // Helper function to get domain email
 const getDomainEmail = (domain: string): string => {
   const domainEmails = {
-    OOR: "support@oshaoutreachcourses.com",
-    OOC: "support@oshaonlinecenter.com",
-    OES: "Support@oshaeducationschool.com",
-    FOC: "support@freeoshacourses.com",
+    OOR: "help@oshaoutreachcourses.com",
+    OOC: "help@oshaonlinecenter.com",
+    OES: "help@oshaeducationschool.com",
+    FOC: "help@freeoshacourses.com",
   };
   return domainEmails[domain as keyof typeof domainEmails] || "";
 };

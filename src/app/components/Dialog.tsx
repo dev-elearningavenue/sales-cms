@@ -56,12 +56,7 @@ export const DialogHeader = ({
   children: React.ReactNode;
   className?: string;
 }) => (
-  <div
-    className={cn(
-      "flex items-center justify-between border-b px-6 py-4",
-      className
-    )}
-  >
+  <div className={cn("flex items-center justify-between", className)}>
     {children}
   </div>
 );

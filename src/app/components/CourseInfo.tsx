@@ -19,7 +19,7 @@ const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
   //     typeof selectedLead.order_creation === "object"
   //       ? (selectedLead.order_creation as OrderCreation)
   //       : null;
-  console.log("CourseInfo - Selected Lead: ", selectedLead);
+  // console.log("CourseInfo - Selected Lead: ", selectedLead);
 
   // Check for both order_creation and abandoned_cart
   const orderLead = (selectedLead.order_creation ||

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { LoadingSkeleton } from "../components/LoadingSkeleton";
 import { ILead } from "@/types/leads";
 import { useApp } from "@/contexts/AppContext";
-import { Filter, X } from "lucide-react";
+import { Filter, X, Search } from "lucide-react";
 import { Dialog } from "@/components/Dialog";
 import { Customer, Field } from "@/components/Customer";
 import CourseInfo from "@/components/CourseInfo";
@@ -23,14 +23,6 @@ import {
   getFollowUpDisplayStatus,
   getStatusOptionsForCategory,
 } from "@/components/LeadUtils";
-
-// Domain mapping for labels
-const DOMAIN_LABELS = {
-  OOR: "Osha Outreach",
-  OOC: "Osha Online Center",
-  OES: "Osha Education School",
-  FOC: "Free Osha Courses",
-};
 
 // Add type definition for contact type
 type ContactType = "email" | "call" | "chat";
@@ -93,11 +85,12 @@ const getLeadEmail = (lead: ILead): string => {
 
 // Helper function to get domain email
 const getDomainEmail = (domain: string): string => {
+  console.log("domain", domain, process.env);
   const domainEmails = {
-    OOR: "help@oshaoutreachcourses.com",
-    OOC: "help@oshaonlinecenter.com",
-    OES: "help@oshaeducationschool.com",
-    FOC: "help@freeoshacourses.com",
+    OOR: process.env.NEXT_PUBLIC_EMAIL_OOR,
+    OOC: process.env.NEXT_PUBLIC_EMAIL_OOC,
+    OES: process.env.NEXT_PUBLIC_EMAIL_OES,
+    FOC: process.env.NEXT_PUBLIC_EMAIL_FOC,
   };
   return domainEmails[domain as keyof typeof domainEmails] || "";
 };
@@ -164,6 +157,7 @@ const MyLeads = () => {
     subject: "Follow-up: Your Recent Inquiry",
     body: "",
   });
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Initialize WebSocket connection with event handlers
   const { isConnected } = useSocket({
@@ -664,15 +658,62 @@ const MyLeads = () => {
     ];
   };
 
-  // Process leads with sorting and filtering
+  // Helper to search in name, category, domain, and status
+  const matchesSearch = (lead: ILead, query: string) => {
+    const lowerQuery = query.toLowerCase();
+    const name = (() => {
+      const populatedKey = [
+        "contact_us",
+        "free_signup",
+        "order_creation",
+        "custom_lead",
+        "abandoned_cart",
+        "scholarship",
+      ].find((key) => lead[key as keyof ILead]);
+      if (!populatedKey) return "";
+      const leadData = lead[populatedKey as keyof ILead];
+      if (populatedKey === "contact_us") {
+        return ((leadData as any)?.name || "").toLowerCase();
+      }
+      if (
+        populatedKey === "order_creation" ||
+        populatedKey === "abandoned_cart" ||
+        populatedKey === "free_signup" ||
+        populatedKey === "scholarship" ||
+        populatedKey === "custom_lead"
+      ) {
+        const fullName = `${(leadData as any)?.firstName || ""} ${
+          (leadData as any)?.lastName || ""
+        }`
+          .trim()
+          .toLowerCase();
+        return fullName;
+      }
+      return "";
+    })();
+    const category = (lead.category || "").toLowerCase();
+    const domain = (lead.domain || "").toLowerCase();
+    const status = (lead.status || "").toLowerCase();
+    return (
+      name.includes(lowerQuery) ||
+      category.includes(lowerQuery) ||
+      domain.includes(lowerQuery) ||
+      status.includes(lowerQuery)
+    );
+  };
+
+  // Filtered and paginated leads
   const processedLeads = getFilteredLeads(getSortedLeads(leads, sort), filters);
+  const searchedLeads = searchQuery
+    ? processedLeads.filter((lead) => matchesSearch(lead, searchQuery))
+    : processedLeads;
 
   // Pagination calculation
-  const totalLeadCount = processedLeads.length;
+  const totalLeadCount = searchedLeads.length;
   const totalPages = Math.ceil(totalLeadCount / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalLeadCount);
-  const currentLeads = processedLeads.slice(startIndex, endIndex);
+  const currentLeads = searchedLeads.slice(startIndex, endIndex);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
@@ -681,28 +722,59 @@ const MyLeads = () => {
       ) : (
         <div className="bg-white w-full rounded-lg shadow-lg border border-gray-200 overflow-hidden">
           <div className="p-4 w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h1 className="text-2xl font-bold text-gray-800">My Leads</h1>
-              <div className="text-sm text-gray-600">
+            <div className="flex flex-wrap gap-8 items-center justify-between mb-4">
+              <h1 className="text-2xl font-bold text-gray-800 mr-2">
+                My Leads
+              </h1>
+              {/* Search Input */}
+              <div className="flex-grow mx-2 min-w-[250px] max-w-[450px]">
+                <div className="relative w-full">
+                  <input
+                    type="text"
+                    placeholder="Search Lead (name, category, domain, status)"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                  <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                </div>
+              </div>
+              <div className="text-sm text-gray-600 whitespace-nowrap mx-2 hidden sm:block">
                 Showing{" "}
                 <span className="font-medium">
                   {startIndex + 1}-{endIndex}
                 </span>{" "}
                 of <span className="font-medium">{totalLeadCount}</span> leads
               </div>
+              {/* Top Pagination */}
+              <div className="hidden md:block">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  setCurrentPage={setCurrentPage}
+                  itemsPerPage={itemsPerPage}
+                  setItemsPerPage={setItemsPerPage}
+                  getPaginationButtons={getPaginationButtons}
+                  showItemsPerPage={false}
+                  compact={true}
+                />
+              </div>
               <button
                 onClick={() => setShowFiltersPanel(!showFiltersPanel)}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
               >
                 <Filter className="h-4 w-4" />
-                <span>
+                <span className="hidden sm:inline">
                   {showFiltersPanel ? "Hide Filters" : "Show Filters"}
                 </span>
               </button>
             </div>
 
             {/* Filters and Pagination Row */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               {(filters.domain || filters.category || filters.status) && (
                 <button
                   onClick={clearFilters}
@@ -739,7 +811,7 @@ const MyLeads = () => {
               getDomainLabel={getDomainLabel}
             />
 
-            {/* Pagination */}
+            {/* Bottom Pagination */}
             {totalLeadCount > 0 && (
               <Pagination
                 currentPage={currentPage}
@@ -771,7 +843,7 @@ const MyLeads = () => {
                 </h2>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-500"
                 >
                   <X className="h-5 w-5" />
                 </button>

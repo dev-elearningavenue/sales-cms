@@ -141,19 +141,21 @@ const LeadDetails: React.FC<LeadDetailsProps> = ({ lead, isOpen, onClose }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-white rounded-lg shadow-lg max-w-lg mx-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between p-4">
-            <DialogTitle className="text-xl font-semibold">
-              Lead Details
-            </DialogTitle>
-            <DialogClose onClick={onClose} />
-          </div>
-        </DialogHeader>
+        <div className="flex items-center justify-between border-b">
+          <DialogHeader>
+            <div className="flex items-center justify-between py-4">
+              <DialogTitle className="text-xl font-semibold">
+                Lead Details
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+          <DialogClose onClick={onClose} />
+        </div>
 
         {/* Tabs */}
-        <div className="flex border-b mb-4">
+        <div className="flex border-b mb-4 mt-4">
           <button
-            className={`px-4 py-2 text-sm font-medium ${
+            className={`py-2 text-sm font-medium ${
               activeTab === "notes"
                 ? "border-b-2 border-blue-500 text-blue-600"
                 : "text-gray-600 hover:text-gray-800"
@@ -177,7 +179,7 @@ const LeadDetails: React.FC<LeadDetailsProps> = ({ lead, isOpen, onClose }) => {
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="py-4">
           {activeTab === "notes" && (
             <>
               {isAddingNote ? (

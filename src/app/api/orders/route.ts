@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     const isWordPressData = body.order_data;
 
     if (isWordPressData && body.order_data.items) {
-      console.log(JSON.stringify(body.order_data.items, null, 2));
+      // console.log(JSON.stringify(body.order_data.items, null, 2));
     }
 
     let orderData;

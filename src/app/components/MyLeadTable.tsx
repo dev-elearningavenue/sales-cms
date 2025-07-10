@@ -29,13 +29,13 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
   getDomainLabel,
 }) => {
   return (
-    <div className="bg-white shadow-md rounded-md overflow-hidden">
+    <div className="bg-white shadow-md rounded-md overflow-hidden mt-2">
       <div className="max-h-[600px] overflow-auto">
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse min-w-[650px]">
           <thead className="sticky top-0 bg-gray-50 shadow-sm">
             <tr>
               <th
-                className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer w-[20%]"
                 onClick={() => handleSortChange("category")}
               >
                 <div className="flex items-center">
@@ -48,7 +48,7 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
                 </div>
               </th>
               <th
-                className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer w-[15%]"
                 onClick={() => handleSortChange("category")}
               >
                 <div className="flex items-center">
@@ -61,7 +61,7 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
                 </div>
               </th>
               <th
-                className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer w-[15%]"
                 onClick={() => handleSortChange("domain")}
               >
                 <div className="flex items-center">
@@ -74,11 +74,11 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
                 </div>
               </th>
               <th
-                className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer w-[15%]"
                 onClick={() => handleSortChange("createdAt")}
               >
                 <div className="flex items-center">
-                  Date Created
+                  Date
                   {sort.field === "createdAt" && (
                     <span className="ml-1">
                       {sort.direction === "desc" ? "↓" : "↑"}
@@ -86,10 +86,10 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
                   )}
                 </div>
               </th>
-              <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
                 Status
               </th>
-              <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-8 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
                 Actions
               </th>
             </tr>
@@ -103,13 +103,13 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
                 >
                   {/* Full Name */}
                   <td className="px-4 py-3">
-                    <div className="py-1 px-2 inline-block rounded-lg text-sm font-medium text-gray-900 break-words">
+                    <div className="py-1 px-2 inline-block text-sm font-medium text-gray-900 break-words">
                       {getLeadName(lead)}
                     </div>
                   </td>
 
                   {/* Category */}
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="px-4 py-3">
                     <div
                       className={`py-1 px-2 inline-block rounded-lg text-sm font-medium text-white ${
                         categoryColors[lead?.category ?? ""] || "bg-gray-500"
@@ -120,13 +120,13 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
                   </td>
 
                   {/* Domain */}
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="px-4 py-3">
                     <div className="text-sm font-medium text-gray-900">
                       {getDomainLabel(lead.domain || "")}
                     </div>
                   </td>
 
-                  {/* Date Created */}
+                  {/* Date Created - Simplified */}
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="text-sm text-gray-500">
                       {lead.createdAt
@@ -144,9 +144,9 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
                   </td>
 
                   {/* Status */}
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="px-4 py-3">
                     <select
-                      className={`text-sm px-3 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      className={`text-sm px-2 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500 w-full ${
                         lead.status === "Converted"
                           ? "bg-green-100 text-green-800 border-green-200"
                           : (lead.status || "").startsWith("Follow Up")
@@ -173,19 +173,11 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
                     </select>
                   </td>
 
-                  {/* Actions */}
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="flex space-x-2">
+                  {/* Actions - Stacked vertically */}
+                  <td className="px-8 py-3 whitespace-nowrap">
+                    <div className="flex flex-col space-y-2">
                       <button
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm flex items-center"
-                        onClick={() => handleViewLead(lead)}
-                      >
-                        <Eye size={14} className="mr-1" />
-                        View
-                      </button>
-
-                      <button
-                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-md text-sm flex items-center"
+                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-md text-sm flex items-center justify-center"
                         onClick={() => handleViewNotes(lead)}
                       >
                         <MessageSquare size={14} className="mr-1" /> Notes
@@ -197,6 +189,14 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
                               {lead.notes.length}
                             </span>
                           )}
+                      </button>
+
+                      <button
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-md text-sm flex items-center justify-center"
+                        onClick={() => handleViewLead(lead)}
+                      >
+                        <Eye size={14} className="mr-1" />
+                        View Details...
                       </button>
                     </div>
                   </td>

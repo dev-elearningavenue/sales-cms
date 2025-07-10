@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     if (!decoded.data._id) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
-    const { to, cc, subject, body, domain } = await req.json();
+    const { to, subject, body, domain } = await req.json();
     // Validate required fields
     if (!to || !subject || !body || !domain) {
       return NextResponse.json(
@@ -44,11 +44,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    console.log(`Sending email from (${smtpConfig.from}) cc:`, smtpConfig.cc, "Subject:", subject);
     // Prepare email options with domain-specific sender
     const mailOptions = {
       from: `${smtpConfig.name} <${smtpConfig.from}>`,
       to: to,
-      cc: cc || smtpConfig.cc,
+      cc: smtpConfig.cc,
       subject: subject,
       html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -59,14 +60,10 @@ export async function POST(req: NextRequest) {
       `,
       text: body, // Plain text version
     };
-
-    console.log(`Sending email from ${smtpConfig.name} (${smtpConfig.from}) to:`, to, "Subject:", subject);
-
-    // Send the actual email
-    const emailResult = await transporter.sendMail(mailOptions);
     
+    const emailResult = await transporter.sendMail(mailOptions);
     console.log("Email sent successfully:", emailResult.messageId);
-
+    
     return NextResponse.json({
       success: true,
       message: "Email sent successfully",

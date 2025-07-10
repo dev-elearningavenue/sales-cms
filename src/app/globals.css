@@ -112,6 +112,11 @@ body {
   margin-top: 0 !important;
   padding-top: 4px !important; /* You can reduce this further if needed */
 }
+.ck-content p {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  /* margin: 1em 0 0.5em 0 !important; */
+}
 .ck-content h1 {
   margin-top: 0 !important;
   font-size: 2rem !important;

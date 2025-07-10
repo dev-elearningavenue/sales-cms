@@ -171,6 +171,7 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
               >
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Follow Up Date
+                  <span className="px-1 text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -190,6 +191,7 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
                   }`}
                 >
                   Contact Method (select at least one)
+                  <span className="px-1 text-red-500">*</span>
                 </label>
                 <div
                   className={`flex items-center space-x-6 ${
@@ -201,6 +203,7 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
                       type="checkbox"
                       id="contact-email"
                       checked={contactTypes.includes("email")}
+                      disabled
                       onChange={() => toggleContactType("email")}
                       className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     />
@@ -427,7 +430,7 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
       {/* LVM Email Modal */}
       {showLvmModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-800 mb-4">
               Send LVM Email
             </h2>

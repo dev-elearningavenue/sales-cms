@@ -8,6 +8,7 @@ import Log from "@/models/log";
 import Scholarship from "@/models/scholarship";
 import AbandonedCart from "@/models/abandonedCart";
 import OrderCreation from "@/models/orders";
+import ShortCourseDiscount from "@/models/shortCourseDiscount";
 
 // Export all models to ensure they're registered
 export const models = {
@@ -19,6 +20,7 @@ export const models = {
   Scholarship,
   AbandonedCart,
   OrderCreation,
+  ShortCourseDiscount,
 };
 
 // Export a function to ensure models are registered

@@ -28,6 +28,7 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
   categoryColors,
   getDomainLabel,
 }) => {
+  console.log("", currentLeads);
   return (
     <div className="bg-white shadow-md rounded-md overflow-hidden mt-2">
       <div className="max-h-[600px] overflow-auto">

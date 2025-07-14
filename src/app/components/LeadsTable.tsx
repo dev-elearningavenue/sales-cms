@@ -19,12 +19,7 @@ import {
 import { ILead } from "@/types/leads";
 import { useApp } from "@/contexts/AppContext";
 import { isResolvedStatus } from "@/lib/leadUtils";
-import {
-  getLeadName,
-  getDomainLabel,
-  categoryColors,
-  getStatusOptionsForCategory,
-} from "@/components/LeadUtils";
+import { getDomainLabel, categoryColors } from "@/components/LeadUtils";
 import LeadDetailsModal from "@/components/LeadDetailsModal";
 
 // User type for the dropdown

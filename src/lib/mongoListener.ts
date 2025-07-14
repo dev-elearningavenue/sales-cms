@@ -99,7 +99,6 @@ export async function watchCollections() {
       );
 
       isListenerActive = true;
-      console.log("Connected to MongoDB clusters successfully");
 
       const leads_db = master_client.db("lead-management");
       const oes_db = master_client.db("oes");

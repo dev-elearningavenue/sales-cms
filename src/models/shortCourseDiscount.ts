@@ -19,6 +19,7 @@ const shortCourseDiscountSchema = new Schema<IShortCourseDiscount>(
     courseTitle: { type: String, required: true },
     courseUrl: { type: String, required: true },
     quantity: { type: Number, required: true },
+    domain: { type: String, required: true },
   },
   { timestamps: true }
 );

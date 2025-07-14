@@ -11,6 +11,13 @@ export const getLeadName = (lead: ILead): string => {
     return (lead.contact_us as any).name;
   }
 
+  if (
+    lead.shortcourse_discount &&
+    (lead.shortcourse_discount as any).name
+  ) {
+    return (lead.shortcourse_discount as any).name;
+  }
+
   const dataObjects = [
     lead.free_signup,
     lead.order_creation,

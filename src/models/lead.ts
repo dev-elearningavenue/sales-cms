@@ -66,6 +66,11 @@ const leadSchema = new Schema<ILead>(
       ref: "OrderCreation",
       required: false,
     },
+    shortcourse_discount: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ShortCourseDiscount",
+      required: false,
+    },
     custom_lead: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "CustomLead",

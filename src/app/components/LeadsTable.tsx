@@ -1069,7 +1069,8 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   {/* Full Name */}
                   <td className="px-4 py-4">
                     <div className="py-4 text-sm font-medium text-gray-600">
-                      {(lead.contact_us as any)?.name ||
+                      {((lead.contact_us as any) || lead.shortcourse_discount)
+                        ?.name ||
                         [
                           lead.free_signup,
                           lead.order_creation,

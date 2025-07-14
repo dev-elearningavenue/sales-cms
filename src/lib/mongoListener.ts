@@ -646,6 +646,8 @@ export function getLeadDetails(
     contact_us: type === "Contact Us" ? insertedId : null,
     scholarship: type === "Scholarship" ? insertedId : null,
     abandoned_cart: type === "Abandoned Cart" ? insertedId : null,
+    shortcourse_discount: type === "SC Group Discount" ? insertedId : null,
+    custom_lead: type === "Custom Lead" ? insertedId : null,
     order_creation:
       type === "Order Creation" || type === "Unpaid Training"
         ? insertedId

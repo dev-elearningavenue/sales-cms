@@ -7,9 +7,8 @@ import { ObjectId } from "mongodb";
 export const creatediscountQuery = async (discountQuery: any) => {
   try {
 
-    console.log("Discount Query: ", discountQuery);
-    const newDiscountQuery = new shortCourseDiscount(discountQuery);
-    const savedDiscountQuery = await newDiscountQuery.save();
+    const discountQueryData = new shortCourseDiscount(discountQuery);
+    const savedDiscountQuery = await discountQueryData.save();
 
     if (!savedDiscountQuery) {
       return {

@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
       { path: "scholarship", model: "Scholarship" },
       { path: "order_creation", model: "OrderCreation" },
       { path: "custom_lead", model: "CustomLead" },
+      { path: "shortcourse_discount", model: "ShortCourseDiscount" },
       { path: "assigned_to", model: "User", select: "full_name user_name" },
     ])
     .sort({ createdAt: -1 });

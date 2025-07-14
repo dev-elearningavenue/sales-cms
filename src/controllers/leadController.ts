@@ -87,7 +87,7 @@ export const getAllLeads = async (options?: {
     if (!leads || leads.length === 0) {
       return { message: "No leads found", leads: [] };
     }
-    console.log("Leads: ", leads);
+    // console.log("Leads: ", leads);
     return { message: "All leads fetched successfully", leads };
   } catch (error: any) {
     console.error("Error caught: ", error);
@@ -228,6 +228,9 @@ export const getLeadsByUser = async (userId: string) => {
     }
     if (await Lead.exists({ custom_lead: { $ne: null } })) {
       populations.push({ path: "custom_lead", model: "CustomLead" });
+    }
+    if (await Lead.exists({ shortcourse_discount: { $ne: null } })) {
+      populations.push({ path: "shortcourse_discount", model: "ShortCourseDiscount" });
     }
     // Add assigned_to population - this was missing!
     populations.push({

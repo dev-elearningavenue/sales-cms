@@ -13,12 +13,8 @@ export const createOrder = async (orderData: any) => {
         error: "Domain is required for order creation",
       };
     }
-
-    // console.log("Order Controller: ", JSON.stringify(orderData, null, 2));
-    
     const newOrder = new OrderCreation(orderData);
     const savedOrder = await newOrder.save();
-    // console.log("Saved Order: ", savedOrder);
 
     if (!savedOrder) {
       return {

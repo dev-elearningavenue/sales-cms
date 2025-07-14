@@ -1,13 +1,13 @@
 import { X } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useState, useEffect } from "react";
+import MyLeadsModal from "@/types/myLeadsModals";
 // Dynamically import CKEditor to avoid SSR issues
 const CKEditorWrapper = dynamic(
   () => import("@/app/components/CKEditorWrapper"),
   {
     ssr: false,
     loading: () => (
-      <div className="border border-gray-300 rounded-md p-4 min-h-[150px] bg-gray-50 animate-pulse">
+      <div className="border border-gray-300 text-gray-700 rounded-md p-4 min-h-[150px] bg-gray-50 animate-pulse">
         Loading editor...
       </div>
     ),
@@ -24,45 +24,7 @@ const hasActualContent = (htmlString: string): boolean => {
   return textContent.trim().length > 0;
 };
 
-type ContactType = "email" | "call" | "chat";
-
-interface LeadStatusModalsProps {
-  showConversionModal: boolean;
-  showFollowUpModal: boolean;
-  showNoteModal: boolean;
-  showLvmModal: boolean;
-  pendingStatusChange: string | null;
-  conversionValue?: number;
-  setConversionValue: (value: number | undefined) => void;
-  newNote: string;
-  setNewNote: (note: string) => void;
-  followUpDate: string;
-  setFollowUpDate: (date: string) => void;
-  contactTypes: ContactType[];
-  toggleContactType: (type: ContactType) => void;
-  followUpNote: string;
-  setFollowUpNote: (note: string) => void;
-  lvmEmailData: {
-    from: string;
-    to: string;
-    cc: string;
-    subject: string;
-    body: string;
-  };
-  setLvmEmailData: (data: {
-    from: string;
-    to: string;
-    cc: string;
-    subject: string;
-    body: string;
-  }) => void;
-  closeAllModals: () => void;
-  applyStatusChange: () => void;
-  sendLvmEmail: () => void;
-  applyFollowUpWithEmail: () => void;
-}
-
-const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
+const LeadStatusModals: React.FC<MyLeadsModal> = ({
   showConversionModal,
   showFollowUpModal,
   showNoteModal,
@@ -317,7 +279,7 @@ const LeadStatusModals: React.FC<LeadStatusModalsProps> = ({
                         subject: e.target.value,
                       })
                     }
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="w-full p-2 border border-gray-300 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     placeholder="Email subject"
                     required
                   />

@@ -634,6 +634,7 @@ export function getLeadDetails(
     case "Contact Us":
     case "Scholarship":
     case "Unpaid Training":
+    case "SC Group Discount":
       category = type;
       break;
     default:

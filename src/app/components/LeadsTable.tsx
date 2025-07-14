@@ -988,7 +988,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   <button className="ml-1">
                     <Filter className="h-4 w-4 text-gray-500" />
                   </button>
-                  <div className="absolute left-0 mt-1 w-40 bg-white border border-gray-200 rounded shadow-lg z-30 hidden group-hover:block z-50">
+                  <div className="absolute left-0 mt-1 w-40 bg-white border border-gray-200 rounded shadow-lg z-30 hidden group-hover:block">
                     {/* Reset option */}
                     <button
                       onClick={() => handleFilterChange("type", "")}

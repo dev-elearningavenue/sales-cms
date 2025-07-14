@@ -6,6 +6,7 @@ export interface IShortCourseDiscount extends Document {
     email: string;
     phone: string;
     courseTitle: string;
+    courseUrl: string;
     quantity: number;
     domain: string;
 }
@@ -16,6 +17,7 @@ const shortCourseDiscountSchema = new Schema<IShortCourseDiscount>(
     email: { type: String, required: true },
     phone: { type: String, required: true },
     courseTitle: { type: String, required: true },
+    courseUrl: { type: String, required: true },
     quantity: { type: Number, required: true },
   },
   { timestamps: true }

@@ -25,6 +25,7 @@ export interface IInvoice extends Document {
   invoiceNumber: string;
   percent_off?: string;
   hostedUrl?: string;
+  paidAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,12 +57,13 @@ const InvoiceSchema = new Schema({
   totalPrice: { type: Number, required: true, min: 0 },
   status: { 
     type: String, 
-    enum: ['draft', 'sent', 'paid', 'overdue', 'cancelled'],
-    default: 'draft'
+    enum: ['unpaid', 'sent', 'paid', 'overdue', 'cancelled'],
+    default: 'unpaid'
   },
   invoiceNumber: { type: String, unique: true },
   percent_off: { type: String, default: '' },
   hostedUrl: { type: String, default: '' },
+  paidAt: { type: Date, default: null },
 }, {
   timestamps: true,
   strict: true

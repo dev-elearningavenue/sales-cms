@@ -999,21 +999,24 @@ const Invoice = () => {
           </div>
 
           {/* Secondary Actions */}
-          {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
-            <button className="group relative overflow-hidden px-8 py-6 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:border-blue-400 dark:hover:border-blue-500">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+            <button
+              className="group relative overflow-hidden px-8 py-6 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:border-blue-400 dark:hover:border-blue-500"
+              onClick={() => window.location.href = '/invoice/your-invoices'}
+            >
               <div className="flex items-center justify-center space-x-3">
                 <FileText
                   size={24}
                   className="text-blue-600 group-hover:text-blue-700 transition-colors"
                 />
                 <span className="font-semibold text-gray-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                  View All Invoices
+                  View Your Invoices
                 </span>
               </div>
               <div className="absolute bottom-0 left-0 w-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300 group-hover:w-full"></div>
             </button>
 
-            <button className="group relative overflow-hidden px-8 py-6 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:border-green-400 dark:hover:border-green-500">
+            {/* <button className="group relative overflow-hidden px-8 py-6 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:border-green-400 dark:hover:border-green-500">
               <div className="flex items-center justify-center space-x-3">
                 <Download
                   size={24}
@@ -1024,8 +1027,8 @@ const Invoice = () => {
                 </span>
               </div>
               <div className="absolute bottom-0 left-0 w-0 h-1 bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-300 group-hover:w-full"></div>
-            </button>
-          </div> */}
+            </button> */}
+          </div>
           {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl mt-12">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-4">

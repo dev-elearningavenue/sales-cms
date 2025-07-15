@@ -471,7 +471,7 @@ interface IInvoice {
   discount: number;
   totalPrice: number;
   invoiceNumber: string;
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  status: 'unpaid' | 'sent' | 'paid' | 'overdue' | 'cancelled';
   percent_off?: string;
   hostedUrl?: string;
   createdAt: Date;

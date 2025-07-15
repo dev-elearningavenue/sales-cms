@@ -105,7 +105,7 @@ export const createInvoice = async (
       percent_off: invoiceData.percent_off || "",
       hostedUrl: invoiceData.hostedUrl || "",
       invoiceNumber: invoiceData.invoiceNumber || "",
-      status: "draft",
+      status: "unpaid",
     });
 
     const savedInvoice = await newInvoice.save();
@@ -160,6 +160,20 @@ export const getInvoiceById = async (
   }
 };
 
+// Get all invoices created by a specific agent
+export const getInvoicesByAgent = async (agentId: string) => {
+  try {
+    await connectDB();
+    const invoices = await Invoice.find({ agentId: new mongoose.Types.ObjectId(agentId) })
+      .populate('agentId', 'full_name')
+      .sort({ createdAt: -1 });
+    return invoices;
+  } catch (error) {
+    console.error("Error fetching agent invoices:", error);
+    return [];
+  }
+};
+
 export const getInvoicesByCustomer = async (
   customerId: string
 ): Promise<IInvoice[]> => {
@@ -190,7 +204,7 @@ export const getAllInvoices = async (): Promise<IInvoice[]> => {
 
 export const updateInvoiceStatus = async (
   invoiceId: string,
-  status: "draft" | "sent" | "paid" | "overdue" | "cancelled"
+  status: "unpaid" | "sent" | "paid" | "overdue" | "cancelled"
 ): Promise<boolean> => {
   try {
     await connectDB();

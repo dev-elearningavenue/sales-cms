@@ -118,7 +118,7 @@ const leadSchema = new Schema<ILead>(
     },
     domain: {
       type: String,
-      enum: ["OOR", "OOC", "OES", "FOC", "OSHAPRO"],
+      enum: ["OOR", "OOC", "OES", "FOC", "OSHAPRO", "Osha360"],
       required: true,
     },
     next_follow_up: {

@@ -11,7 +11,7 @@ connectDatabase();
 
 // Function to transform WordPress data to our system format
 function transformWordPressData(wordpressData: any) {
-  const { user_data, order_data } = wordpressData;
+  const { order_data } = wordpressData;
 
   // Validate required fields
   if (!order_data) {
@@ -28,6 +28,24 @@ function transformWordPressData(wordpressData: any) {
 
   if (!order_data.email) {
     throw new Error("Missing customer email in order_data");
+  }
+
+  let orderPrefix = "FOC";
+
+  if (order_data.domain === "Osha 360 - Osha360") {
+    orderPrefix = "360";
+  } else if (order_data.domain === "Free Osha Courses - FOC") {
+    orderPrefix = "FOC";
+  } else if (order_data.domain === "Osha 30 Construction - 30Construction") {
+    orderPrefix = "30Construction";
+  } else if (order_data.domain === "EHS School - EHSP") {
+    orderPrefix = "EHSP";
+  } else if (order_data.domain === "NY Osha 30 - NY30") {
+    orderPrefix = "NY30";
+  } else if (order_data.domain === "EHS Practice - EHSS") {
+    orderPrefix = "EHSS";
+  } else if (order_data.domain === "Osha Practice - OP") {
+    orderPrefix = "OP";
   }
 
   // Transform the data structure
@@ -47,7 +65,7 @@ function transformWordPressData(wordpressData: any) {
     items: order_data.items || [],
     domain: order_data.domain,
     total_order_price: order_data.total_order_price || 0,
-    order_id: `FOC-${order_data.id}`,
+    order_id: `${orderPrefix}-${order_data.id}`,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

@@ -22,10 +22,11 @@ export interface IInvoice extends Document {
   subtotal: number;
   discount: number;
   totalPrice: number;
+  status: string;
   invoiceNumber: string;
   percent_off?: string;
   hostedUrl?: string;
-  paidAt?: Date;
+  paidAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

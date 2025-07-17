@@ -5,6 +5,7 @@ import Contact from "@/models/contact";
 import User from "@/models/user";
 import Lead from "@/models/lead";
 import Log from "@/models/log";
+import Invoice from "@/models/invoice";
 import Scholarship from "@/models/scholarship";
 import AbandonedCart from "@/models/abandonedCart";
 import OrderCreation from "@/models/orders";
@@ -17,6 +18,7 @@ export const models = {
   User,
   Lead,
   Log,
+  Invoice,
   Scholarship,
   AbandonedCart,
   OrderCreation,

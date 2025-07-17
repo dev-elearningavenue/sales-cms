@@ -49,93 +49,19 @@ const YourInvoicesPage = () => {
     fetchInvoices();
   }, []);
 
-  // Fetch real-time status for each invoice after invoices are loaded
-  useEffect(() => {
-    if (invoices.length === 0) return;
-    const fetchStatuses = async () => {
-      const newStatusMap: {
-        [id: string]: { status: string; paidAt?: string };
-      } = {};
-      await Promise.all(
-        invoices.map(async (inv) => {
-          try {
-            const params = new URLSearchParams({
-              customer_id: inv.customerId || "",
-              invoice_number: inv.invoiceNumber,
-              site_name: inv.siteName || "OSHA OUTREACH COURSES",
-            });
-            if ((inv as any).customerId)
-              params.set("customer_id", (inv as any).customerId);
-            if (inv.siteName) params.set("site_name", inv.siteName);
-            const url = `https://freeoshacourses.com/api/fetch_invoice_status.php?${params.toString()}`;
-            const res = await fetch(url);
-            const data = await res.json();
-            // New API: status and paidAt inside data
-            if (
-              data.status &&
-              data.data &&
-              (data.data.status === "paid" || data.data.status === "unpaid")
-            ) {
-              newStatusMap[inv._id] = {
-                status: data.data.status,
-                paidAt: data.data.paidAt || undefined,
-              };
-            }
-            //  else if (
-            //   data.status &&
-            //   (data.status === "paid" || data.status === "unpaid")
-            // ) {
-            //   // fallback for previous API
-            //   newStatusMap[inv._id] = {
-            //     status: data.status,
-            //     paidAt: data.paidAt || undefined,
-            //   };
-            // } else if (data.status && data.data && data.data.status) {
-            //   // fallback for very old API
-            //   newStatusMap[inv._id] = {
-            //     status: data.data.status,
-            //   };
-            // }
-          } catch (e) {
-            console.error("Error during fetching statuses of lead");
-          }
-        })
-      );
-      console.log("New Status Map", newStatusMap);
-      setStatusMap(newStatusMap);
-    };
-    fetchStatuses();
-  }, [invoices]);
-
-  // Sorting logic
   let sortedInvoices = [...invoices];
   if (sortBy === "dueDate") {
     sortedInvoices.sort((a, b) => {
-      const aDate =
-        statusMap[a._id]?.status === "paid" && statusMap[a._id]?.paidAt
-          ? new Date(statusMap[a._id].paidAt!)
-          : new Date(a.dueDate);
-      const bDate =
-        statusMap[b._id]?.status === "paid" && statusMap[b._id]?.paidAt
-          ? new Date(statusMap[b._id].paidAt!)
-          : new Date(b.dueDate);
+      const aDate = new Date(a.dueDate);
+      const bDate = new Date(b.dueDate);
       return sortOrder === "asc"
         ? aDate.getTime() - bDate.getTime()
         : bDate.getTime() - aDate.getTime();
     });
   } else if (sortBy === "status") {
-    console.log("Status Map", statusMap);
     sortedInvoices.sort((a, b) => {
-      const aStatus = (
-        statusMap[a._id]?.status ||
-        a.status ||
-        ""
-      ).toLowerCase();
-      const bStatus = (
-        statusMap[b._id]?.status ||
-        b.status ||
-        ""
-      ).toLowerCase();
+      const aStatus = a.status.toLowerCase();
+      const bStatus = b.status.toLowerCase();
       if (aStatus === bStatus) return 0;
       if (sortOrder === "asc") return aStatus > bStatus ? 1 : -1;
       return aStatus < bStatus ? 1 : -1;
@@ -144,8 +70,8 @@ const YourInvoicesPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6">
-      <div className="max-w-8xl mx-auto">
-        <div className="text-center mb-10">
+      <div className="max-w-full mx-auto">
+        <div className="text-center mb-6">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white mb-2">
             Your Invoices
           </h1>
@@ -153,7 +79,7 @@ const YourInvoicesPage = () => {
             View all invoices you have created
           </p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-4 md:p-8">
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="animate-spin text-blue-600" size={32} />
@@ -172,51 +98,38 @@ const YourInvoicesPage = () => {
             </div>
           ) : (
             <>
-              <div className="bg-blue-50 dark:bg-gray-900 rounded-xl mb-6 py-6 px-8 flex justify-center items-center gap-x-12 w-full">
-                <span className="text-3xl font-bold text-blue-700 dark:text-blue-300">
+              <div className="bg-blue-50 dark:bg-gray-900 rounded-xl mb-6 py-6 px-4 md:px-8 flex flex-col md:flex-row justify-center items-center gap-4 md:gap-x-12 w-full">
+                <span className="text-2xl md:text-3xl font-bold text-blue-700 dark:text-blue-300">
                   Total: {sortedInvoices.length}
                 </span>
-                <span className="text-2xl font-bold text-green-700 dark:text-green-400">
+                <span className="text-xl md:text-2xl font-bold text-green-700 dark:text-green-400">
                   Paid:{" "}
-                  {
-                    sortedInvoices.filter(
-                      (inv) =>
-                        (statusMap[inv._id]?.status || inv.status) === "paid"
-                    ).length
-                  }
+                  {sortedInvoices.filter((inv) => inv.status === "paid").length}
                 </span>
-                <span className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">
+                <span className="text-xl md:text-2xl font-bold text-yellow-700 dark:text-yellow-400">
                   Pending:{" "}
-                  {
-                    sortedInvoices.filter(
-                      (inv) =>
-                        (statusMap[inv._id]?.status ||
-                          inv.invoice_status ||
-                          inv.status) !== "paid"
-                    ).length
-                  }
+                  {sortedInvoices.filter((inv) => inv.status !== "paid").length}
                 </span>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full table-fixed">
-                  {/* Summary Row */}
-                  <thead>
+              <div className="overflow-x-auto md:-mx-6">
+                <table className="min-w-full table-fixed divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700 rounded-sm">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         #
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Invoice #
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
-                        Customer
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Customer Email
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Total
                       </th>
                       <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap cursor-pointer select-none"
+                        className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-600"
                         onClick={() => {
                           setSortBy("dueDate");
                           setSortOrder(
@@ -255,10 +168,12 @@ const YourInvoicesPage = () => {
                             : ""}
                         </span>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Created
                       </th>
-                      <th className="px-6 py-3"></th>
+                      {/* <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Actions
+                      </th> */}
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
@@ -267,65 +182,71 @@ const YourInvoicesPage = () => {
                         key={inv._id}
                         className="hover:bg-blue-50 dark:hover:bg-gray-700 transition"
                       >
-                        <td className="px-4 py-4 font-mono text-gray-500 dark:text-gray-400 font-bold">
+                        {/* INDEX */}
+                        <td className="px-3 py-4 font-mono text-gray-500 dark:text-gray-400 font-bold">
                           {idx + 1}
                         </td>
-                        <td className="px-6 py-4 font-mono text-blue-700 dark:text-blue-300">
-                          {inv.invoiceNumber}
+                        {/* INVOICE NUMBER */}
+                        <td className="px-3 py-4 font-mono text-blue-700 dark:text-blue-300">
+                          {inv.hostedUrl && (
+                            <a
+                              href={inv.hostedUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline"
+                            >
+                              {inv.invoiceNumber}
+                            </a>
+                          )}
                         </td>
-                        <td className="px-6 py-4 text-gray-800 dark:text-gray-200">
-                          {inv.customerEmail}
+                        {/* CUSTOMER EMAIL*/}
+                        <td className="px-3 py-4 text-gray-800 dark:text-gray-200 w-48">
+                          <div
+                            className="max-w-full truncate"
+                            title={inv.customerEmail}
+                          >
+                            {inv.customerEmail}
+                          </div>
                         </td>
-                        <td className="px-6 py-4 font-semibold text-green-700 dark:text-green-400">
+                        {/* TOTAL */}
+                        <td className="px-3 py-4 font-semibold text-green-700 dark:text-green-400">
                           ${inv.totalPrice.toFixed(2)}
                         </td>
-                        <td className="px-6 py-4 text-gray-800 dark:text-gray-200">
-                          {statusMap[inv._id]?.status === "paid" &&
-                          statusMap[inv._id]?.paidAt ? (
+                        {/* DUE DATE */}
+                        <td className="px-3 py-4 text-gray-800 dark:text-gray-200">
+                          {inv.status === "paid" && inv.paidAt ? (
                             <span>
                               <span className="font-semibold text-green-600 dark:text-green-300">
                                 Paid At:
                               </span>{" "}
-                              <span className="text-xs ">
-                                {new Date(
-                                  statusMap[inv._id].paidAt!
-                                ).toLocaleDateString()}
+                              <span className="text-sm ">
+                                {new Date(inv.paidAt!).toLocaleDateString()}
                               </span>{" "}
                             </span>
                           ) : (
                             new Date(inv.dueDate).toLocaleDateString()
                           )}
                         </td>
+                        {/* STATUS */}
                         <td className="px-6 py-4">
                           <span
-                            className={`px-3 py-1 rounded-full text-xs font-bold ${
-                              (statusMap[inv._id]?.status || inv.status) ===
-                              "paid"
+                            className={`px-3 py-1 rounded-full text-sm font-bold ${
+                              inv.status === "paid"
                                 ? "bg-green-100 text-green-700"
-                                : (statusMap[inv._id]?.status || inv.status) ===
-                                  "unpaid"
+                                : inv.status === "unpaid"
                                 ? "bg-red-100 text-red-700"
                                 : "bg-yellow-100 text-yellow-700"
                             }`}
                           >
-                            {(
-                              statusMap[inv._id]?.status ||
-                              inv.status ||
-                              inv.status
-                            )
-                              .charAt(0)
-                              .toUpperCase() +
-                              (
-                                statusMap[inv._id]?.status ||
-                                inv.status ||
-                                inv.status
-                              ).slice(1)}
+                            {inv.status.charAt(0).toUpperCase() +
+                              inv.status.slice(1)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-xs text-gray-500 dark:text-gray-400">
+                        <td className="px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
                           {new Date(inv.createdAt).toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        {/* ACTIONS */}
+                        {/* <td className="px-6 py-4 whitespace-nowrap">
                           {inv.hostedUrl && (
                             <a
                               href={inv.hostedUrl}
@@ -336,7 +257,7 @@ const YourInvoicesPage = () => {
                               View
                             </a>
                           )}
-                        </td>
+                        </td> */}
                       </tr>
                     ))}
                   </tbody>

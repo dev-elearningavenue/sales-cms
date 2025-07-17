@@ -119,7 +119,7 @@ const Invoice = () => {
     { name: "OSHA OUTREACH COURSES", code: "001" },
     { name: "OSHA ONLINE CENTER", code: "002" },
     { name: "OSHA EDUCATION SCHOOL", code: "003" },
-    { name: "OSHA PRO", code: "004" },
+    // { name: "OSHA PRO", code: "004" },
   ];
 
   // Get site code from site name
@@ -1002,7 +1002,7 @@ const Invoice = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
             <button
               className="group relative overflow-hidden px-8 py-6 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:border-blue-400 dark:hover:border-blue-500"
-              onClick={() => window.location.href = '/invoice/your-invoices'}
+              onClick={() => (window.location.href = "/invoice/your-invoices")}
             >
               <div className="flex items-center justify-center space-x-3">
                 <FileText

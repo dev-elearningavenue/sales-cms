@@ -81,7 +81,7 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
               <textarea
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2 text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Add details about the conversion"
                 rows={3}
               />
@@ -290,12 +290,14 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Email Message: <span className="text-red-500">*</span>
                   </label>
-                  <CKEditorWrapper
-                    value={lvmEmailData.body}
-                    onChange={(data: string) =>
-                      setLvmEmailData({ ...lvmEmailData, body: data })
-                    }
-                  />
+                  <div className="text-gray-700 dark:text-white">
+                    <CKEditorWrapper
+                      value={lvmEmailData.body}
+                      onChange={(data: string) =>
+                        setLvmEmailData({ ...lvmEmailData, body: data })
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             )}

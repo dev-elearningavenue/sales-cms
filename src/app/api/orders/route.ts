@@ -38,12 +38,12 @@ function transformWordPressData(wordpressData: any) {
     orderPrefix = "FOC";
   } else if (order_data.domain === "Osha 30 Construction - 30Construction") {
     orderPrefix = "30Construction";
-  } else if (order_data.domain === "EHS School - EHSP") {
-    orderPrefix = "EHSP";
+  } else if (order_data.domain === "EHS School - EHSS") {
+    orderPrefix = "EHSS";
   } else if (order_data.domain === "NY Osha 30 - NY30") {
     orderPrefix = "NY30";
-  } else if (order_data.domain === "EHS Practice - EHSS") {
-    orderPrefix = "EHSS";
+  } else if (order_data.domain === "EHS Practice - EHSP") {
+    orderPrefix = "EHSP";
   } else if (order_data.domain === "Osha Practice - OP") {
     orderPrefix = "OP";
   }

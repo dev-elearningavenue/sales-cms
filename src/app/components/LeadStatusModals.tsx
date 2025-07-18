@@ -217,7 +217,7 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
               <textarea
                 value={followUpNote}
                 onChange={(e) => setFollowUpNote(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
                 placeholder="Add details about the follow up"
                 rows={2}
               />
@@ -255,11 +255,7 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
                       onChange={(e) =>
                         setLvmEmailData({ ...lvmEmailData, to: e.target.value })
                       }
-                      className={`w-full p-2 border border-gray-300 rounded-md text-sm ${
-                        !!lvmEmailData.to
-                          ? "bg-gray-100 text-gray-600 cursor-not-allowed"
-                          : "bg-white text-gray-900 cursor-text"
-                      }`}
+                      className={`w-full p-2 border border-gray-300 rounded-md text-sm bg-white text-gray-900 cursor-text`}
                       placeholder="Only PASTE the Email Address"
                     />
                   </div>
@@ -361,7 +357,7 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
               <textarea
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
                 placeholder="Add your notes here"
                 rows={3}
               />
@@ -430,15 +426,11 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
                 <input
                   type="email"
                   value={lvmEmailData.to}
-                  disabled={!!lvmEmailData.to}
+                  // disabled={!!lvmEmailData.to}
                   onChange={(e) =>
                     setLvmEmailData({ ...lvmEmailData, to: e.target.value })
                   }
-                  className={`w-full p-2 border border-gray-300 rounded-md text-sm ${
-                    lvmEmailData.to
-                      ? "bg-gray-100 text-gray-600 cursor-not-allowed"
-                      : "bg-white text-gray-900 cursor-text"
-                  }`}
+                  className={`w-full p-2 border border-gray-300 rounded-md text-sm bg-white text-gray-900 cursor-text`}
                   placeholder="Lead email will appear here"
                 />
                 {!lvmEmailData.to && (
@@ -489,12 +481,14 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email Body: <span className="text-red-500">*</span>
                 </label>
-                <CKEditorWrapper
-                  value={lvmEmailData.body}
-                  onChange={(data: string) =>
-                    setLvmEmailData({ ...lvmEmailData, body: data })
-                  }
-                />
+                <div className="text-gray-700">
+                  <CKEditorWrapper
+                    value={lvmEmailData.body}
+                    onChange={(data: string) =>
+                      setLvmEmailData({ ...lvmEmailData, body: data })
+                    }
+                  />
+                </div>
               </div>
 
               {/* Additional Note */}

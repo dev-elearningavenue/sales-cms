@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { FileText, Loader2, X } from "lucide-react";
+import { FileText, Loader2, X, Users, TrendingUp } from "lucide-react";
+import { useApp } from "@/contexts/AppContext";
 
 interface Invoice {
   _id: string;
@@ -17,16 +18,47 @@ interface Invoice {
   paidAt?: string;
 }
 
+interface AgentSales {
+  agentId: string;
+  agentName: string;
+  totalSales: number;
+  thisMonthSales: number;
+  totalInvoices: number;
+  paidInvoices: number;
+}
+
 const YourInvoicesPage = () => {
+  const { session } = useApp();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [agentsSales, setAgentsSales] = useState<AgentSales[]>([]);
   const [sortBy, setSortBy] = useState<"dueDate" | "status" | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [loading, setLoading] = useState(true);
+  const [agentsLoading, setAgentsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // statusMap: { [id]: { invoice_status: string, paidAt?: string } }
   const [statusMap, setStatusMap] = useState<{
     [id: string]: { status: string; paidAt?: string };
   }>({});
+
+  // Fetch agents sales for admin users
+  const fetchAgentsSales = async () => {
+    if (!session || (session.user_type !== 1 && session.user_type !== 2))
+      return;
+
+    setAgentsLoading(true);
+    try {
+      const res = await fetch("/api/invoice/agents-sales");
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAgentsSales(data.agentsSales || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch agents sales:", err);
+    } finally {
+      setAgentsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchInvoices = async () => {
@@ -47,7 +79,8 @@ const YourInvoicesPage = () => {
       }
     };
     fetchInvoices();
-  }, []);
+    fetchAgentsSales();
+  }, [session]);
 
   let sortedInvoices = [...invoices];
   if (sortBy === "dueDate") {
@@ -71,6 +104,132 @@ const YourInvoicesPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-full mx-auto">
+        {/* Agents Sales Section - Only for Admin Users */}
+        {session && (session.user_type === 1 || session.user_type === 2) && (
+          <div className="mb-8">
+            <div className="text-center mb-6">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white mb-2 flex items-center justify-center gap-3">
+                <Users className="text-blue-600" size={32} />
+                All Agents Sales Overview
+              </h2>
+              <p className="text-lg text-gray-600 dark:text-gray-300">
+                Sales performance of all agents
+              </p>
+            </div>
+
+            {agentsLoading ? (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8">
+                <div className="flex justify-center items-center py-12">
+                  <Loader2 className="animate-spin text-blue-600" size={32} />
+                </div>
+              </div>
+            ) : agentsSales.length > 0 ? (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {agentsSales.map((agent) => (
+                    <div
+                      key={agent.agentId}
+                      className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-700 dark:to-gray-600 rounded-xl p-6 border border-blue-200 dark:border-gray-600"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-gray-800 dark:text-white truncate">
+                          {agent.agentName}
+                        </h3>
+                        <TrendingUp className="text-blue-600" size={20} />
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
+                            Total Sales:
+                          </span>
+                          <span className="font-bold text-green-600 dark:text-green-400">
+                            ${agent.totalSales.toFixed(2)}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
+                            This Month:
+                          </span>
+                          <span className="font-bold text-purple-600 dark:text-purple-400">
+                            ${agent.thisMonthSales.toFixed(2)}
+                          </span>
+                        </div>
+
+                        {/* <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
+                            Invoices:
+                          </span>
+                          <span className="font-bold text-blue-600 dark:text-blue-400">
+                            {agent.paidInvoices}/{agent.totalInvoices}
+                          </span>
+                        </div> */}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Summary Stats */}
+                <div className="mt-6 bg-blue-50 dark:bg-gray-900 rounded-xl p-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div>
+                      <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                        $
+                        {agentsSales
+                          .reduce((sum, agent) => sum + agent.totalSales, 0)
+                          .toFixed(2)}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Total Sales
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+                        $
+                        {agentsSales
+                          .reduce((sum, agent) => sum + agent.thisMonthSales, 0)
+                          .toFixed(2)}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        This Month
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-green-700 dark:text-green-300">
+                        {agentsSales.reduce(
+                          (sum, agent) => sum + agent.paidInvoices,
+                          0
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Paid Invoices
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+                        {agentsSales.length}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Active Agents
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8">
+                <div className="flex flex-col items-center py-12">
+                  <Users className="text-gray-400 mb-2" size={32} />
+                  <span className="text-gray-600 font-semibold">
+                    No agents sales data available.
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="text-center mb-6">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white mb-2">
             Your Invoices
@@ -117,11 +276,11 @@ const YourInvoicesPage = () => {
                     const currentYear = new Date().getFullYear();
                     return sortedInvoices
                       .filter((inv) => {
-                        if (inv.status !== "paid" || !inv.paidAt) return false;
-                        const paidDate = new Date(inv.paidAt);
+                        if (inv.status !== "paid") return false;
+                        const createdDate = new Date(inv.createdAt);
                         return (
-                          paidDate.getMonth() === currentMonth &&
-                          paidDate.getFullYear() === currentYear
+                          createdDate.getMonth() === currentMonth &&
+                          createdDate.getFullYear() === currentYear
                         );
                       })
                       .reduce((sum, inv) => sum + inv.totalPrice, 0)

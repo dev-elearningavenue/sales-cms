@@ -28,6 +28,7 @@ const notificationSchema = new Schema(
         "lead_deleted",
         "batch_assign",
         "batch_delete",
+        "invoice_paid",
       ],
     },
     message: {

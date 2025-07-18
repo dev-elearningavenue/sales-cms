@@ -262,3 +262,44 @@ export async function checkNotifications() {
     return { error: "Failed to check notifications" };
   }
 } 
+
+export async function createInvoicePaymentNotification(invoice: any) {
+  try {
+    // Get users to notify: invoice creator + all users except userType 3
+    const toUsers: string[] = [];
+    
+    if (invoice.agentId) {
+      toUsers.push(invoice.agentId.toString());
+    }
+    
+    const adminUsers = await User.find({ user_type: { $ne: 3 } });
+    adminUsers.forEach((user: any) => {
+      if (!toUsers.includes(user._id.toString())) {
+        toUsers.push(user._id.toString());
+      }
+    });
+    
+    if (toUsers.length === 0) {
+      console.log("No users to notify for invoice payment");
+      return true;
+    }
+    
+    await Notification.create({
+      type: "invoice_paid",
+      to_users: toUsers,
+      message: `Invoice of $${invoice.totalPrice} has been paid by ${invoice.customerEmail} - ${invoice.invoiceNumber}`,
+      metadata: {
+        invoice_number: invoice.invoiceNumber,
+        customer_email: invoice.customerEmail,
+        paid_at: invoice.paidAt,
+        amount: invoice.totalPrice,
+        site_name: invoice.siteName,
+      }
+    });
+    
+    return true;
+  } catch (error) {
+    console.error("Error creating invoice payment notification:", error);
+    return false;
+  }
+} 

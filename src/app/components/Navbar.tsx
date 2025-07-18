@@ -104,6 +104,8 @@ export const Navbar = () => {
     } else if (notification.type === "new_lead") {
       // For new leads, go to leads page
       router.push("/leads");
+    } else if (notification.type === "invoice_paid") {
+      router.push("/invoice");
     }
 
     setIsNotificationsOpen(false);

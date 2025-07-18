@@ -320,9 +320,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const playNotificationSound = () => {
     try {
       const audio = new Audio("/notification.mp3");
-      audio.volume = 0.5; // Set volume to 50%
+      audio.volume = 0.5;
       audio.play().catch((err) => {
-        // Browser might block autoplay without user interaction
         console.log("Audio autoplay was blocked:", err);
       });
     } catch (err) {
@@ -337,6 +336,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     switch (type) {
       case "lead_converted":
       case "lead_resolved":
+      case "invoice_paid":
         return "success";
       case "lead_deleted":
       case "batch_delete":

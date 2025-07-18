@@ -69,7 +69,7 @@ const YourInvoicesPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-full mx-auto">
         <div className="text-center mb-6">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white mb-2">
@@ -98,17 +98,42 @@ const YourInvoicesPage = () => {
             </div>
           ) : (
             <>
-              <div className="bg-blue-50 dark:bg-gray-900 rounded-xl mb-6 py-6 px-4 md:px-8 flex flex-col md:flex-row justify-center items-center gap-4 md:gap-x-12 w-full">
-                <span className="text-2xl md:text-3xl font-bold text-blue-700 dark:text-blue-300">
+              <div className="bg-blue-50 dark:bg-gray-900 rounded-xl mb-4 py-4 px-4 flex flex-col md:flex-row justify-center items-center gap-4 w-full">
+                <span className="text-2xl md:text-2xl font-bold text-blue-700 dark:text-blue-300 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
                   Total: {sortedInvoices.length}
                 </span>
-                <span className="text-xl md:text-2xl font-bold text-green-700 dark:text-green-400">
+                <span className="text-xl md:text-2xl font-bold text-green-700 dark:text-green-400 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
                   Paid:{" "}
                   {sortedInvoices.filter((inv) => inv.status === "paid").length}
                 </span>
-                <span className="text-xl md:text-2xl font-bold text-yellow-700 dark:text-yellow-400">
+                <span className="text-xl md:text-2xl font-bold text-yellow-700 dark:text-yellow-400 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
                   Pending:{" "}
                   {sortedInvoices.filter((inv) => inv.status !== "paid").length}
+                </span>
+                <span className="text-xl md:text-2xl font-bold text-purple-700 dark:text-purple-400 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
+                  This Month Sales: $
+                  {(() => {
+                    const currentMonth = new Date().getMonth();
+                    const currentYear = new Date().getFullYear();
+                    return sortedInvoices
+                      .filter((inv) => {
+                        if (inv.status !== "paid" || !inv.paidAt) return false;
+                        const paidDate = new Date(inv.paidAt);
+                        return (
+                          paidDate.getMonth() === currentMonth &&
+                          paidDate.getFullYear() === currentYear
+                        );
+                      })
+                      .reduce((sum, inv) => sum + inv.totalPrice, 0)
+                      .toFixed(2);
+                  })()}
+                </span>
+                <span className="text-lg md:text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+                  Total Paid Sales: $
+                  {sortedInvoices
+                    .filter((inv) => inv.status === "paid")
+                    .reduce((sum, inv) => sum + inv.totalPrice, 0)
+                    .toFixed(2)}
                 </span>
               </div>
 

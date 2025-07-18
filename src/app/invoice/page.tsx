@@ -26,6 +26,7 @@ import type {
   CreateInvoiceApiResponse,
 } from "@/types/invoice";
 import { useApp } from "@/contexts/AppContext";
+import YourInvoicesPage from "./your-invoices/page";
 
 // Debounce utility function
 function debounce<T extends (...args: any[]) => any>(
@@ -938,22 +939,22 @@ const Invoice = () => {
           </div>
         </div>
       )}
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white mb-4">
-            Invoice Management
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300">
-            Create, manage, and track your invoices with ease
-          </p>
-        </div>
+      <div className="max-w-8xl mx-auto">
+        {/* Header and Create Button */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-8">
+          {/* Header - Left */}
+          <div className="text-left">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white mb-4">
+              Invoice Management
+            </h1>
+            <p className="text-lg text-gray-600 dark:text-gray-300">
+              Create, manage, and track your invoices with ease
+            </p>
+          </div>
 
-        {/* Main Content Area */}
-        <div className="flex flex-col items-center justify-center space-y-8">
-          {/* Big Creative Button */}
+          {/* Create Button - Right */}
           <div
-            className="relative group"
+            className="relative group flex-shrink-0"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
@@ -963,19 +964,19 @@ const Invoice = () => {
             {/* Main Button */}
             <button
               onClick={handleCreateInvoice}
-              className="relative px-12 py-8 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 text-white font-bold text-xl md:text-2xl rounded-2xl shadow-2xl transform transition-all duration-300 hover:scale-105 hover:shadow-purple-500/25 active:scale-95 group"
+              className="relative px-8 py-6 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 text-white font-bold text-lg md:text-xl rounded-2xl shadow-2xl transform transition-all duration-300 hover:scale-105 hover:shadow-purple-500/25 active:scale-95 group"
             >
               {/* Button Content */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
                 <div className="relative">
                   <Plus
-                    size={32}
+                    size={24}
                     className={`transition-all duration-300 ${
                       isHovered ? "rotate-90 scale-110" : "rotate-0"
                     }`}
                   />
                   <Sparkles
-                    size={16}
+                    size={12}
                     className="absolute -top-2 -right-2 text-yellow-300 animate-pulse"
                   />
                 </div>
@@ -984,7 +985,7 @@ const Invoice = () => {
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-300 transition-all duration-300 group-hover:w-full"></span>
                 </span>
                 <FileText
-                  size={32}
+                  size={24}
                   className={`transition-all duration-300 ${
                     isHovered ? "translate-x-2" : "translate-x-0"
                   }`}
@@ -997,10 +998,11 @@ const Invoice = () => {
               </div>
             </button>
           </div>
+        </div>
 
-          {/* Secondary Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
-            <button
+        {/* Secondary Actions */}
+        {/*<div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+             <button
               className="group relative overflow-hidden px-8 py-6 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:border-blue-400 dark:hover:border-blue-500"
               onClick={() => (window.location.href = "/invoice/your-invoices")}
             >
@@ -1014,9 +1016,9 @@ const Invoice = () => {
                 </span>
               </div>
               <div className="absolute bottom-0 left-0 w-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300 group-hover:w-full"></div>
-            </button>
+            </button> 
 
-            {/* <button className="group relative overflow-hidden px-8 py-6 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:border-green-400 dark:hover:border-green-500">
+           <button className="group relative overflow-hidden px-8 py-6 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:border-green-400 dark:hover:border-green-500">
               <div className="flex items-center justify-center space-x-3">
                 <Download
                   size={24}
@@ -1027,8 +1029,8 @@ const Invoice = () => {
                 </span>
               </div>
               <div className="absolute bottom-0 left-0 w-0 h-1 bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-300 group-hover:w-full"></div>
-            </button> */}
-          </div>
+            </button> 
+          </div >
           {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl mt-12">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-4">
@@ -1066,7 +1068,11 @@ const Invoice = () => {
               </p>
             </div>
           </div> */}
-        </div>
+      </div>
+
+      {/* Your Invoices Section */}
+      <div>
+        <YourInvoicesPage />
       </div>
 
       {/* Create Stripe Customer Modal */}

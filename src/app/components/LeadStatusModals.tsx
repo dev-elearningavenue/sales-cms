@@ -251,7 +251,7 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
                     <input
                       type="email"
                       value={lvmEmailData.to}
-                      disabled={!!lvmEmailData.to}
+                      // disabled={!!lvmEmailData.to}
                       onChange={(e) =>
                         setLvmEmailData({ ...lvmEmailData, to: e.target.value })
                       }
@@ -290,7 +290,7 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Email Message: <span className="text-red-500">*</span>
                   </label>
-                  <div className="text-gray-700 dark:text-white">
+                  <div className="text-gray-700">
                     <CKEditorWrapper
                       value={lvmEmailData.body}
                       onChange={(data: string) =>

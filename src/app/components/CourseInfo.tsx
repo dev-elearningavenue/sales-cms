@@ -25,7 +25,7 @@ const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
   const orderLead = (selectedLead.order_creation ||
     selectedLead.abandoned_cart) as OrderCreation | null;
 
-  console.log("CourseInfo - Order Lead: ", orderLead);
+  // console.log("CourseInfo - Order Lead: ", orderLead);
 
   if (!orderLead || !Array.isArray(orderLead.items)) {
     console.log("CourseInfo - No valid order data found");

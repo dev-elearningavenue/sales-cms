@@ -30,23 +30,17 @@ function transformWordPressData(wordpressData: any) {
     throw new Error("Missing customer email in order_data");
   }
 
-  let orderPrefix = "FOC";
+  const domainPrefixMap: Record<string, string> = {
+    "Osha 360 - Osha360": "360",
+    "Free Osha Courses - FOC": "FOC",
+    "Osha 30 Construction - 30Construction": "30Construction",
+    "EHS School - EHSS": "EHSS",
+    "NY Osha 30 - NY30": "NY30",
+    "EHS Practice - EHSP": "EHSP",
+    "Osha Practice - OP": "OP",
+  };
 
-  if (order_data.domain === "Osha 360 - Osha360") {
-    orderPrefix = "360";
-  } else if (order_data.domain === "Free Osha Courses - FOC") {
-    orderPrefix = "FOC";
-  } else if (order_data.domain === "Osha 30 Construction - 30Construction") {
-    orderPrefix = "30Construction";
-  } else if (order_data.domain === "EHS School - EHSS") {
-    orderPrefix = "EHSS";
-  } else if (order_data.domain === "NY Osha 30 - NY30") {
-    orderPrefix = "NY30";
-  } else if (order_data.domain === "EHS Practice - EHSP") {
-    orderPrefix = "EHSP";
-  } else if (order_data.domain === "Osha Practice - OP") {
-    orderPrefix = "OP";
-  }
+  const orderPrefix = domainPrefixMap[order_data.domain];
 
   // Transform the data structure
   const transformedData = {
@@ -60,7 +54,7 @@ function transformWordPressData(wordpressData: any) {
     address: order_data.address_1?.trim() + " " + order_data.address_2?.trim(),
     city: order_data.city?.trim(),
     state: order_data.state?.trim(),
-    postcode: order_data.postcode?.trim(),
+    zipCode: order_data.postcode?.trim(),
     country: order_data.country?.trim(),
     items: order_data.items || [],
     domain: order_data.domain,
@@ -90,7 +84,7 @@ export async function POST(request: NextRequest) {
     let orderData;
     if (isWordPressData) {
       orderData = transformWordPressData(body);
-      console.log("Transformed data:", orderData);
+      console.log("Transformed data: ", orderData);
     } else {
       orderData = body;
     }

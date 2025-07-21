@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/utils/auth";
 import nodemailer from "nodemailer";
 import { getDomainSMTPConfig } from "@/utils/helper";
+import EmailLog from "@/models/email";
 
 export async function POST(req: NextRequest) {
   try {
@@ -58,12 +59,25 @@ export async function POST(req: NextRequest) {
           <br><br>
         </div>
       `,
-      text: body, // Plain text version
+      text: body,
     };
     
     const emailResult = await transporter.sendMail(mailOptions);
     console.log("Email sent successfully:", emailResult.messageId);
-    
+
+    // Save email log to DB
+    try {
+      await EmailLog.create({
+        to,
+        subject,
+        body,
+        agentId: decoded.data._id,
+        sentAt: new Date(),
+      });
+    } catch (err) {
+      console.error("Failed to log sent email:", err);
+    }
+
     return NextResponse.json({
       success: true,
       message: "Email sent successfully",

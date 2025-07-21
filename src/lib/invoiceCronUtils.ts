@@ -51,7 +51,7 @@ export const updateInvoiceStatus = async () => {
         try {
           await createInvoicePaymentNotification(inv);
           console.log(
-            `Notification created for invoice ${inv.invoiceNumber} ${inv.totalPrice} payment`
+            `Notification created for invoice ${inv.invoiceNumber} for ${inv.totalPrice} payment`
           );
         } catch (error) {
           console.error(

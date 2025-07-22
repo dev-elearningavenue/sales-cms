@@ -132,7 +132,7 @@ const Sidebar = () => {
       ref={sidebarRef}
       className={`${
         isExpanded ? "w-64" : "w-16"
-      } h-full dark:bg-gray-800 bg-white text-black dark:text-white p-4 transition-all duration-300 ease-in-out relative group fixed left-0 top-0 shadow-md z-10 overflow-hidden`}
+      } h-full dark:bg-gray-800 bg-white text-black dark:text-white p-4 transition-all duration-300 ease-in-out relative group left-0 top-0 shadow-md z-10 overflow-hidden`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >

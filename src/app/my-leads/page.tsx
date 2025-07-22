@@ -897,13 +897,13 @@ const MyLeads = () => {
                     className={`px-4 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       selectedLead.status === "Converted"
                         ? "bg-green-100 text-green-800 border-green-200"
-                        : selectedLead.status === "Follow Up"
+                        : (selectedLead.status || "").startsWith("Follow Up")
                         ? "bg-yellow-100 text-yellow-800 border-yellow-200"
                         : selectedLead.status === "Pending"
                         ? "bg-gray-100 text-gray-800 border-gray-200"
                         : "bg-blue-100 text-blue-800 border-blue-200"
                     }`}
-                    value={selectedLead.status}
+                    value={getFollowUpDisplayStatus(selectedLead)}
                     onChange={(e) => {
                       handleStatusChange(
                         selectedLead._id as string,
@@ -915,13 +915,19 @@ const MyLeads = () => {
                       });
                     }}
                   >
+                    <option value={getFollowUpDisplayStatus(selectedLead)}>
+                      {getFollowUpDisplayStatus(selectedLead)}
+                    </option>
                     {getStatusOptionsForCategory(
-                      selectedLead.category as string
-                    ).map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
+                      selectedLead.category as string,
+                      selectedLead
+                    )
+                      .filter((opt) => opt !== getFollowUpDisplayStatus(selectedLead))
+                      .map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>

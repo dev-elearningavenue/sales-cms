@@ -204,15 +204,15 @@ const Sidebar = () => {
           isExpanded={isExpanded}
         /> */}
         <NavItem
-          icon={<User size={20} />}
-          text="Profile"
-          href="/profile"
-          isExpanded={isExpanded}
-        />
-        <NavItem
           icon={<Receipt size={20} />}
           text="Invoice"
           href="/invoice"
+          isExpanded={isExpanded}
+        />
+        <NavItem
+          icon={<User size={20} />}
+          text="Profile"
+          href="/profile"
           isExpanded={isExpanded}
         />
       </ul>

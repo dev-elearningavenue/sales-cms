@@ -34,20 +34,58 @@ const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
 
   return (
     <>
-      <div className="mt-4">
-        <h4 className="text-sm font-medium text-gray-800 mb-2">Courses</h4>
-        {orderLead?.items?.length > 0 ? (
-          orderLead?.items.map((item: OrderItem, idx: number) => (
-            <div
-              key={idx}
-              className="p-3 mb-2 border border-gray-200 rounded-md"
-            >
-              <Field label="Course Title" value={item.title} />
-              <Field label="Price" value={String(item.price)} />
-              <Field label="Quantity" value={String(item.quantity)} />
-              {/* Add more fields as needed, e.g. item.category, item.discount, etc. */}
-            </div>
-          ))
+      <div className="mt-4 mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-sm font-medium text-gray-800">Courses</h4>
+          {Array.isArray(orderLead?.items) && orderLead.items.length > 0 && (
+            <span className="text-sm font-semibold text-gray-700">
+              Total Price: ${orderLead.total}
+              {/* orderLead.items
+                  .reduce(
+                    (sum: number, item: OrderItem) =>
+                      sum + item.price * (item.quantity || 1),
+                    0
+                  )
+                  .toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  } */}
+            </span>
+          )}
+        </div>
+        {Array.isArray(orderLead?.items) && orderLead.items.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full border border-gray-200 rounded-lg">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
+                    Course Title
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
+                    Price
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
+                    Quantity
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {orderLead.items.map((item: OrderItem, idx: number) => (
+                  <tr key={idx} className="border-t">
+                    <td className="px-3 py-2 text-sm text-gray-900">
+                      {item.title}
+                    </td>
+                    <td className="px-3 py-2 text-sm text-gray-900">
+                      {item.price}
+                    </td>
+                    <td className="px-3 py-2 text-sm text-gray-900">
+                      {item.quantity}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <p className="text-gray-500">No items found.</p>
         )}

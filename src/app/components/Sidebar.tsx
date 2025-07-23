@@ -55,7 +55,6 @@ const Sidebar = () => {
         const unassignedData = await unassignedRes.json();
         setUnassignedLeads(unassignedData.count || 0);
 
-        // Fetch unresolved assigned leads count
         const unresolvedRes = await fetch("/api/my-leads/count?resolved=false");
         if (unresolvedRes.status === 401) {
           console.log("Auth error in my-leads count, user needs to re-login");
@@ -63,8 +62,8 @@ const Sidebar = () => {
         }
         const unresolvedData = await unresolvedRes.json();
         setUnresolvedLeads(unresolvedData.count || 0);
-      } catch (error) {
-        console.error("Error fetching lead counts:", error);
+      } catch (error: any) {
+        console.error("Error fetching lead counts: ", error.message);
       }
     };
 

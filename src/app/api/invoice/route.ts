@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createInvoice, CreateInvoiceRequest } from "@/controllers/invoiceController";
+import {
+  createInvoice,
+  CreateInvoiceRequest,
+  getAllInvoices,
+  getInvoicesByAgent,
+} from "@/controllers/invoiceController";
 import { verifyToken } from "@/utils/auth";
 import { cookies } from "next/headers";
 import { TokenPayload } from "@/types/auth";
@@ -26,7 +31,10 @@ const processExternalInvoice = async (invoiceData: any) => {
       return { success: true, data: result };
     } else {
       console.error("External invoice API error:", result);
-      return { success: false, error: result.error || "External API call failed" };
+      return {
+        success: false,
+        error: result.error || "External API call failed",
+      };
     }
   } catch (error) {
     console.error("Error calling external invoice API:", error);
@@ -39,7 +47,7 @@ export async function POST(request: NextRequest) {
     // Verify authentication
     const cookieStore = cookies();
     const token = cookieStore.get("token");
-    
+
     if (!token) {
       return NextResponse.json(
         { success: false, error: "Authentication required" },
@@ -79,7 +87,7 @@ export async function POST(request: NextRequest) {
     const dueDate = new Date(invoiceData.dueDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     if (dueDate < today) {
       return NextResponse.json(
         {
@@ -94,9 +102,9 @@ export async function POST(request: NextRequest) {
     const getSiteCode = (siteName: string) => {
       const siteMap: { [key: string]: string } = {
         "OSHA OUTREACH COURSES": "001",
-        "OSHA ONLINE CENTER": "002", 
+        "OSHA ONLINE CENTER": "002",
         "OSHA EDUCATION SCHOOL": "003",
-        "OSHA PRO": "004"
+        "OSHA PRO": "004",
       };
       return siteMap[siteName] || "001";
     };
@@ -105,13 +113,13 @@ export async function POST(request: NextRequest) {
     const externalInvoiceData = {
       site_name: getSiteCode(invoiceData.siteName),
       send_email: "yes", // Always send email as per your requirement
-      product_ids: invoiceData.products.map(product => product.product_id),
-      price_ids: invoiceData.products.map(product => product.price_id),
-      quantities: invoiceData.products.map(product => product.quantity),
+      product_ids: invoiceData.products.map((product) => product.product_id),
+      price_ids: invoiceData.products.map((product) => product.price_id),
+      quantities: invoiceData.products.map((product) => product.quantity),
       due_date: invoiceData.dueDate,
       coupon_id: invoiceData.coupon || "",
       agent_name: userData.full_name,
-      customer_id: invoiceData.customerId
+      customer_id: invoiceData.customerId,
     };
 
     // Create the invoice on stripe first
@@ -125,15 +133,20 @@ export async function POST(request: NextRequest) {
       }
       // If stripe database creation was successful, call local API
       const result = await createInvoice(invoiceData);
-      let percent_off = invoiceData.percent_off || '';
-      return NextResponse.json({
-        ...result,
-        externalApiSuccess: !!externalResult.success,
-        externalData: externalResult.data,
-        percent_off,
-        externalError: externalResult.error,
-        warning: !externalResult.success ? "Invoice created locally but external processing failed" : undefined
-      }, { status: 201 });
+      let percent_off = invoiceData.percent_off || "";
+      return NextResponse.json(
+        {
+          ...result,
+          externalApiSuccess: !!externalResult.success,
+          externalData: externalResult.data,
+          percent_off,
+          externalError: externalResult.error,
+          warning: !externalResult.success
+            ? "Invoice created locally but external processing failed"
+            : undefined,
+        },
+        { status: 201 }
+      );
     } else {
       return NextResponse.json(externalResult, { status: 400 });
     }
@@ -156,7 +169,7 @@ export async function GET(request: NextRequest) {
     // Verify authentication
     const cookieStore = cookies();
     const token = cookieStore.get("token");
-    
+
     if (!token) {
       return NextResponse.json(
         { success: false, error: "Authentication required" },
@@ -172,16 +185,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Type assertion for token data
     const userData = tokenResult.data as unknown as TokenPayload;
+    const invoices = await getAllInvoices();
 
-    // This can be extended to fetch invoices based on query parameters
-    return NextResponse.json({
-      success: true,
-      message: "Invoice API is working",
-      agent: userData.full_name
-    });
-
+    return NextResponse.json({ success: true, invoices });
   } catch (error: any) {
     console.error("Error in invoice API:", error);
     return NextResponse.json(
@@ -193,4 +200,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

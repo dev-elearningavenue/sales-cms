@@ -6,8 +6,8 @@ import connectDB from "@/lib/db"; // Ensure you have a DB connection utility
   await connectDB();
 
   cron.schedule("* * * * *", async () => {
-    console.log("Running invoice status updater cron job...");
+    // console.log("Running invoice status updater cron job...");
     await updateInvoiceStatus();
   });
-
+  
 })();

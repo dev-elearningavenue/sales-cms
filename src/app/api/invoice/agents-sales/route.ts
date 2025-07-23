@@ -5,7 +5,6 @@ import User from "@/models/user";
 
 export async function GET(req: NextRequest) {
   try {
-    // Get user ID from token
     const tokenData = await getDataFromToken();
     if (!tokenData || typeof tokenData !== "object" || !tokenData._id) {
       return NextResponse.json(

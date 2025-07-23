@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
     });
 
     return response;
-  } catch (error) {
-    console.error("Error in logout route:", error);
+  } catch (error: any) {
+    console.error("Error in logout route:", error.message);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }

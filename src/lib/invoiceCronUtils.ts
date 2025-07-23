@@ -24,8 +24,8 @@ const fetchInvoiceStatus = async (
       return { status: data.data.status, paidAt: data.data.paidAt };
     }
     return { status: "unpaid", paidAt: null };
-  } catch (error) {
-    console.error("Error fetching invoice status:", error);
+  } catch (error: any) {
+    console.error("Error fetching invoice status:", error.message);
     return { status: "", paidAt: null };
   }
 };
@@ -33,7 +33,7 @@ const fetchInvoiceStatus = async (
 export const updateInvoiceStatus = async () => {
   try {
     // Fetch all invoices
-    console.log("Fetching all unpaid invoices to update status...");
+    // console.log("Fetching all unpaid invoices to update status...");
     const invoices = await Invoice.find({ status: "unpaid" });
 
     for (const inv of invoices) {

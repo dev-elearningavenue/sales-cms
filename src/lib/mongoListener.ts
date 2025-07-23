@@ -62,8 +62,8 @@ async function ensureConnection(
       }
     }
     return client;
-  } catch (error) {
-    console.error(`Error ensuring ${name} connection:`, error);
+  } catch (error: any) {
+    console.error(`Error ensuring ${name} connection:`, error.message);
     throw error;
   }
 }
@@ -248,10 +248,10 @@ function setupScholarshipCollectionWatch(
     }
   });
 
-  changeStream.on("error", (err) => {
+  changeStream.on("error", (err: any) => {
     console.error(
       `Change Stream Error in ${domain} scholarship watch, triggering restart:`,
-      err
+      err.message
     );
     restartWatchers().catch((restartErr) => {
       console.error("Failed to trigger watcher restart:", restartErr);
@@ -304,10 +304,10 @@ function setupUserCollectionWatch(
     }
   });
 
-  changeStream.on("error", (err) => {
+  changeStream.on("error", (err: any) => {
     console.error(
       `Change Stream Error in ${domain} user watch, triggering restart:`,
-      err
+      err.message
     );
     restartWatchers().catch((restartErr) => {
       console.error("Failed to trigger watcher restart:", restartErr);
@@ -352,10 +352,10 @@ function setupContactUsCollectionWatch(
     }
   });
 
-  changeStream.on("error", (err) => {
+  changeStream.on("error", (err: any) => {
     console.error(
       `Change Stream Error in ${domain} contact watch, triggering restart:`,
-      err
+      err.message
     );
     restartWatchers().catch((restartErr) => {
       console.error("Failed to trigger watcher restart:", restartErr);
@@ -517,10 +517,10 @@ function setupOrderCollectionWatch(
     }
   });
 
-  changeStream.on("error", (err) => {
+  changeStream.on("error", (err: any) => {
     console.error(
       `Change Stream Error in ${domain} orders watch, triggering restart:`,
-      err
+      err.message
     );
     restartWatchers().catch((restartErr) => {
       console.error("Failed to trigger watcher restart:", restartErr);
@@ -663,8 +663,8 @@ export function getLeadDetails(
 
 // Improve connection monitoring
 function setupConnectionMonitoring() {
-  const CHECK_INTERVAL = 30 * 60 * 1000; // Check every 30 minutes
-  const HEALTH_CHECK_TIMEOUT = 30 * 60000; // 30 min timeout for health checks
+  const CHECK_INTERVAL = 20 * 60 * 1000; // Check every 20 minutes
+  const HEALTH_CHECK_TIMEOUT = 20 * 60000; // 20 min timeout for health checks
 
   setInterval(async () => {
     try {

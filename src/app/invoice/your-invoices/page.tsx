@@ -10,6 +10,7 @@ interface Invoice {
   totalPrice: number;
   dueDate: string;
   status: string;
+  agentName: String;
   hostedUrl?: string;
   createdAt: string;
   siteName?: string;
@@ -28,6 +29,11 @@ interface AgentSales {
 }
 
 const YourInvoicesPage = () => {
+  // Filter state for admin
+  const [filterAgent, setFilterAgent] = useState<string>("");
+  const [filterStatus, setFilterStatus] = useState<string>("");
+  const [filterDate, setFilterDate] = useState<string>(""); // "today" or custom date
+
   const { session } = useApp();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [agentsSales, setAgentsSales] = useState<AgentSales[]>([]);
@@ -65,7 +71,11 @@ const YourInvoicesPage = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/invoice/your-invoices");
+        let endpoint = "/api/invoice/your-invoices";
+        if (session && (session.user_type === 1 || session.user_type === 2)) {
+          endpoint = "/api/invoice/";
+        }
+        const res = await fetch(endpoint);
         const data = await res.json();
         if (res.ok && data.success) {
           setInvoices(data.invoices || []);
@@ -83,6 +93,38 @@ const YourInvoicesPage = () => {
   }, [session]);
 
   let sortedInvoices = [...invoices];
+
+  // Admin filtering logic
+  let filteredInvoices = sortedInvoices;
+  if (session && (session.user_type === 1 || session.user_type === 2)) {
+    filteredInvoices = sortedInvoices.filter((inv) => {
+      let pass = true;
+      if (filterAgent) {
+        pass = pass && inv.agentName === filterAgent;
+      }
+      if (filterStatus) {
+        pass = pass && inv.status === filterStatus;
+      }
+      if (filterDate === "today") {
+        const today = new Date();
+        const created = new Date(inv.createdAt);
+        pass =
+          pass &&
+          created.getFullYear() === today.getFullYear() &&
+          created.getMonth() === today.getMonth() &&
+          created.getDate() === today.getDate();
+      } else if (filterDate) {
+        const selected = new Date(filterDate);
+        const created = new Date(inv.createdAt);
+        pass =
+          pass &&
+          created.getFullYear() === selected.getFullYear() &&
+          created.getMonth() === selected.getMonth() &&
+          created.getDate() === selected.getDate();
+      }
+      return pass;
+    });
+  }
   if (sortBy === "dueDate") {
     sortedInvoices.sort((a, b) => {
       const aDate = new Date(a.dueDate);
@@ -125,7 +167,7 @@ const YourInvoicesPage = () => {
               </div>
             ) : agentsSales.length > 0 ? (
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
                   {agentsSales.map((agent) => (
                     <div
                       key={agent.agentId}
@@ -230,14 +272,16 @@ const YourInvoicesPage = () => {
           </div>
         )}
 
-        <div className="text-center mb-6">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white mb-2">
-            Your Invoices
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300">
-            View all invoices you have created
-          </p>
-        </div>
+        {session && session.user_type === 3 && (
+          <div className="text-center mb-6">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white mb-2">
+              Your Invoices
+            </h1>
+            <p className="text-lg text-gray-600 dark:text-gray-300">
+              View all invoices you have created
+            </p>
+          </div>
+        )}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-4 md:p-8">
           {loading ? (
             <div className="flex justify-center items-center py-12">
@@ -257,6 +301,7 @@ const YourInvoicesPage = () => {
             </div>
           ) : (
             <>
+              {/* Only show filteredInvoices for admin, otherwise sortedInvoices */}
               <div className="bg-blue-50 dark:bg-gray-900 rounded-xl mb-4 py-4 px-4 flex flex-col md:flex-row justify-center items-center gap-4 w-full">
                 <span className="text-2xl md:text-2xl font-bold text-blue-700 dark:text-blue-300 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
                   Total: {sortedInvoices.length}
@@ -297,6 +342,46 @@ const YourInvoicesPage = () => {
               </div>
 
               <div className="overflow-x-auto md:-mx-6">
+                {session &&
+                  (session.user_type === 1 || session.user_type === 2) && (
+                    <div className="mb-6 flex flex-col md:flex-row gap-4 items-center justify-center">
+                      <select
+                        value={filterAgent}
+                        onChange={(e) => setFilterAgent(e.target.value)}
+                        className="px-3 py-2 border rounded-md text-sm w-40"
+                      >
+                        <option value="">All Agents</option>
+                        <option value="Faizyab Ali">Faizyab Ali</option>
+                        <option value="Hussain Moiz">Hussain Moiz</option>
+                        <option value="Rafey Haq">Rafey Haq</option>
+                      </select>
+                      <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        className="px-3 py-2 border rounded-md text-sm w-40"
+                      >
+                        <option value="">All Statuses</option>
+                        <option value="paid">Paid</option>
+                        <option value="unpaid">Unpaid</option>
+                      </select>
+                      <select
+                        value={filterDate}
+                        onChange={(e) => setFilterDate(e.target.value)}
+                        className="px-3 py-2 border rounded-md text-sm w-40"
+                      >
+                        <option value="">All Dates</option>
+                        <option value="today">Today</option>
+                      </select>
+                      <input
+                        type="date"
+                        value={
+                          filterDate && filterDate !== "today" ? filterDate : ""
+                        }
+                        onChange={(e) => setFilterDate(e.target.value)}
+                        className="px-3 py-2 border rounded-md text-sm w-40"
+                      />
+                    </div>
+                  )}
                 <table className="min-w-full table-fixed divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-700 rounded-sm">
                     <tr>
@@ -361,7 +446,11 @@ const YourInvoicesPage = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
-                    {sortedInvoices.map((inv, idx) => (
+                    {(session &&
+                    (session.user_type === 1 || session.user_type === 2)
+                      ? filteredInvoices
+                      : sortedInvoices
+                    ).map((inv, idx) => (
                       <tr
                         key={inv._id}
                         className="hover:bg-blue-50 dark:hover:bg-gray-700 transition"

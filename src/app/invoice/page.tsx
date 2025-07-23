@@ -502,14 +502,13 @@ const Invoice = () => {
     if (step === 2) {
       setStep(1);
       setCustomerExists(false);
-      // Clear only customer data when going back to step 1
+      // Clear only customer data
       setFormData((prev) => ({
         ...prev,
         fullName: "",
         contactNo: "",
       }));
     }
-    // Note: No back option from step 3 to step 2 as requested
   };
 
   // Calculate total price with coupon discount

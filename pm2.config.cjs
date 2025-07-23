@@ -5,6 +5,7 @@ module.exports = {
       script: "npm",
       args: "start",
       interpreter: "none",
+      node_args: "--max-old-space-size=2048",
       env: {
         NODE_ENV: "production",
         PORT: 3000

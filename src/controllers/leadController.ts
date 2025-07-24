@@ -72,6 +72,9 @@ export const getAllLeads = async (options?: {
     if (await Lead.exists({ shortcourse_discount: { $ne: null } })) {
       populations.push({ path: "shortcourse_discount", model: "ShortCourseDiscount" });
     }
+    if (await Lead.exists({ invoice: { $ne: null } })) {
+      populations.push({ path: "invoice", model: "Invoice" });
+    }
     // Add assigned_to population
     populations.push({
       path: "assigned_to",
@@ -99,7 +102,7 @@ export const getAllLeads = async (options?: {
   }
 };
 
-export const createLead = async (
+export const createBulkLeads = async (
   ids: string[],
   requestBody: Partial<ILead>
 ) => {
@@ -109,6 +112,10 @@ export const createLead = async (
     scholarship,
     free_signup,
     abandoned_cart,
+    order_creation,
+    shortcourse_discount,
+    custom_lead,
+    invoice,
     status,
     resolve_status,
     assigned,
@@ -122,28 +129,10 @@ export const createLead = async (
   // Required fields validation
   if (!category || !domain || assigned === null) {
     return {
+      success: false,
       message: "Category, Domain, and assigned status are required.",
     };
   }
-
-  const newLead = new Lead({
-    category,
-    contact_us: contact_us || null,
-    scholarship: scholarship || null,
-    free_signup: free_signup || null,
-    abandoned_cart: abandoned_cart || null,
-    status: status || "Pending",
-    resolve_status: resolve_status || "Pending",
-    assigned,
-    assigned_to: assigned_to || null,
-    created_by: created_by,
-    domain,
-    next_follow_up,
-    conversion_value,
-    notes: [],
-  });
-
-  // Function to get random category
   const getRandomCategory = () => {
     return Math.random() < 0.5 ? "Free SignUp" : "Free Study Guide";
   };
@@ -196,6 +185,7 @@ export const createLead = async (
     }
 
     return {
+      success: true,
       message: "Leads created successfully",
       insertedCount: result.insertedCount,
     };
@@ -203,7 +193,83 @@ export const createLead = async (
     if (error.cause) {
       console.error("Cause of error:", error.cause);
     }
-    return { message: "Error creating lead", error: error.message };
+    return { 
+      success: false, 
+      message: "Error creating bulk leads", 
+      error: error.message 
+    };
+  }
+};
+
+export const createLead = async (requestBody: Partial<ILead>) => {
+  const {
+    category,
+    invoice,
+    status,
+    resolve_status,
+    assigned,
+    assigned_to,
+    created_by,
+    domain,
+    next_follow_up,
+    conversion_value,
+  } = requestBody;
+
+  // Required fields validation
+  if (!category || !domain || assigned === null) {
+    return {
+      success: false,
+      message: "Category, Domain, and assigned status are required.",
+    };
+  }
+
+  try {
+    console.log("Creating lead controller:", requestBody);
+    const newLead = new Lead({
+      category,
+      invoice: invoice || null,
+      status: status || "Pending",
+      resolve_status: resolve_status || "Pending",
+      assigned,
+      assigned_to: assigned_to || null,
+      assignedAt: new Date(),
+      resolved: false,
+      resolvedAt: null,
+      created_by: created_by,
+      domain,
+      next_follow_up,
+      conversion_value,
+      notes: [],
+    });
+
+    const savedLead = await newLead.save();
+
+    // Populate the lead for notifications and socket events
+    const populatedLead = await Lead.findById(savedLead._id).populate([
+      { path: "assigned_to", model: "User", select: "full_name user_name" },
+      { path: "invoice", model: "Invoice" },
+    ]);
+
+    if (populatedLead) {
+      createNewLeadNotification(populatedLead);
+
+      if (socketServer) {
+        socketServer.emitNewLead(populatedLead);
+      }
+    }
+
+    return {
+      success: true,
+      message: "Invoice Lead created successfully",
+      lead: populatedLead,
+    };
+  } catch (error: any) {
+    console.error("Error creating lead:", error);
+    return { 
+      success: false, 
+      message: "Error creating Invoice Lead", 
+      error: error.message 
+    };
   }
 };
 
@@ -231,6 +297,9 @@ export const getLeadsByUser = async (userId: string) => {
     }
     if (await Lead.exists({ shortcourse_discount: { $ne: null } })) {
       populations.push({ path: "shortcourse_discount", model: "ShortCourseDiscount" });
+    }
+    if (await Lead.exists({ invoice: { $ne: null } })) {
+      populations.push({ path: "invoice", model: "Invoice" });
     }
     // Add assigned_to population - this was missing!
     populations.push({

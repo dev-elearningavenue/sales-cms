@@ -26,8 +26,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Get the user ID as a string if it exists
     const createdById = tokenData._id ? tokenData._id.toString() : undefined;
 
     // Use the controller function to create the custom lead

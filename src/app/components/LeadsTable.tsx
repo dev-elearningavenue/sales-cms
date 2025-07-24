@@ -1072,6 +1072,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                           lead.scholarship,
                           lead.custom_lead,
                           lead.abandoned_cart,
+                          lead.invoice,
                         ]
                           .map((entry) =>
                             entry &&

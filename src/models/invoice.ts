@@ -13,6 +13,8 @@ export interface IInvoice extends Document {
   _id: string;
   customerId: string;
   customerEmail: string;
+  firstName?: string;
+  lastName?: string;
   siteName: string;
   products: IInvoiceProduct[];
   dueDate: string;
@@ -43,6 +45,8 @@ const InvoiceProductSchema = new Schema({
 const InvoiceSchema = new Schema({
   customerId: { type: String, required: true },
   customerEmail: { type: String, required: true },
+  firstName: { type: String, default: '' },
+  lastName: { type: String, default: '' },
   siteName: { type: String, required: true },
   products: [InvoiceProductSchema],
   dueDate: { type: String, required: true },

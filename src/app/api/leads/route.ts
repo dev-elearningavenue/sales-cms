@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getAllLeads,
   createLead,
+  createBulkLeads,
   deleteLead,
   batchDeleteLeads,
 } from "@/controllers/leadController";
@@ -122,12 +123,31 @@ async function getTotalLeadsCount(type?: string | null): Promise<number> {
 }
 
 export async function POST(req: Request) {
-  const ids = [""];
+  const body = await req.json();
 
-  const body = await req.json(); // You will need to extract the JSON body from the request
-  const newLead = await createLead(ids, body);
+  // If category is 'Invoice' and invoice is present, only set required fields and reference invoice
+  if (body.category === "Invoice" && body.invoice) {
+    const leadData = {
+      category: "Invoice",
+      invoice: body.invoice,
+      status: "Pending",
+      resolve_status: "Pending",
+      assigned: body.assigned || false,
+      assigned_to: body.assigned_to || null,
+      created_by: body.created_by || null,
+      domain: body.domain,
+      conversion_value: body.conversion_value || null,
+    };
+    const newLead = await createLead(leadData);
+    if (!newLead.success) {
+      return NextResponse.json(newLead, { status: 500 });
+    }
+    return NextResponse.json(newLead, { status: 201 });
+  }
 
-  if (newLead.error) {
+  // Otherwise, pass all fields as before
+  const newLead = await createLead(body);
+  if (!newLead.success) {
     return NextResponse.json(newLead, { status: 500 });
   }
   return NextResponse.json(newLead, { status: 201 });

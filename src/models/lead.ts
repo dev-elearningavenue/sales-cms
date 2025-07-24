@@ -12,6 +12,7 @@ const lead_category_enum = [
   "Unpaid Training",
   "Short Course Discount",
   "SC Group Discount",
+  "Invoice",
   "Unknown"
 ] as const;
 
@@ -74,6 +75,11 @@ const leadSchema = new Schema<ILead>(
     custom_lead: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "CustomLead",
+      required: false,
+    },
+    invoice: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Invoice",
       required: false,
     },
     status: {

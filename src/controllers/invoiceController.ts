@@ -5,6 +5,8 @@ import mongoose from "mongoose";
 export interface CreateInvoiceRequest {
   customerId: string;
   customerEmail: string;
+  firstName?: string;
+  lastName?: string;
   siteName: string;
   products: IInvoiceProduct[];
   dueDate: string;
@@ -34,7 +36,9 @@ export const createInvoice = async (
 ): Promise<CreateInvoiceResponse> => {
   try {
     await connectDB();
-    // console.log("Invoice data received:", invoiceData);
+    console.log("Invoice data received:", invoiceData);
+    console.log("firstName:", invoiceData.firstName);
+    console.log("lastName:", invoiceData.lastName);
 
     // Validate required fields
     if (
@@ -93,6 +97,8 @@ export const createInvoice = async (
     const newInvoice = new Invoice({
       customerId: invoiceData.customerId,
       customerEmail: invoiceData.customerEmail,
+      firstName: invoiceData.firstName || "",
+      lastName: invoiceData.lastName || "",
       siteName: invoiceData.siteName,
       products: invoiceData.products,
       dueDate: invoiceData.dueDate,
@@ -107,12 +113,17 @@ export const createInvoice = async (
       invoiceNumber: invoiceData.invoiceNumber || "",
       status: "unpaid",
     });
+    
+    console.log("New Invoice object:", newInvoice);
 
     const savedInvoice = await newInvoice.save();
 
     return {
       success: true,
       message: "Invoice created successfully",
+      invoiceId: savedInvoice._id.toString(),
+      invoiceNumber: savedInvoice.invoiceNumber,
+      hostedUrl: savedInvoice.hostedUrl,
     };
   } catch (error: any) {
     console.error("Error creating invoice:", error);

@@ -908,25 +908,36 @@ const Leads = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex justify-between gap-3 mt-6">
                 <button
                   type="button"
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                   onClick={() => {
-                    setIsCreateModalOpen(false);
-                    resetForm();
+                    /* TODO: Add send invoice logic here */
                   }}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                  disabled={isSubmitting}
                 >
-                  Cancel
+                  Send Invoice
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Creating..." : "Create Lead"}
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreateModalOpen(false);
+                      resetForm();
+                    }}
+                    className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Creating..." : "Create Lead"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

@@ -19,6 +19,7 @@ export interface ILead extends Document {
   order_creation?: mongoose.Types.ObjectId | OrderCreation;
   shortcourse_discount?: mongoose.Types.ObjectId;
   custom_lead?: mongoose.Types.ObjectId | ICustomLead;
+  invoice?: mongoose.Types.ObjectId;
   status?: string;
   assigned?: Boolean;
   assignedAt?: Date;

@@ -64,6 +64,8 @@ export interface SiteOption {
 export interface CreateInvoiceApiRequest {
   customerId: string;
   customerEmail: string;
+  firstName?: string;
+  lastName?: string;
   siteName: string;
   products: InvoiceProduct[];
   dueDate: string;

@@ -129,6 +129,17 @@ const Invoice = () => {
     return site ? site.code : "";
   };
 
+  // Get domain from site name for lead creation
+  const getDomainFromSiteName = (siteName: string) => {
+    const domainMap: { [key: string]: string } = {
+      "OSHA OUTREACH COURSES": "OOR",
+      "OSHA ONLINE CENTER": "OOC",
+      "OSHA EDUCATION SCHOOL": "OES",
+      "OSHA PRO": "FOC",
+    };
+    return domainMap[siteName] || "OOR";
+  };
+
   // Initialize product search state for a specific product
   const initializeProductSearchState = (productIndex: number) => {
     setProductSearchStates((prev) => ({
@@ -788,7 +799,6 @@ const Invoice = () => {
 
     setIsCreatingInvoice(true);
     try {
-      // Calculate subtotal and discount
       const subtotal = invoiceData.products.reduce(
         (sum, product) => sum + product.total,
         0
@@ -810,13 +820,24 @@ const Invoice = () => {
           discount = selectedCoupon.amount_off;
         }
       }
-
       const finalTotal = subtotal - discount;
-
+      // Handle firstName and lastName for both new and existing customers
+      let firstName = formData.firstName;
+      let lastName = formData.lastName;
+      
+      // If it's an existing customer, split the fullName
+      if (customerExists && formData.fullName && !firstName && !lastName) {
+        const nameParts = formData.fullName.trim().split(' ');
+        firstName = nameParts[0] || '';
+        lastName = nameParts.slice(1).join(' ') || '';
+      }
+      
       // Prepare invoice data for API
       const invoiceApiData: CreateInvoiceApiRequest = {
         customerId: invoiceData.customerId,
         customerEmail: formData.email,
+        firstName: firstName,
+        lastName: lastName,
         siteName: formData.siteName,
         products: invoiceData.products,
         dueDate: invoiceData.dueDate,
@@ -829,7 +850,14 @@ const Invoice = () => {
         percent_off: percentOffString,
         hostedUrl: "",
       };
+      
+      console.log("Invoice API Data:", invoiceApiData);
+      console.log("Form Data firstName:", firstName);
+      console.log("Form Data lastName:", lastName);
+      console.log("Customer exists:", customerExists);
+      console.log("Form Data fullName:", formData.fullName);
 
+      // 1. Create Invoice
       const response = await fetch("/api/invoice", {
         method: "POST",
         headers: {
@@ -841,7 +869,40 @@ const Invoice = () => {
       const result: CreateInvoiceApiResponse = await response.json();
 
       console.log("Response of Invoice Api", result);
+      console.log("Invoice ID from response:", result.invoiceId);
       if (response.ok && result.success) {
+        // 2. Create Lead with category 'Invoice' and reference to invoice ID
+        const leadData = {
+          category: "Invoice",
+          invoice: result.invoiceId, // Reference to the created invoice
+          status: "Pending",
+          resolve_status: "Pending",
+          assigned: true,
+          assigned_to: session._id,
+          created_by: session._id,
+          domain: getDomainFromSiteName(formData.siteName),
+          conversion_value: finalTotal,
+        };
+        console.log("Creating invoice lead with data:", leadData);
+        try {
+          const leadResponse = await fetch("/api/leads", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(leadData),
+          });
+
+          const leadResult = await leadResponse.json();
+          console.log("Lead creation response:", leadResult);
+
+          if (!leadResponse.ok) {
+            console.error("Failed to create lead... ", leadResult);
+          }
+        } catch (err) {
+          console.error("Error creating invoice lead:", err);
+        }
+
         // Show static success overlay instead of alert
         setShowModal(false);
         setShowSuccess(true);

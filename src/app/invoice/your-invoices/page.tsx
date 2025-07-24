@@ -214,7 +214,7 @@ const YourInvoicesPage = () => {
 
                 {/* Summary Stats */}
                 <div className="mt-6 bg-blue-50 dark:bg-gray-900 rounded-xl p-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
                     <div>
                       <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                         $
@@ -235,6 +235,14 @@ const YourInvoicesPage = () => {
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">
                         This Month
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-green-700 dark:text-green-300">
+                        {sortedInvoices.length}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Total
                       </div>
                     </div>
                     <div>
@@ -302,44 +310,53 @@ const YourInvoicesPage = () => {
           ) : (
             <>
               {/* Only show filteredInvoices for admin, otherwise sortedInvoices */}
-              <div className="bg-blue-50 dark:bg-gray-900 rounded-xl mb-4 py-4 px-4 flex flex-col md:flex-row justify-center items-center gap-4 w-full">
-                <span className="text-2xl md:text-2xl font-bold text-blue-700 dark:text-blue-300 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
-                  Total: {sortedInvoices.length}
-                </span>
-                <span className="text-xl md:text-2xl font-bold text-green-700 dark:text-green-400 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
-                  Paid:{" "}
-                  {sortedInvoices.filter((inv) => inv.status === "paid").length}
-                </span>
-                <span className="text-xl md:text-2xl font-bold text-yellow-700 dark:text-yellow-400 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
-                  Pending:{" "}
-                  {sortedInvoices.filter((inv) => inv.status !== "paid").length}
-                </span>
-                <span className="text-xl md:text-2xl font-bold text-purple-700 dark:text-purple-400 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
-                  This Month Sales: $
-                  {(() => {
-                    const currentMonth = new Date().getMonth();
-                    const currentYear = new Date().getFullYear();
-                    return sortedInvoices
-                      .filter((inv) => {
-                        if (inv.status !== "paid") return false;
-                        const createdDate = new Date(inv.createdAt);
-                        return (
-                          createdDate.getMonth() === currentMonth &&
-                          createdDate.getFullYear() === currentYear
-                        );
-                      })
-                      .reduce((sum, inv) => sum + inv.totalPrice, 0)
-                      .toFixed(2);
-                  })()}
-                </span>
-                <span className="text-lg md:text-2xl font-bold text-emerald-700 dark:text-emerald-400">
-                  Total Paid Sales: $
-                  {sortedInvoices
-                    .filter((inv) => inv.status === "paid")
-                    .reduce((sum, inv) => sum + inv.totalPrice, 0)
-                    .toFixed(2)}
-                </span>
-              </div>
+              {session &&
+                session.user_type === 3 && ( // chahyein tw admin ko bhi dikhadein lekin faida nahin
+                  <div className="bg-blue-50 dark:bg-gray-900 rounded-xl mb-4 py-4 px-4 flex flex-col md:flex-row justify-center items-center gap-4 w-full">
+                    <span className="text-2xl md:text-2xl font-bold text-blue-700 dark:text-blue-300 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
+                      Total: {sortedInvoices.length}
+                    </span>
+                    <span className="text-xl md:text-2xl font-bold text-green-700 dark:text-green-400 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
+                      Paid:{" "}
+                      {
+                        sortedInvoices.filter((inv) => inv.status === "paid")
+                          .length
+                      }
+                    </span>
+                    <span className="text-xl md:text-2xl font-bold text-yellow-700 dark:text-yellow-400 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
+                      Pending:{" "}
+                      {
+                        sortedInvoices.filter((inv) => inv.status !== "paid")
+                          .length
+                      }
+                    </span>
+                    <span className="text-xl md:text-2xl font-bold text-purple-700 dark:text-purple-400 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
+                      This Month Sales: $
+                      {(() => {
+                        const currentMonth = new Date().getMonth();
+                        const currentYear = new Date().getFullYear();
+                        return sortedInvoices
+                          .filter((inv) => {
+                            if (inv.status !== "paid") return false;
+                            const createdDate = new Date(inv.createdAt);
+                            return (
+                              createdDate.getMonth() === currentMonth &&
+                              createdDate.getFullYear() === currentYear
+                            );
+                          })
+                          .reduce((sum, inv) => sum + inv.totalPrice, 0)
+                          .toFixed(2);
+                      })()}
+                    </span>
+                    <span className="text-lg md:text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+                      Total Paid Sales: $
+                      {sortedInvoices
+                        .filter((inv) => inv.status === "paid")
+                        .reduce((sum, inv) => sum + inv.totalPrice, 0)
+                        .toFixed(2)}
+                    </span>
+                  </div>
+                )}
 
               <div className="overflow-x-auto md:-mx-6">
                 {session &&

@@ -36,9 +36,8 @@ export const createInvoice = async (
 ): Promise<CreateInvoiceResponse> => {
   try {
     await connectDB();
-    console.log("Invoice data received:", invoiceData);
+    // console.log("Invoice data received:", invoiceData);
     console.log("firstName:", invoiceData.firstName);
-    console.log("lastName:", invoiceData.lastName);
 
     // Validate required fields
     if (

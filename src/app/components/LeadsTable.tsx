@@ -526,90 +526,91 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   };
 
   // Within the function, add logic to handle resolved statuses
-  const getStatusOptionsForCategory = (
-    category: string,
-    lead?: ILead
-  ): string[] => {
-    // Basic options by category
-    let options: string[];
+  // const getStatusOptionsForCategory = (
+  //   category: string,
+  //   lead?: ILead
+  // ): string[] => {
+  //   // Basic options by category
+  //   let options: string[];
 
-    switch (category) {
-      case "Order Creation":
-        options = ["Pending", "Order Assigned"];
-        break;
-      case "Contact Us":
-        options = ["Pending", "Resolved"];
-        break;
-      case "Scholarship":
-      case "Free SignUp":
-      case "Free Study Guide":
-        options = ["Pending", "Converted", "Resolved"];
-        break;
-      default:
-        options = [
-          "Pending",
-          "Follow Up 1",
-          "Follow Up 2",
-          "Follow Up 3",
-          "Converted",
-          "Resolved",
-        ];
-        break;
-    }
+  //   switch (category) {
+  //     case "Order Creation":
+  //       options = ["Pending", "Order Assigned"];
+  //       break;
+  //     case "Contact Us":
+  //       options = ["Pending", "Resolved"];
+  //       break;
+  //     case "Scholarship":
+  //     case "Free SignUp":
+  //     case "Free Study Guide":
+  //       options = ["Pending", "Converted", "Resolved"];
+  //       break;
+  //     default:
+  //       options = [
+  //         "Pending",
+  //         "Follow Up 1",
+  //         "Follow Up 2",
+  //         "Follow Up 3",
+  //         "Converted",
+  //         "Resolved",
+  //       ];
+  //       break;
+  //   }
 
-    // If lead exists and we need to modify options based on status
-    if (lead) {
-      const currentStatus = lead.status;
-      const currentResolveStatus = lead.resolve_status;
+  //   // If lead exists and we need to modify options based on status
+  //   if (lead) {
+  //     const currentStatus = lead.status;
+  //     const currentResolveStatus = lead.resolve_status;
 
-      // If lead is resolved, only show the current status
-      if (
-        currentResolveStatus &&
-        isResolvedStatus(currentResolveStatus) &&
-        currentResolveStatus !== "Pending"
-      ) {
-        return [currentStatus || "Pending"];
-      }
+  //     // If lead is resolved, only show the current status
+  //     if (
+  //       currentResolveStatus &&
+  //       isResolvedStatus(currentResolveStatus) &&
+  //       currentResolveStatus !== "Pending"
+  //     ) {
+  //       return [currentStatus || "Pending"];
+  //     }
 
-      // If status is not pending, remove pending option
-      if (currentStatus !== "Pending") {
-        options = options.filter((opt) => opt !== "Pending");
-      }
+  //     // If status is not pending, remove pending option
+  //     if (currentStatus !== "Pending") {
+  //       options = options.filter((opt) => opt !== "Pending");
+  //     }
 
-      // Handle follow-up status progression
-      if (currentStatus === "Follow Up 1") {
-        // In Follow Up 1, remove Follow Up 1 option (since we're already here)
-        options = options.filter((opt) => opt !== "Follow Up 1");
-      } else if (currentStatus === "Follow Up 2") {
-        // In Follow Up 2, remove both Follow Up 1 and 2 options
-        options = options.filter(
-          (opt) => opt !== "Follow Up 1" && opt !== "Follow Up 2"
-        );
-      } else if (currentStatus === "Follow Up 3") {
-        // In Follow Up 3, remove all Follow Up options
-        options = options.filter((opt) => !opt.startsWith("Follow Up"));
-      } else if (
-        currentStatus === "Follow Up" &&
-        lead.next_follow_up &&
-        Array.isArray(lead.next_follow_up)
-      ) {
-        // Legacy "Follow Up" status with next_follow_up array
-        const count = lead.next_follow_up.length;
+  //     // Handle follow-up status progression
+  //     if (currentStatus === "Follow Up 1") {
+  //       // In Follow Up 1, remove Follow Up 1 option (since we're already here)
+  //       options = options.filter((opt) => opt !== "Follow Up 1");
+  //     } else if (currentStatus === "Follow Up 2") {
+  //       // In Follow Up 2, remove both Follow Up 1 and 2 options
+  //       options = options.filter(
+  //         (opt) => opt !== "Follow Up 1" && opt !== "Follow Up 2"
+  //       );
+  //     } else if (currentStatus === "Follow Up 3") {
+  //       // In Follow Up 3, remove all Follow Up options
+  //       options = options.filter((opt) => !opt.startsWith("Follow Up"));
+  //     } else if (
+  //       currentStatus === "Follow Up" &&
+  //       lead.next_follow_up &&
+  //       Array.isArray(lead.next_follow_up)
+  //     ) {
+  //       // Legacy "Follow Up" status with next_follow_up array
+  //       const count = lead.next_follow_up.length;
 
-        // Remove previous follow-up options
-        if (count >= 1)
-          options = options.filter((opt) => opt !== "Follow Up 1");
-        if (count >= 2)
-          options = options.filter((opt) => opt !== "Follow Up 2");
-        if (count >= 3)
-          options = options.filter((opt) => !opt.startsWith("Follow Up"));
-      }
-    }
+  //       // Remove previous follow-up options
+  //       if (count >= 1)
+  //         options = options.filter((opt) => opt !== "Follow Up 1");
+  //       if (count >= 2)
+  //         options = options.filter((opt) => opt !== "Follow Up 2");
+  //       if (count >= 3)
+  //         options = options.filter((opt) => !opt.startsWith("Follow Up"));
+  //     }
+  //   }
 
-    return options;
-  };
+  //   return options;
+  // };
 
   // Reusable Modal Component
+  
   const ConfirmationModal = ({
     title,
     message,

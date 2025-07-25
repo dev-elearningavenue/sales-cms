@@ -24,6 +24,7 @@ export const getLeadName = (lead: ILead): string => {
     lead.scholarship,
     lead.custom_lead,
     lead.abandoned_cart,
+    lead.invoice,
   ];
 
   for (const obj of dataObjects) {
@@ -70,14 +71,17 @@ export const categoryColors: Record<string, string> = {
 
 // Get the follow-up level for display purposes
 export const getFollowUpDisplayStatus = (lead: ILead): string => {
-  if (
-    lead.status === "Follow Up" &&
-    lead.next_follow_up &&
-    Array.isArray(lead.next_follow_up)
-  ) {
+  // Pehle resolve_status check karein
+  if (lead.resolve_status && lead.resolve_status !== "Pending") {
+    return lead.resolve_status; // "Resolved", "Converted", etc.
+  }
+  
+  // Phir status check karein
+  if (lead.status === "Follow Up" && lead.next_follow_up && Array.isArray(lead.next_follow_up)) {
     const count = lead.next_follow_up.length;
     return `Follow Up ${count}`;
   }
+  
   return lead.status || "Pending";
 };
 
@@ -99,19 +103,31 @@ export const getFollowUpCount = (lead: ILead): number => {
 };
 
 // Update the function to use the helpers
-export const getStatusOptionsForCategory = (
-  category: string,
-  lead?: ILead
-): string[] => {
+export const getStatusOptionsForCategory = (category: string, lead?: ILead): string[] => {
+  // Agar lead already resolved hai, toh sirf current status show karein
+  if (lead?.resolve_status && lead.resolve_status !== "Pending") {
+    return [lead.resolve_status]; // Sirf current resolved status
+  }
+  
+  // Baaki logic...
   // Special categories with limited options
   switch (category) {
     case "Order Creation":
-      return ["Pending", "Assigned Order"];
+      if (lead?.resolve_status && lead.resolve_status !== "Pending") {
+        return [lead.resolve_status];
+      }
+      return ["Pending", "Order Assigned"];
     case "Contact Us":
+      if (lead?.resolve_status && lead.resolve_status !== "Pending") {
+        return [lead.resolve_status];
+      }
       return ["Pending", "Resolved"];
     case "Scholarship":
     case "Free SignUp":
     case "Free Study Guide":
+      if (lead?.resolve_status && lead.resolve_status !== "Pending") {
+        return [lead.resolve_status];
+      }
       return ["Pending", "Converted", "Resolved"];
     default:
       // For default categories, implement progressive follow-up flow

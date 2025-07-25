@@ -411,6 +411,16 @@ const YourInvoicesPage = () => {
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Customer Email
                       </th>
+                      {session && session.user_type === 3 ? (
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Created
+                        </th>
+                      ): 
+                      (
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Created
+                        </th>
+                      )}
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Total
                       </th>
@@ -435,7 +445,7 @@ const YourInvoicesPage = () => {
                         </span>
                       </th>
                       <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none"
+                        className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none"
                         onClick={() => {
                           setSortBy("status");
                           setSortOrder(
@@ -453,9 +463,6 @@ const YourInvoicesPage = () => {
                               : "▼"
                             : ""}
                         </span>
-                      </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Created
                       </th>
                       {/* <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Actions
@@ -498,6 +505,16 @@ const YourInvoicesPage = () => {
                             {inv.customerEmail}
                           </div>
                         </td>
+                        {/* CREATED AT | AGENT NAME */}
+                        { session && session.user_type === 3 ? (
+                          <td className="px-3 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                           {new Date(inv.createdAt).toLocaleString()}
+                          </td>
+                        ) : (
+                          <td className="px-3 py-3 text-left text-sm font-medium text-lime-600 dark:text-lime-300 uppercase tracking-wider whitespace-nowrap">
+                            {inv.agentName}
+                          </td>
+                          )}
                         {/* TOTAL */}
                         <td className="px-3 py-4 font-semibold text-green-700 dark:text-green-400">
                           ${inv.totalPrice.toFixed(2)}
@@ -518,7 +535,7 @@ const YourInvoicesPage = () => {
                           )}
                         </td>
                         {/* STATUS */}
-                        <td className="px-6 py-4">
+                        <td className="px-3 py-4">
                           <span
                             className={`px-3 py-1 rounded-full text-sm font-bold ${
                               inv.status === "paid"
@@ -532,11 +549,8 @@ const YourInvoicesPage = () => {
                               inv.status.slice(1)}
                           </span>
                         </td>
-                        <td className="px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                          {new Date(inv.createdAt).toLocaleString()}
-                        </td>
                         {/* ACTIONS */}
-                        {/* <td className="px-6 py-4 whitespace-nowrap">
+                        {/* <td className="px-3 py-4 whitespace-nowrap">
                           {inv.hostedUrl && (
                             <a
                               href={inv.hostedUrl}

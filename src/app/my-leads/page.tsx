@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { LoadingSkeleton } from "../components/LoadingSkeleton";
 import { ILead } from "@/types/leads";
 import { useApp } from "@/contexts/AppContext";
-import { Filter, X, Search } from "lucide-react";
+import { Filter, X, Search, RefreshCcw } from "lucide-react";
 import { Dialog } from "@/components/Dialog";
 import { Customer, Field } from "@/components/Customer";
 import CourseInfo from "@/components/CourseInfo";
@@ -37,9 +37,7 @@ const hasActualContent = (htmlString: string): boolean => {
   return textContent.trim().length > 0;
 };
 
-// Helper function to get lead email
 const getLeadEmail = (lead: ILead): string => {
-  // Check different lead types for email
   if (
     lead.contact_us &&
     typeof lead.contact_us === "object" &&
@@ -96,6 +94,7 @@ const getDomainEmail = (domain: string): string => {
 };
 
 const MyLeads = () => {
+
   const {
     leads,
     setLeads,
@@ -104,12 +103,12 @@ const MyLeads = () => {
     fetchMyLeadsUpdates,
     fetchLeadById,
     getSortedLeads,
-    getFilteredLeads,
+    getFilteredLeads
   } = useLeadsData();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
-  const { session, addNotification } = useApp();
+  const { session, addNotification, showToast } = useApp();
 
   // Filtering and sorting state
   const [filters, setFilters] = useState<FilterConfig>({
@@ -158,6 +157,7 @@ const MyLeads = () => {
     body: "",
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Initialize WebSocket connection with event handlers
   const { isConnected } = useSocket({
@@ -202,7 +202,7 @@ const MyLeads = () => {
           // Only use polling if websocket is not connected
           fetchMyLeadsUpdates();
         }
-      }, 30000); // Check for updates every 30 seconds as fallback
+      }, 5 * 60000); // Check for updates every 5 minutes as fallback
 
       return () => clearInterval(intervalId);
     }
@@ -658,6 +658,21 @@ const MyLeads = () => {
     ];
   };
 
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
+    try {
+      await fetchMyLeads(true);
+      showToast("My leads checked for updates", "info");
+    } catch (error) {
+      console.error("Error refreshing leads:", error);
+      showToast("Failed to check for updates", "error");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   // Helper to search in name, category, domain, and status
   const matchesSearch = (lead: ILead, query: string) => {
     const lowerQuery = query.toLowerCase();
@@ -722,7 +737,7 @@ const MyLeads = () => {
       ) : (
         <div className="bg-white w-full rounded-lg shadow-lg border border-gray-200 overflow-hidden">
           <div className="p-4 w-full">
-            <div className="flex flex-wrap gap-8 items-center justify-between mb-4">
+                        <div className="flex flex-wrap gap-8 items-center justify-between mb-4">
               <h1 className="text-2xl font-bold text-gray-800 mr-2">
                 My Leads
               </h1>
@@ -762,15 +777,31 @@ const MyLeads = () => {
                   compact={true}
                 />
               </div>
-              <button
-                onClick={() => setShowFiltersPanel(!showFiltersPanel)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
-              >
-                <Filter className="h-4 w-4" />
-                <span className="hidden sm:inline">
-                  {showFiltersPanel ? "Hide Filters" : "Show Filters"}
-                </span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  className={`flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 ${
+                    isRefreshing ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  title="Refresh my leads"
+                >
+                  <RefreshCcw
+                    className={`h-5 w-5 text-gray-600 ${
+                      isRefreshing ? "animate-spin" : ""
+                    }`}
+                  />
+                </button>
+                <button
+                  onClick={() => setShowFiltersPanel(!showFiltersPanel)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
+                >
+                  <Filter className="h-4 w-4" />
+                  <span className="hidden sm:inline">
+                    {showFiltersPanel ? "Hide Filters" : "Show Filters"}
+                  </span>
+                </button>
+              </div>
             </div>
 
             {/* Filters and Pagination Row */}

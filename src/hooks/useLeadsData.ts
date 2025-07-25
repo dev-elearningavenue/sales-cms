@@ -22,9 +22,14 @@ export const useLeadsData = () => {
   const { addNotification } = useApp();
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
 
-  const fetchMyLeads = async () => {
+  const fetchMyLeads = async (isRefresh: boolean = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        // Don't show loading state for refresh
+      } else {
+        setLoading(true);
+      }
+      
       const res = await fetch("/api/my-leads");
       const data = await res.json();
 
@@ -40,7 +45,11 @@ export const useLeadsData = () => {
   };
 
   const fetchMyLeadsUpdates = async () => {
-    if (!lastFetchTime) return;
+    // If no lastFetchTime, do a complete fetch first
+    if (!lastFetchTime) {
+      await fetchMyLeads();
+      return;
+    }
 
     try {
       const timestamp = lastFetchTime.toISOString();
@@ -79,6 +88,9 @@ export const useLeadsData = () => {
           // Return updated leads array with new leads at the top
           return [...uniqueNewLeads, ...prevLeads];
         });
+      } else {
+        // No new leads, just update the timestamp
+        setLastFetchTime(new Date());
       }
     } catch (error) {
       console.error("Error fetching my lead updates:", error);

@@ -75,7 +75,7 @@ const Sidebar = () => {
       if (session && session._id) {
         fetchLeadCounts();
       }
-    }, 60000);
+    }, 5 * 60000);
 
     // Clean up interval on unmount or when session changes
     return () => clearInterval(intervalId);

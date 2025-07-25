@@ -297,7 +297,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               setNotificationPolling(null);
             }
           }
-        }, 60000); // Poll every 60 seconds (more frequent)
+        }, 5 * 60000); // Poll every 5 minutes (more frequent)
 
         setNotificationPolling(intervalId);
       }

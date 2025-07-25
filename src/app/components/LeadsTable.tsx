@@ -92,9 +92,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     new Set()
   );
 
-  // Add state for refresh loading
   const [isRefreshing, setIsRefreshing] = useState(false);
-
   const handleRefresh = async () => {
     if (!onRefresh || isRefreshing) return;
 

@@ -85,7 +85,7 @@ const Leads = () => {
       if (!isConnected && session && session._id) {
         fetchLeadsUpdates();
       }
-    }, 60000 * 5); // Check for updates every 60 seconds as a fallback
+    }, 5 * 60000); // Check for updates every 5 minutes as a fallback
 
     return () => clearInterval(intervalId);
   }, [isConnected, session]);
@@ -105,7 +105,6 @@ const Leads = () => {
         return;
       }
 
-      // Filter out contact_us leads with form=2
       const filteredLeads = data.leads.filter((lead: ILead) => {
         // Exclude leads that are Contact Us category with form=2
         if (
@@ -114,9 +113,9 @@ const Leads = () => {
           typeof lead.contact_us === "object" &&
           (lead.contact_us as any).form === 2
         ) {
-          return false; // Skip these leads
+          return false;
         }
-        return true; // Include all other leads
+        return true;
       });
 
       setLeads(filteredLeads);

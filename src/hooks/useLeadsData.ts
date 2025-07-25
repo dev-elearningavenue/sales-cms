@@ -5,7 +5,7 @@ import { getLeadName } from "@/components/LeadUtils";
 
 // Define type for sort configuration
 export interface SortConfig {
-  field: 'createdAt' | 'category' | 'domain';
+  field: 'createdAt' | 'updatedAt' | 'assignedAt' | 'category' | 'domain';
   direction: 'asc' | 'desc';
 }
 
@@ -141,6 +141,18 @@ export const useLeadsData = () => {
       if (sort.field === "createdAt") {
         const dateA = new Date(a.createdAt || "").getTime();
         const dateB = new Date(b.createdAt || "").getTime();
+        return sort.direction === "desc" ? dateB - dateA : dateA - dateB;
+      }
+
+      if (sort.field === "updatedAt") {
+        const dateA = new Date(a.updatedAt || a.createdAt || "").getTime();
+        const dateB = new Date(b.updatedAt || b.createdAt || "").getTime();
+        return sort.direction === "desc" ? dateB - dateA : dateA - dateB;
+      }
+
+      if (sort.field === "assignedAt") {
+        const dateA = new Date(a.assignedAt || a.createdAt || "").getTime();
+        const dateB = new Date(b.assignedAt || b.createdAt || "").getTime();
         return sort.direction === "desc" ? dateB - dateA : dateA - dateB;
       }
 

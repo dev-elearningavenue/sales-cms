@@ -75,11 +75,11 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
               </th>
               <th
                 className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer w-[15%]"
-                onClick={() => handleSortChange("createdAt")}
+                onClick={() => handleSortChange("updatedAt")}
               >
                 <div className="flex items-center">
-                  Date
-                  {sort.field === "createdAt" && (
+                  Last Updated
+                  {sort.field === "updatedAt" && (
                     <span className="ml-1">
                       {sort.direction === "desc" ? "↓" : "↑"}
                     </span>
@@ -126,20 +126,23 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
                     </div>
                   </td>
 
-                  {/* Date Created - Simplified */}
+                  {/* Last Updated Date */}
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="text-sm text-gray-500">
-                      {lead.createdAt
-                        ? new Date(lead.createdAt).toLocaleString("en-US", {
-                            timeZone: "America/New_York",
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: false,
-                          }) + " EST"
-                        : "N/A"}
+                      {(() => {
+                        const dateToShow = lead.updatedAt || lead.assignedAt || lead.createdAt;
+                        return dateToShow
+                          ? new Date(dateToShow).toLocaleString("en-US", {
+                              timeZone: "America/New_York",
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: false,
+                            }) + " EST"
+                          : "N/A";
+                      })()}
                     </div>
                   </td>
 

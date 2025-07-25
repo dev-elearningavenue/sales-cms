@@ -37,4 +37,5 @@ export interface ILead extends Document {
   next_follow_up?: NextFollowUp[];
   conversion_value?: number;
   createdAt?: Date;
+  updatedAt?: Date;
 }

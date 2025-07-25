@@ -117,7 +117,7 @@ const MyLeads = () => {
     status: "",
   });
   const [sort, setSort] = useState<SortConfig>({
-    field: "createdAt",
+    field: "updatedAt",
     direction: "desc",
   });
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
@@ -202,7 +202,7 @@ const MyLeads = () => {
           // Only use polling if websocket is not connected
           fetchMyLeadsUpdates();
         }
-      }, 5 * 60000); // Check for updates every 5 minutes as fallback
+      }, 5 * 60000);
 
       return () => clearInterval(intervalId);
     }
@@ -582,7 +582,7 @@ const MyLeads = () => {
   };
 
   // Handle sort changes
-  const handleSortChange = (field: "createdAt" | "category" | "domain") => {
+  const handleSortChange = (field: "createdAt" | "updatedAt" | "assignedAt" | "category" | "domain") => {
     setSort((prev) => ({
       field,
       direction:

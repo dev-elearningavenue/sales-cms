@@ -1,5 +1,6 @@
 module.exports = {
   apps: [
+    /*
     {
       name: "next-app",
       script: "npm",
@@ -20,6 +21,7 @@ module.exports = {
         PORT: 3000
       }
     },
+    */
     {
       name: "mongo-listener",
       script: "src/lib/server.ts",
@@ -30,7 +32,11 @@ module.exports = {
       name: "invoice-cron",
       script: "src/services/cronJobs.ts",
       interpreter: "node",
-      args: "--loader ts-node/esm"
+      args: "--loader ts-node/esm",
+      env: {
+        NODE_ENV: "production",
+        NEXT_PUBLIC_SITE_URL: "https://presale.oshanewsletter.com"
+      }
     }
   ]
 };

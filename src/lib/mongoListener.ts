@@ -653,10 +653,23 @@ export function getLeadDetails(
         : null,
   };
 
-  const formattedDomain =
-    type === "Order Creation" || type === "Abandoned Cart"
-      ? domain.split(" - ")[1].split(" ")[0]
-      : domain.split(" - ")[1];
+  let formattedDomain;
+  try {
+    if (type === "Order Creation" || type === "Abandoned Cart") {
+      const parts = domain.split(" - ");
+      if (parts.length > 1) {
+        formattedDomain = parts[1].split(" ")[0];
+      } else {
+        formattedDomain = domain; // Fallback to original domain
+      }
+    } else {
+      const parts = domain.split(" - ");
+      formattedDomain = parts.length > 1 ? parts[1] : domain;
+    }
+  } catch (error) {
+    console.warn(`Failed to parse domain "${domain}":`, error);
+    formattedDomain = domain; // Fallback to original domain
+  }
 
   return { category, leadFields, formattedDomain };
 }

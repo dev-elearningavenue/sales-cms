@@ -49,7 +49,6 @@ export const createOrder = async (orderData: any) => {
       createdAt: new Date(),
       next_follow_up: null,
       notes: [],
-      conversion_value: null,
     });
 
     const leadResult = await leadData.save();

@@ -415,8 +415,7 @@ const YourInvoicesPage = () => {
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                           Created
                         </th>
-                      ): 
-                      (
+                      ) : (
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                           Created
                         </th>
@@ -506,15 +505,16 @@ const YourInvoicesPage = () => {
                           </div>
                         </td>
                         {/* CREATED AT | AGENT NAME */}
-                        { session && session.user_type === 3 ? (
+                        {session && session.user_type === 3 ? (
                           <td className="px-3 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                           {new Date(inv.createdAt).toLocaleString()}
+                            {new Date(inv.createdAt).toLocaleString()}
                           </td>
                         ) : (
                           <td className="px-3 py-3 text-left text-sm font-medium text-lime-600 dark:text-lime-300 uppercase tracking-wider whitespace-nowrap">
                             {inv.agentName}
+                            {new Date(inv.createdAt).toLocaleString()}
                           </td>
-                          )}
+                        )}
                         {/* TOTAL */}
                         <td className="px-3 py-4 font-semibold text-green-700 dark:text-green-400">
                           ${inv.totalPrice.toFixed(2)}

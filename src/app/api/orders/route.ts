@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { createOrder, getAllOrders } from "@/controllers/orderController";
-
 export const dynamic = "force-dynamic";
 
 async function connectDatabase() {

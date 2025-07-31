@@ -969,6 +969,7 @@ const MyLeads = () => {
 
       {/* Status-related modals */}
       <LeadStatusModals
+        selectedLead={selectedLead}
         showConversionModal={showConversionModal}
         showFollowUpModal={showFollowUpModal}
         showNoteModal={showNoteModal}

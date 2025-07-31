@@ -1,6 +1,6 @@
 import cron from "node-cron";
-import { updateInvoiceStatus } from "@/lib/invoiceCronUtils";
-import connectDB from "@/lib/db";
+import { updateInvoiceStatus } from "../lib/invoiceCronUtils";
+import connectDB from "../lib/db";
 import axios from "axios";
 
 // Function to hit RAC API
@@ -26,7 +26,14 @@ async function syncRacData() {
     });
     
     const result = response.data;
-    console.log("✅ RAC sync completed:", result.message, `(${result.inserted} new records)`);
+    console.log("✅ RAC sync completed:", result.message, `(${result.totalInserted} total new records)`);
+    
+    // Log individual website results
+    if (result.results && Array.isArray(result.results)) {
+      result.results.forEach((websiteResult: any) => {
+        console.log(`  📊 ${websiteResult.website}: ${websiteResult.inserted} carts`);
+      });
+    }
   } catch (error: any) {
     console.error("❌ RAC sync failed:", error.message || error);
     if (error.response) {

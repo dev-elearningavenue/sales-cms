@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import dynamic from "next/dynamic";
 import MyLeadsModal from "@/types/myLeadsModals";
+import { ILead } from "@/types/leads";
 // Dynamically import CKEditor to avoid SSR issues
 const CKEditorWrapper = dynamic(
   () => import("@/app/components/CKEditorWrapper"),
@@ -24,7 +25,10 @@ const hasActualContent = (htmlString: string): boolean => {
   return textContent.trim().length > 0;
 };
 
+
+
 const LeadStatusModals: React.FC<MyLeadsModal> = ({
+  selectedLead,
   showConversionModal,
   showFollowUpModal,
   showNoteModal,
@@ -243,6 +247,76 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
                 <h3 className="text-sm font-medium text-blue-800 mb-3">
                   Email Details
                 </h3>
+                
+                {/* User Information Display */}
+                {(() => {
+                  // Get user info from assigned_to or created_by
+                  const assignedUser = selectedLead?.assigned_to as any;
+                  const createdByUser = selectedLead?.created_by as any;
+                  const user = assignedUser || createdByUser;
+                  
+                  // Get customer info from lead data
+                  const populatedKey = [
+                    "contact_us",
+                    "free_signup", 
+                    "order_creation",
+                    "abandoned_cart",
+                    "scholarship",
+                    "custom_lead",
+                  ].find((key) => selectedLead?.[key as keyof ILead]);
+                  
+                  const leadData = selectedLead?.[populatedKey as keyof ILead] as any;
+                  
+                  let customerName = "";
+                  let customerEmail = "";
+                  
+                  if (leadData) {
+                    if (populatedKey === "abandoned_cart" || populatedKey === "order_creation") {
+                      customerName = `${leadData.firstName || ""} ${leadData.lastName || ""}`.trim();
+                      customerEmail = leadData.email || "";
+                    } else if (populatedKey === "free_signup") {
+                      customerName = `${leadData.firstName || ""} ${leadData.lastName || ""}`.trim();
+                      customerEmail = leadData.email || "";
+                    } else if (populatedKey === "contact_us") {
+                      customerName = leadData.name || "";
+                      customerEmail = leadData.email || "";
+                    } else if (populatedKey === "scholarship") {
+                      customerName = `${leadData.firstName || ""} ${leadData.lastName || ""}`.trim();
+                      customerEmail = leadData.email || "";
+                    } else if (populatedKey === "custom_lead") {
+                      customerName = `${leadData.firstName || ""} ${leadData.lastName || ""}`.trim();
+                      customerEmail = leadData.email || "";
+                    }
+                  }
+                  
+                  return (
+                    <div className="mb-4 p-3 bg-white border border-blue-100 rounded-md">
+                      <h4 className="text-xs font-medium text-blue-700 mb-2">
+                        Customer Information
+                      </h4>
+                      <div className="grid grid-cols-3 gap-3 text-sm">
+                        <div>
+                          <span className="text-gray-600 font-medium">Name:</span>
+                          <span className="ml-2 text-gray-800">
+                            {customerName || "Not available"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 font-medium">Email:</span>
+                          <span className="ml-2 text-gray-800">
+                            {customerEmail || "Not available"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 font-medium">Username:</span>
+                          <span className="ml-2 text-gray-800">
+                            {user?.user_name || "Not available"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* From and To Fields in a single row */}
                 <div className="mb-3 flex flex-row gap-4">

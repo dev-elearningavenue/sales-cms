@@ -180,16 +180,32 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
                   <td className="px-8 py-3 whitespace-nowrap">
                     <div className="flex flex-col space-y-2">
                       <button
-                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-md text-sm flex items-center justify-center"
+                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-md text-sm flex items-center justify-center relative"
                         onClick={() => handleViewNotes(lead)}
                       >
                         <MessageSquare size={14} className="mr-1" /> Notes
-                        <Plus size={14} className="ml-1 mr-1" />
+                        
+                        {/* Notes Badge */}
                         {lead.notes &&
                           Array.isArray(lead.notes) &&
                           lead.notes.length > 0 && (
-                            <span className="ml-1 bg-white text-gray-700 text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                            <span 
+                              className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold"
+                              title={`${lead.notes.length} note${lead.notes.length > 1 ? 's' : ''}`}
+                            >
                               {lead.notes.length}
+                            </span>
+                          )}
+                        
+                        {/* Follow-ups Badge */}
+                        {lead.next_follow_up &&
+                          Array.isArray(lead.next_follow_up) &&
+                          lead.next_follow_up.length > 0 && (
+                            <span 
+                              className="absolute -bottom-1 -right-1 bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold"
+                              title={`${lead.next_follow_up.length} follow-up${lead.next_follow_up.length > 1 ? 's' : ''}`}
+                            >
+                              {lead.next_follow_up.length}
                             </span>
                           )}
                       </button>

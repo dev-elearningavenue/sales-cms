@@ -1,6 +1,9 @@
+import { ILead } from "@/types/leads";
+
 type ContactType = "email" | "call" | "chat";
 
 interface LeadStatusModalsProps {
+  selectedLead: ILead | null;
   showConversionModal: boolean;
   showFollowUpModal: boolean;
   showNoteModal: boolean;

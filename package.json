@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:cron": "node build-cron.js",
     "start": "next start",
     "lint": "next lint",
     "cron:invoice-status": "node services/cronJobs.ts"

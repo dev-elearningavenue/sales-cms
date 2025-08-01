@@ -30,7 +30,7 @@ function transformWordPressData(wordpressData: any) {
   }
 
   const domainPrefixMap: Record<string, string> = {
-    "Osha 360 - Osha360": "360",
+    "Osha 360 - Osha360": "Osha360",
     "Free Osha Courses - FOC": "FOC",
     "Osha 30 Construction - 30Construction": "30Construction",
     "EHS School - EHSS": "EHSS",

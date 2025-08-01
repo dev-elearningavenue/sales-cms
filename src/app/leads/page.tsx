@@ -650,7 +650,7 @@ const Leads = () => {
         )}
       </div>
 
-      {/* Create Lead Modal */}
+      {/* Create New Lead Modal */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4 overflow-auto">
@@ -686,7 +686,7 @@ const Leads = () => {
                     name="firstName"
                     value={newLeadForm.firstName}
                     onChange={handleInputChange}
-                    className={`w-full p-2 border ${
+                    className={`w-full p-2 border text-gray-700 ${
                       formErrors.firstName
                         ? "border-red-500"
                         : "border-gray-300"
@@ -708,7 +708,7 @@ const Leads = () => {
                     name="lastName"
                     value={newLeadForm.lastName}
                     onChange={handleInputChange}
-                    className={`w-full p-2 border ${
+                    className={`w-full p-2 border text-gray-700${
                       formErrors.lastName ? "border-red-500" : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   />
@@ -728,7 +728,7 @@ const Leads = () => {
                     name="email"
                     value={newLeadForm.email}
                     onChange={handleInputChange}
-                    className={`w-full p-2 border ${
+                    className={`w-full p-2 border text-gray-700${
                       formErrors.email ? "border-red-500" : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   />
@@ -748,7 +748,7 @@ const Leads = () => {
                     name="contactNo"
                     value={newLeadForm.contactNo}
                     onChange={handleInputChange}
-                    className={`w-full p-2 border ${
+                    className={`w-full p-2 border text-gray-700${
                       formErrors.contactNo
                         ? "border-red-500"
                         : "border-gray-300"
@@ -769,7 +769,7 @@ const Leads = () => {
                     name="domain"
                     value={newLeadForm.domain}
                     onChange={handleInputChange}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="OOR">Osha Outreach</option>
                     <option value="OOC">Osha Online Center</option>
@@ -785,7 +785,7 @@ const Leads = () => {
                     name="supportType"
                     value={newLeadForm.supportType}
                     onChange={handleInputChange}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="call">Call</option>
                     <option value="chat">Chat</option>
@@ -846,7 +846,7 @@ const Leads = () => {
                       placeholder="Type to search courses..."
                       value={currentCourse.courseName}
                       onChange={handleCourseInputChange}
-                      className={`w-full p-2 border ${
+                      className={`w-full p-2 border text-gray-700 ${
                         formErrors.courseName
                           ? "border-red-500"
                           : "border-gray-300"
@@ -893,7 +893,7 @@ const Leads = () => {
                       placeholder="Qty"
                       value={currentCourse.quantity}
                       onChange={handleCourseInputChange}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full p-2 border border-gray-300 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 

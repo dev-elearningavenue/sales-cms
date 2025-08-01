@@ -323,14 +323,16 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
       } else if (category === "domain") {
         // Convert domain label back to domain code
         const domainCode =
-          value === "Osha Outreach"
-            ? "OOR"
-            : value === "Osha Online Center"
-            ? "OOC"
-            : value === "Osha Education School"
-            ? "OES"
-            : value === "Free Osha Courses"
-            ? "FOC"
+          value === "Osha Outreach" ? "OOR"
+            : value === "Osha Online Center" ? "OOC"
+            : value === "Osha Education School" ? "OES"
+            : value === "Free Osha Courses" ? "FOC"
+            : value === "Osha 30 Construction" ? "30Construction"
+            : value === "EHS Practice" ? "EHSP"
+            : value === "EHS School" ? "EHSS"
+            : value === "Osha Practice" ? "OP"
+            : value === "NY Osha 30" ? "NY30"
+            : value === "Osha 360" ? "Osha360"
             : "";
         newFilters.domain = domainCode;
       } else {
@@ -890,20 +892,28 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                     "Osha Online Center",
                     "Osha Education School",
                     "Free Osha Courses",
+                    "Osha 30 Construction",
+                    "EHS Practice",
+                    "Osha Practice",
+                    "EHS School",
+                    "NY Osha 30",
+                    "Osha 360",
                   ].map((domain) => (
                     <label key={domain} className="flex items-center space-x-2">
                       <input
                         type="radio"
                         checked={
                           filters.domain ===
-                          (domain === "Osha Outreach"
-                            ? "OOR"
-                            : domain === "Osha Online Center"
-                            ? "OOC"
-                            : domain === "Osha Education School"
-                            ? "OES"
-                            : domain === "Free Osha Courses"
-                            ? "FOC"
+                          (domain === "Osha Outreach" ? "OOR"
+                            : domain === "Osha Online Center" ? "OOC"
+                            : domain === "Osha Education School" ? "OES"
+                            : domain === "Free Osha Courses" ? "FOC"
+                            : domain === "Osha 30 Construction" ? "30Construction"
+                            : domain === "EHS Practice" ? "EHSP"
+                            : domain === "Osha Practice" ? "OP"
+                            : domain === "EHS School" ? "EHSS"
+                            : domain === "NY Osha 30" ? "NY30"
+                            : domain === "Osha 360" ? "Osha360"
                             : "")
                         }
                         onChange={() => handleFilterChange("domain", domain)}

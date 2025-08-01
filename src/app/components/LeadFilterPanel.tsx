@@ -32,6 +32,12 @@ const LeadFilterPanel: React.FC<LeadFilterPanelProps> = ({
           <option value="OOC">Osha Online Center</option>
           <option value="OES">Osha Education School</option>
           <option value="FOC">Free Osha Courses</option>
+          <option value="30Construction">Osha 30 Construction</option>
+          <option value="Osha360">Osha 360</option>
+          <option value="EHSS">EHS School</option>
+          <option value="OP">Osha Practice</option>
+          <option value="NY30">NY Osha 30</option>
+          <option value="EHSP">EHS Practice</option>
         </select>
       </div>
 

@@ -25,8 +25,6 @@ const hasActualContent = (htmlString: string): boolean => {
   return textContent.trim().length > 0;
 };
 
-
-
 const LeadStatusModals: React.FC<MyLeadsModal> = ({
   selectedLead,
   showConversionModal,
@@ -292,7 +290,7 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
                   return (
                     <div className="mb-4 p-3 bg-white border border-blue-100 rounded-md">
                       <h4 className="text-xs font-medium text-blue-700 mb-2">
-                        Customer Information
+                        User Information
                       </h4>
                       <div className="grid grid-cols-3 gap-3 text-sm">
                         <div>
@@ -301,16 +299,10 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
                             {customerName || "Not available"}
                           </span>
                         </div>
-                        <div>
+                        <div> 
                           <span className="text-gray-600 font-medium">Email:</span>
                           <span className="ml-2 text-gray-800">
                             {customerEmail || "Not available"}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600 font-medium">Username:</span>
-                          <span className="ml-2 text-gray-800">
-                            {user?.user_name || "Not available"}
                           </span>
                         </div>
                       </div>

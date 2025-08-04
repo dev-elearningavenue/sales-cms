@@ -4,6 +4,8 @@ import { FileText, Loader2, X, Users, TrendingUp } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 
 interface Invoice {
+  firstName: string;
+  lastName: string;
   _id: string;
   invoiceNumber: string;
   customerEmail: string;
@@ -409,7 +411,7 @@ const YourInvoicesPage = () => {
                         Invoice #
                       </th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Customer Email
+                        Customer
                       </th>
                       {session && session.user_type === 3 ? (
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -496,9 +498,15 @@ const YourInvoicesPage = () => {
                           )}
                         </td>
                         {/* CUSTOMER EMAIL*/}
-                        <td className="px-3 py-4 text-gray-800 dark:text-gray-200 w-48">
+                        <td className="px-3 py-4 text-gray-800 dark:text-white w-48">
                           <div
-                            className="max-w-full truncate"
+                            className="max-w-full font-bold truncate"
+                            title={inv.firstName}
+                          >
+                            {inv.firstName} {inv.lastName}
+                          </div>
+                          <div
+                            className="max-w-full text-sm truncate"
                             title={inv.customerEmail}
                           >
                             {inv.customerEmail}
@@ -511,8 +519,12 @@ const YourInvoicesPage = () => {
                           </td>
                         ) : (
                           <td className="px-3 py-3 text-left text-sm font-medium text-lime-600 dark:text-lime-300 uppercase tracking-wider whitespace-nowrap">
-                            {inv.agentName}
-                            {new Date(inv.createdAt).toLocaleString()}
+                            <div className="text-sm font-bold ">
+                              {inv.agentName}
+                            </div>
+                            <div>
+                              {new Date(inv.createdAt).toLocaleString()}
+                            </div>
                           </td>
                         )}
                         {/* TOTAL */}
@@ -520,7 +532,7 @@ const YourInvoicesPage = () => {
                           ${inv.totalPrice.toFixed(2)}
                         </td>
                         {/* DUE DATE */}
-                        <td className="px-3 py-4 text-gray-800 dark:text-gray-200">
+                        <td className="px-3 py-4 text-gray-800 dark:text-white">
                           {inv.status === "paid" && inv.paidAt ? (
                             <span>
                               <span className="font-semibold text-green-600 dark:text-green-300">

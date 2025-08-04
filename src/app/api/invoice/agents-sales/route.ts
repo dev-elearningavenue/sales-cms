@@ -35,8 +35,8 @@ export async function GET(req: NextRequest) {
       },
       {
         $addFields: {
-          createdMonth: { $month: "$createdAt" },
-          createdYear: { $year: "$createdAt" },
+          paidMonth: { $month: "$paidAt" },
+          paidYear: { $year: "$paidAt" },
         }
       },
       {
@@ -48,8 +48,8 @@ export async function GET(req: NextRequest) {
               $cond: [
                 {
                   $and: [
-                    { $eq: ["$createdMonth", currentMonth] },
-                    { $eq: ["$createdYear", currentYear] }
+                    { $eq: ["$paidMonth", currentMonth] },
+                    { $eq: ["$paidYear", currentYear] }
                   ]
                 },
                 "$totalPrice",
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
         }
       },
       {
-        $sort: { totalSales: -1 }
+        $sort: { updatedAt: -1 }
       }
     ]);
 

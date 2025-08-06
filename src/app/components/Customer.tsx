@@ -56,7 +56,7 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
     ? (selectedLead[populatedKey as keyof ILead] as LeadData)
     : null;
 
-  // console.log("Customer Component - Lead Data:", leadData);
+  console.log("Customer Component - Lead Data:", leadData);
   // console.log("Customer Component - Populated Key:", populatedKey);
 
   return (
@@ -92,6 +92,12 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
                 <Field label="Order Id" value={leadData?.order_id} />
                 <Field label="Email" value={leadData?.email} />
                 <Field label="Contact No" value={leadData?.contactNo} />
+                {populatedKey === "order_creation" && leadData?.user && (
+                  <Field 
+                    label="User Name" 
+                    value={leadData?.user?.userName || leadData?.user?.full_name || "N/A"} 
+                  />
+                )}
                 <Field label="Address" value={leadData?.address} />
                 <Field label="State" value={leadData?.state} />
                 <Field label="City" value={leadData?.city} />

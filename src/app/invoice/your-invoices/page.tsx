@@ -39,7 +39,7 @@ const YourInvoicesPage = () => {
   const { session } = useApp();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [agentsSales, setAgentsSales] = useState<AgentSales[]>([]);
-  const [sortBy, setSortBy] = useState<"dueDate" | "status" | null>(null);
+  const [sortBy, setSortBy] = useState<"dueDate" | "status" | "createdAt" | "paidAt" | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [loading, setLoading] = useState(true);
   const [agentsLoading, setAgentsLoading] = useState(false);
@@ -127,7 +127,23 @@ const YourInvoicesPage = () => {
       return pass;
     });
   }
-  if (sortBy === "dueDate") {
+  if (sortBy === "createdAt") {
+    sortedInvoices.sort((a, b) => {
+      const aDate = new Date(a.createdAt);
+      const bDate = new Date(b.createdAt);
+      return sortOrder === "asc"
+        ? aDate.getTime() - bDate.getTime()
+        : bDate.getTime() - aDate.getTime();
+    });
+  } else if (sortBy === "paidAt") {
+    sortedInvoices.sort((a, b) => {
+      const aDate = new Date(a.paidAt || 0);
+      const bDate = new Date(b.paidAt || 0);
+      return sortOrder === "asc"
+        ? aDate.getTime() - bDate.getTime()
+        : bDate.getTime() - aDate.getTime();
+    });
+  } else if (sortBy === "dueDate") {
     sortedInvoices.sort((a, b) => {
       const aDate = new Date(a.dueDate);
       const bDate = new Date(b.dueDate);
@@ -340,10 +356,10 @@ const YourInvoicesPage = () => {
                         return sortedInvoices
                           .filter((inv) => {
                             if (inv.status !== "paid") return false;
-                            const createdDate = new Date(inv.createdAt);
+                            const paidDate = new Date(inv.paidAt!);
                             return (
-                              createdDate.getMonth() === currentMonth &&
-                              createdDate.getFullYear() === currentYear
+                              paidDate.getMonth() === currentMonth &&
+                              paidDate.getFullYear() === currentYear
                             );
                           })
                           .reduce((sum, inv) => sum + inv.totalPrice, 0)
@@ -351,7 +367,7 @@ const YourInvoicesPage = () => {
                       })()}
                     </span>
                     <span className="text-lg md:text-2xl font-bold text-emerald-700 dark:text-emerald-400">
-                      Total Paid Sales: $
+                      Total Paid: $
                       {sortedInvoices
                         .filter((inv) => inv.status === "paid")
                         .reduce((sum, inv) => sum + inv.totalPrice, 0)
@@ -404,28 +420,45 @@ const YourInvoicesPage = () => {
                 <table className="min-w-full table-fixed divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-700 rounded-sm">
                     <tr>
+                      {/* # */}
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         #
                       </th>
+                      {/* Invoice # */}
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Invoice #
                       </th>
+                      {/* Customer */}
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Customer
                       </th>
-                      {session && session.user_type === 3 ? (
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      {/* Created At */}
+                      <th 
+                          className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-600"
+                          onClick={() => {
+                            setSortBy("createdAt");
+                            setSortOrder(
+                              sortBy === "createdAt" && sortOrder === "asc"
+                                ? "desc"
+                                : "asc"
+                            );
+                          }}
+                        >
                           Created
+                          <span className="ml-2 text-xs">
+                            {sortBy === "createdAt"
+                              ? sortOrder === "asc"
+                                ? "▲"
+                                : "▼"
+                              : ""}
+                          </span>
                         </th>
-                      ) : (
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Created
-                        </th>
-                      )}
+                      {/* Total Price */}
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Total
                       </th>
-                      <th
+                      {/* Due Date */}
+                      <th 
                         className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-600"
                         onClick={() => {
                           setSortBy("dueDate");
@@ -445,6 +478,7 @@ const YourInvoicesPage = () => {
                             : ""}
                         </span>
                       </th>
+                      {/* Status */}
                       <th
                         className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none"
                         onClick={() => {

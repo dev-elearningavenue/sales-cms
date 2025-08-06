@@ -88,6 +88,21 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
               </div>
             </div>
 
+            {/* Show User Name for Order Creation leads */}
+            {lead?.category === "Order Creation" && 
+             lead?.order_creation && 
+             typeof lead.order_creation === "object" && 
+             (lead.order_creation as any)?.user && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  User Name
+                </label>
+                <p className="text-gray-900 font-medium">
+                  {(lead.order_creation as any).user?.userName || (lead.order_creation as any).user?.full_name || "N/A"}
+                </p>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Status

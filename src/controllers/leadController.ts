@@ -64,7 +64,15 @@ export const getAllLeads = async (options?: {
       populations.push({ path: "scholarship", model: "Scholarship" });
     }
     if (await Lead.exists({ order_creation: { $ne: null } })) {
-      populations.push({ path: "order_creation", model: "OrderCreation" });
+      populations.push({ 
+        path: "order_creation", 
+        model: "OrderCreation",
+        populate: {
+          path: "user",
+          model: "User",
+          select: "user_name full_name"
+        }
+      });
     }
     if (await Lead.exists({ custom_lead: { $ne: null } })) {
       populations.push({ path: "custom_lead", model: "CustomLead" });

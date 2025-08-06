@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import dynamic from "next/dynamic";
 import MyLeadsModal from "@/types/myLeadsModals";
 import { ILead } from "@/types/leads";
+import { useState } from "react";
 // Dynamically import CKEditor to avoid SSR issues
 const CKEditorWrapper = dynamic(
   () => import("@/app/components/CKEditorWrapper"),
@@ -49,6 +50,9 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
   sendLvmEmail,
   applyFollowUpWithEmail,
 }) => {
+  console.log("selectedLead", selectedLead);
+  const [emailAttachment, setEmailAttachment] = useState<File | null>(null);
+  
   return (
     <>
       {/* Conversion Value Modal */}
@@ -295,13 +299,13 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
                       <div className="grid grid-cols-3 gap-3 text-sm">
                         <div>
                           <span className="text-gray-600 font-medium">Name:</span>
-                          <span className="ml-2 text-gray-800">
+                          <span className="ml-2 text-gray-800 font-bold">
                             {customerName || "Not available"}
                           </span>
                         </div>
                         <div> 
                           <span className="text-gray-600 font-medium">Email:</span>
-                          <span className="ml-2 text-gray-800">
+                          <span className="ml-2 text-gray-800 font-bold">
                             {customerEmail || "Not available"}
                           </span>
                         </div>
@@ -339,6 +343,41 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
                       placeholder="Only PASTE the Email Address"
                     />
                   </div>
+                </div>
+
+                {/* Attachment Upload */}
+                <div className="mb-3 flex flex-row gap-4 items-center">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Attachment:</label>
+                  <input
+                    type="file"
+                    id="email-attachment"
+                    className="hidden"
+                    onChange={e => {
+                      if (e.target.files && e.target.files[0]) {
+                        setEmailAttachment(e.target.files[0]);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm"
+                    onClick={() => document.getElementById('email-attachment')?.click()}
+                  >
+                    {emailAttachment ? 'Change File' : 'Upload Attachment'}
+                  </button>
+                  {emailAttachment && (
+                    <span className="ml-2 flex items-center gap-2 text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded">
+                      {emailAttachment.name}
+                      <button
+                        type="button"
+                        className="ml-1 text-red-500 hover:text-red-700"
+                        onClick={() => setEmailAttachment(null)}
+                        title="Remove attachment"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
                 </div>
 
                 {/* Subject Field */}

@@ -83,7 +83,7 @@ const getLeadEmail = (lead: ILead): string => {
 
 // Helper function to get domain email
 const getDomainEmail = (domain: string): string => {
-  console.log("domain", domain, process.env);
+  console.log("domain: ", domain);
   const domainEmails = {
     OOR: process.env.NEXT_PUBLIC_EMAIL_OOR,
     OOC: process.env.NEXT_PUBLIC_EMAIL_OOC,

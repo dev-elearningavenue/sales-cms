@@ -170,14 +170,71 @@ export const getInvoiceById = async (
   }
 };
 
-// Get all invoices created by a specific agent
+// Get all invoices created by a specific agent (excluding only unpaid invoices with past due dates)
 export const getInvoicesByAgent = async (agentId: string) => {
   try {
     await connectDB();
-    const invoices = await Invoice.find({ agentId: new mongoose.Types.ObjectId(agentId) })
+    
+    // Get current date in US Eastern Time
+    const now = new Date();
+    const usEasternTime = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+    
+    // Format the date for comparison (YYYY-MM-DD)
+    const currentDate = usEasternTime.toISOString().split('T')[0];
+    
+    const allInvoices = await Invoice.find({ 
+      agentId: new mongoose.Types.ObjectId(agentId)
+    })
       .populate('agentId', 'full_name')
       .sort({ createdAt: -1 });
-    return invoices;
+    
+    // Filter invoices based on due date (only exclude unpaid invoices with past due dates)
+    const filteredInvoices = allInvoices.filter(invoice => {
+      // If invoice is paid, include it regardless of due date
+      if (invoice.status === 'paid') {
+        return true;
+      }
+      
+      // For unpaid invoices, check if due date has passed
+      if (invoice.status === 'unpaid') {
+        const dueDate = invoice.dueDate;
+        if (!dueDate) return false;
+        
+        // Try to parse the due date - handle different formats
+        let parsedDueDate: Date;
+        // If it's already a Date object
+        if (typeof dueDate === 'object' && dueDate !== null && Object.prototype.toString.call(dueDate) === '[object Date]') {
+          parsedDueDate = dueDate as Date;
+        } else {
+          // If it's a string, try to parse it
+          parsedDueDate = new Date(dueDate as string);
+        }
+        
+        // If parsing failed, skip this invoice
+        if (isNaN(parsedDueDate.getTime())) {
+          console.log(`Invalid due date format for invoice ${invoice._id}: ${dueDate}`);
+          return false;
+        }
+        
+        // Convert due date to US Eastern Time for comparison
+        const dueDateInEastern = new Date(parsedDueDate.toLocaleString("en-US", { timeZone: "America/New_York" }));
+        const dueDateString = dueDateInEastern.toISOString().split('T')[0];
+        
+        // Compare dates as strings (YYYY-MM-DD format)
+        const isNotPastDue = dueDateString >= currentDate;
+        
+        if (!isNotPastDue) {
+          console.log(`Excluding unpaid invoice ${invoice._id} - Due date: ${dueDateString}, Current: ${currentDate}`);
+        }
+        
+        return isNotPastDue;
+      }
+      
+      // For other statuses (sent, overdue, cancelled), include them
+      return true;
+    });
+    
+    return filteredInvoices;
   } catch (error) {
     console.error("Error fetching agent invoices:", error);
     return [];

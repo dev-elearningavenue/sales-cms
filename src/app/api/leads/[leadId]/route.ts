@@ -24,7 +24,15 @@ export async function GET(
       { path: "contact_us", model: "Contact" },
       { path: "abandoned_cart", model: "AbandonedCart" },
       { path: "scholarship", model: "Scholarship" },
-      { path: "order_creation", model: "OrderCreation" },
+      { 
+        path: "order_creation", 
+        model: "OrderCreation",
+        populate: {
+          path: "user",
+          model: "User",
+          select: "userName full_name"
+        }
+      },
       { path: "custom_lead", model: "CustomLead" },
       { path: "assigned_to", model: "User", select: "full_name user_name" },
       { path: "created_by", model: "User", select: "full_name user_name" }

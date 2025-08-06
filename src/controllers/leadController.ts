@@ -67,11 +67,12 @@ export const getAllLeads = async (options?: {
       populations.push({ 
         path: "order_creation", 
         model: "OrderCreation",
-        populate: {
-          path: "user",
-          model: "User",
-          select: "user_name full_name"
-        }
+        // populate: {
+        //   path: "user",
+        //   model: "User",
+        //   select: "user_name full_name",
+        //   options: { strictPopulate: false }
+        // }
       });
     }
     if (await Lead.exists({ custom_lead: { $ne: null } })) {

@@ -13,6 +13,12 @@ const WEBSITES = [
     prefix: "FOC"
   },
   {
+    name: "Osha 30 Construction",
+    domain: "Osha 30 Construction - 30Construction",
+    apiUrl: "https://www.osha30construction.com/api/rac.php",
+    prefix: "30Construction"
+  },
+  {
     name: "Osha Practice",
     domain: "Osha Practice - OP", 
     apiUrl: "https://www.oshapractice.com/api/rac.php",

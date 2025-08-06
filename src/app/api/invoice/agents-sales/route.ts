@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getDataFromToken } from "@/utils/get_token_data";
 import Invoice from "@/models/invoice";

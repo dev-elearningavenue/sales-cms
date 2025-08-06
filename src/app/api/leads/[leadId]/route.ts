@@ -27,11 +27,11 @@ export async function GET(
       { 
         path: "order_creation", 
         model: "OrderCreation",
-        populate: {
-          path: "user",
-          model: "User",
-          select: "userName full_name"
-        }
+        // populate: {
+        //   path: "user",
+        //   model: "User",
+        //   select: "userName full_name"
+        // }
       },
       { path: "custom_lead", model: "CustomLead" },
       { path: "assigned_to", model: "User", select: "full_name user_name" },

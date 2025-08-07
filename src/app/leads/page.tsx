@@ -9,6 +9,15 @@ import { useApp } from "@/contexts/AppContext";
 import { Plus, X } from "lucide-react";
 import { CourseInterest } from "@/models/customLead";
 import { useSocket } from "@/hooks/useSocket";
+import { Dialog } from "@/components/Dialog";
+import { Customer, Field } from "@/components/Customer";
+import CourseInfo from "@/components/CourseInfo";
+import {
+  categoryColors,
+  getDomainLabel,
+  getFollowUpDisplayStatus,
+  getStatusOptionsForCategory,
+} from "@/components/LeadUtils";
 
 const Leads = () => {
   const [leads, setLeads] = useState<ILead[]>([]);
@@ -16,6 +25,11 @@ const Leads = () => {
   const [backgroundLoading, setBackgroundLoading] = useState(false);
   const { session, addNotification } = useApp();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  
+  // Add state for View Details modal (only for user types 1 and 2)
+  const [selectedLead, setSelectedLead] = useState<ILead | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
   const [newLeadForm, setNewLeadForm] = useState({
     firstName: "",
     lastName: "",
@@ -24,6 +38,7 @@ const Leads = () => {
     domain: "OOR",
     supportType: "call",
     coursesInterested: [] as CourseInterest[],
+    customerQuery: "",
   });
   const [currentCourse, setCurrentCourse] = useState({
     courseName: "",
@@ -375,7 +390,7 @@ const Leads = () => {
 
   // Handle form input changes
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setNewLeadForm((prev) => ({
@@ -550,9 +565,11 @@ const Leads = () => {
     }
     if (!newLeadForm.contactNo.trim())
       errors.contactNo = "Contact number is required";
-    if (newLeadForm.coursesInterested.length === 0) {
-      errors.courses = "At least one course is required";
-    }
+    // if (!newLeadForm.customerQuery.trim())
+    //   errors.customerQuery = "Custom query is required";
+    // if (newLeadForm.coursesInterested.length === 0) {
+    //   errors.courses = "At least one course is required";
+    // }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -619,6 +636,7 @@ const Leads = () => {
       domain: "OOR",
       supportType: "call",
       coursesInterested: [],
+      customerQuery: "",
     });
     setCurrentCourse({
       courseName: "",
@@ -646,6 +664,10 @@ const Leads = () => {
             onDelete={handleDelete}
             onBatchDelete={handleBatchDelete}
             onRefresh={() => fetchLeads(true)}
+            onViewDetails={(lead) => {
+              setSelectedLead(lead);
+              setIsModalOpen(true);
+            }}
           />
         )}
       </div>
@@ -792,6 +814,27 @@ const Leads = () => {
                     <option value="email">Email</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Custom Query
+                </label>
+                <textarea
+                  name="customerQuery"
+                  rows={4}
+                  placeholder="Enter your custom query here..."
+                  value={newLeadForm.customerQuery}
+                  onChange={handleInputChange}
+                  className={`w-full p-2 border text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical ${
+                    formErrors.customerQuery ? "border-red-500" : "border-gray-300"
+                  }`}
+                />
+                {formErrors.customerQuery && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {formErrors.customerQuery}
+                  </p>
+                )}
               </div>
 
               {/* Courses Section in Custom Lead Form */}
@@ -941,6 +984,95 @@ const Leads = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* View Details Modal - Only for user types 1 and 2 */}
+      {selectedLead && session?.user_type !== 3 && (
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            onClick={() => setIsModalOpen(false)}
+          >
+            <div
+              className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b px-6 py-4">
+                <h2 className="text-xl font-bold text-gray-800">
+                  Lead Details
+                </h2>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-500"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="px-6 py-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <Field
+                    label="Domain"
+                    value={getDomainLabel(selectedLead.domain || "")}
+                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Category
+                    </label>
+                    <div
+                      className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
+                        categoryColors[selectedLead?.category ?? " "] || "bg-gray-500"
+                      }`}
+                    >
+                      {selectedLead?.category}
+                    </div>
+                  </div>
+                  <Field label="Status" value={selectedLead.resolve_status} />
+                  <Field
+                    label="Date Created"
+                    value={
+                      selectedLead.createdAt
+                        ? new Date(selectedLead.createdAt).toLocaleString(
+                            "en-US",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )
+                        : "N/A"
+                    }
+                  />
+                  {
+                    selectedLead?.category === "Custom Lead" && (
+                      <Field
+                        label="Custom Query"
+                        value={
+                          typeof selectedLead.custom_lead === "object" && selectedLead.custom_lead !== null && "customerQuery" in selectedLead.custom_lead
+                            ? (selectedLead.custom_lead as { customerQuery?: string }).customerQuery
+                            : ""
+                        }
+                      />
+                    )
+                  }
+
+                </div>
+
+                {/* Course Information */}
+                {(selectedLead?.category === "Order Creation" ||
+                  selectedLead?.category === "Abandoned Cart" ||
+                  selectedLead?.category === "Unpaid Training") && (
+                  <CourseInfo selectedLead={selectedLead} />
+                )}
+
+                {/* Customer Information */}
+                <Customer selectedLead={selectedLead} />
+              </div>
+            </div>
+          </div>
+        </Dialog>
       )}
     </>
   );

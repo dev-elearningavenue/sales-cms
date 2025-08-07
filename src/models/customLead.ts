@@ -12,6 +12,7 @@ export interface ICustomLead extends Document {
   contactNo: string;
   domain: "OOR" | "OOC" | "OES";
   supportType: "call" | "chat" | "email";
+  customerQuery: string;
   coursesInterested: CourseInterest[];
   createdAt?: Date;
   updatedAt?: Date;
@@ -55,6 +56,10 @@ const customLeadSchema = new Schema<ICustomLead>(
     supportType: {
       type: String,
       enum: ["call", "chat", "email"],
+      required: true,
+    },
+    customerQuery: {
+      type: String,
       required: true,
     },
     coursesInterested: {

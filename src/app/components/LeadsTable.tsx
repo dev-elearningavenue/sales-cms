@@ -44,6 +44,7 @@ interface LeadsTableProps {
   onDelete?: (leadId: string, isBatchOperation: boolean) => Promise<boolean>;
   onBatchDelete?: (leadIds: string[]) => Promise<boolean>;
   onRefresh?: () => Promise<void>;
+  onViewDetails?: (lead: ILead) => void;
 }
 
 const LeadsTable: React.FC<LeadsTableProps> = ({
@@ -56,6 +57,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   onDelete,
   onBatchDelete,
   onRefresh,
+  onViewDetails,
 }) => {
   const { session, addNotification } = useApp();
   const [currentPage, setCurrentPage] = useState(1);
@@ -1121,9 +1123,13 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                         <button
                           className="flex items-center px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm"
                           onClick={() => {
-                            // Handle view details - you can add modal or navigation logic here
-                            setSelectedLeadForDetails(lead);
-                            setShowDetailsModal(true);
+                            if (onViewDetails) {
+                              onViewDetails(lead);
+                            } else {
+                              // Fallback to old modal for My Leads page
+                              setSelectedLeadForDetails(lead);
+                              setShowDetailsModal(true);
+                            }
                           }}
                         >
                           <Eye size={14} className="mr-1" />

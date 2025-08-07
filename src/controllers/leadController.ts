@@ -481,6 +481,7 @@ export const createCustomLead = async (
       contactNo: customLeadData.contactNo,
       domain: customLeadData.domain,
       supportType: customLeadData.supportType,
+      customerQuery: customLeadData.customerQuery,
       coursesInterested: customLeadData.coursesInterested || [],
     });
 
@@ -499,8 +500,7 @@ export const createCustomLead = async (
       resolve_status: "Pending",
       assigned: false,
       assigned_to: null,
-      created_by:
-        createdById || new mongoose.Types.ObjectId("67b33a327fa1571a2f0e1e4b"),
+      created_by: createdById,
       domain: customLeadData.domain,
       next_follow_up: null,
       notes: [],

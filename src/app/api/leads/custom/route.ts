@@ -19,8 +19,7 @@ export async function POST(req: NextRequest) {
 
     // Validate required fields
     if (!customLeadData.firstName || !customLeadData.lastName || !customLeadData.email || 
-        !customLeadData.contactNo || !customLeadData.domain || !customLeadData.supportType || 
-        !customLeadData.coursesInterested || customLeadData.coursesInterested.length === 0) {
+        !customLeadData.contactNo || !customLeadData.domain || !customLeadData.supportType ) {
       return NextResponse.json(
         { message: "All fields are required" },
         { status: 400 }
@@ -28,6 +27,7 @@ export async function POST(req: NextRequest) {
     }
     const createdById = tokenData._id ? tokenData._id.toString() : undefined;
 
+    console.log("Custom Lead Data:", customLeadData);
     // Use the controller function to create the custom lead
     const result = await createCustomLead(customLeadData, createdById);
 

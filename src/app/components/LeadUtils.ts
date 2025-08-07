@@ -66,7 +66,8 @@ export const categoryColors: Record<string, string> = {
   "Free Study Guide": "bg-yellow-500",
   "Custom Lead": "bg-indigo-500",
   "Unpaid Training": "bg-teal-500",
-  Scholarship: "bg-amber-500",
+  "Scholarship": "bg-amber-500",
+  "Invoice": "bg-orange-500",
 };
 
 // Get the follow-up level for display purposes

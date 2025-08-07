@@ -50,7 +50,7 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
   sendLvmEmail,
   applyFollowUpWithEmail,
 }) => {
-  console.log("selectedLead", selectedLead);
+  console.log("selected Lead Data:", selectedLead);
   const [emailAttachment, setEmailAttachment] = useState<File | null>(null);
   
   return (

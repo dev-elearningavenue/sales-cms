@@ -543,7 +543,7 @@ export const createCustomLead = async (
 };
 
 // Function to handle lead assignment
-export const assignLeadToUser = async (leadId: string, userId: string) => {
+export const assignLeadToUser = async (leadId: string, userId: string, userType?: number) => {
   try {
     // First, check if the lead exists
     const lead = await Lead.findById(leadId);
@@ -554,8 +554,8 @@ export const assignLeadToUser = async (leadId: string, userId: string) => {
       };
     }
 
-    // Check if lead is already assigned
-    if (lead.assigned) {
+    // Check if lead is already assigned - only block reassignment for regular users (type 3)
+    if (lead.assigned && userType === 3) {
       return {
         success: false,
         message: "This lead is already assigned to another user",

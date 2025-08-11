@@ -1140,15 +1140,77 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                       )}
 
                       {lead.assigned ? (
-                        <div className="flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600">
-                          <span className="text-sm">
-                            Assigned to{" "}
-                            {lead.assigned_to &&
-                            typeof lead.assigned_to === "object"
-                              ? (lead.assigned_to as any).full_name
-                              : "Unknown User"}
-                          </span>
-                        </div>
+                        <>
+                          {/* Show current assignment info */}
+                          <div className="flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600 mr-2">
+                            <span className="text-sm">
+                              Assigned to{" "}
+                              {lead.assigned_to &&
+                              typeof lead.assigned_to === "object"
+                                ? (lead.assigned_to as any).full_name
+                                : "Unknown User"}
+                            </span>
+                          </div>
+                          
+                          {/* Show reassignment dropdown for admin users (type 1 & 2) */}
+                          {session?.user_type !== 3 && (
+                            <div className="dropdown relative mr-2">
+                              <button
+                                className="flex items-center justify-center px-4 py-2 border border-orange-300 rounded-md text-orange-600 hover:bg-orange-50 min-w-[140px]"
+                                onClick={() =>
+                                  toggleDropdown(lead._id as string)
+                                }
+                              >
+                                <UserPlus className="h-4 w-4 mr-2" />
+                                <span className="mr-1">Reassign</span>
+                                <ChevronDown className="h-4 w-4" />
+                              </button>
+
+                              {openDropdownId === lead._id && (
+                                <div className="dropdown-menu absolute left-0 top-full mt-1 w-60 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                                  <button
+                                    onClick={() => {
+                                      if (lead._id && onAssign)
+                                        onAssign(lead._id);
+                                      setOpenDropdownId(null);
+                                    }}
+                                    className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm border-b border-gray-100"
+                                  >
+                                    Assign to Me
+                                  </button>
+
+                                  {loadingUsers ? (
+                                    <div className="px-4 py-2 text-sm text-gray-500">
+                                      Loading users...
+                                    </div>
+                                  ) : (
+                                    availableUsers.length > 0 && (
+                                      <div className="max-h-48 overflow-y-auto">
+                                        {availableUsers.map((user) => (
+                                          <button
+                                            key={user._id}
+                                            onClick={() =>
+                                              confirmAssign(
+                                                lead._id as string,
+                                                user._id
+                                              )
+                                            }
+                                            className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm flex items-center justify-between"
+                                          >
+                                            <span>
+                                              {user.full_name ||
+                                                user.user_name}
+                                            </span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </>
                       ) : (
                         <>
                           {session?.user_type !== 3 ? (

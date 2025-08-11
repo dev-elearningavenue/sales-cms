@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     if (!user)
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     // Use controller to assign lead and create notification
-    const result = await assignLeadToUser(leadId, userId);
+    const result = await assignLeadToUser(leadId, userId, decoded.data.user_type);
     if (!result.success) {
       return NextResponse.json(
         { error: result.message },

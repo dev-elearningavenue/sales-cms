@@ -39,6 +39,7 @@ const Leads = () => {
     supportType: "call",
     coursesInterested: [] as CourseInterest[],
     customerQuery: "",
+    assignedTo: "",
   });
   const [currentCourse, setCurrentCourse] = useState({
     courseName: "",
@@ -52,6 +53,10 @@ const Leads = () => {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
+  
+  // State for available users (userType 3)
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   // Initialize WebSocket connection with event handlers
   const { isConnected } = useSocket({
@@ -96,6 +101,7 @@ const Leads = () => {
 
   useEffect(() => {
     fetchLeads();
+    fetchAvailableUsers();
     const intervalId = setInterval(() => {
       if (!isConnected && session && session._id) {
         fetchLeadsUpdates();
@@ -104,6 +110,27 @@ const Leads = () => {
 
     return () => clearInterval(intervalId);
   }, [isConnected, session]);
+
+  // Function to fetch users with userType 3
+  const fetchAvailableUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const response = await fetch("/api/users");
+      const data = await response.json();
+
+      if (response.ok && data.success && data.users) {
+        // Filter users with userType 3
+        const userType3Users = data.users.filter((user: any) => user.user_type === 3);
+        setAvailableUsers(userType3Users);
+      } else {
+        console.error("Failed to fetch users:", data.message || "Unknown error");
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
 
   const fetchLeads = async (isRefresh: boolean = false) => {
     try {
@@ -566,7 +593,7 @@ const Leads = () => {
     if (!newLeadForm.contactNo.trim())
       errors.contactNo = "Contact number is required";
     // if (!newLeadForm.customerQuery.trim())
-    //   errors.customerQuery = "Custom query is required";
+    //   errors.customerQuery = "Customer query is required";
     // if (newLeadForm.coursesInterested.length === 0) {
     //   errors.courses = "At least one course is required";
     // }
@@ -584,12 +611,14 @@ const Leads = () => {
     setIsSubmitting(true);
 
     try {
+      // Create the lead first
+      const { assignedTo, ...leadData } = newLeadForm; // Remove assignedTo from the data sent to backend
       const response = await fetch("/api/leads/custom", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(newLeadForm),
+        body: JSON.stringify(leadData),
       });
 
       const data = await response.json();
@@ -607,6 +636,28 @@ const Leads = () => {
             type: "lead",
             leadId: data.lead._id,
           });
+
+          // If assignedTo is selected, assign the lead to that user
+          if (newLeadForm.assignedTo && data.lead._id) {
+            const assignResponse = await fetch("/api/leads/assign", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                leadId: data.lead._id,
+                userId: newLeadForm.assignedTo,
+              }),
+            });
+
+            if (assignResponse.ok) {
+              addNotification({
+                message: `Lead assigned to ${availableUsers.find(u => u._id === newLeadForm.assignedTo)?.full_name || 'selected user'}`,
+                read: false,
+                type: "info",
+              });
+            }
+          }
         }
 
         resetForm();
@@ -637,6 +688,7 @@ const Leads = () => {
       supportType: "call",
       coursesInterested: [],
       customerQuery: "",
+      assignedTo: "",
     });
     setCurrentCourse({
       courseName: "",
@@ -814,16 +866,44 @@ const Leads = () => {
                     <option value="email">Email</option>
                   </select>
                 </div>
+
+                { session?.user_type === 1 || session?.user_type === 2 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Assigned To
+                    </label>
+                    <select
+                      name="assignedTo"
+                      value={newLeadForm.assignedTo}
+                      onChange={handleInputChange}
+                      className="w-full p-2 border border-gray-300 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select a user</option>
+                      {loadingUsers ? (
+                        <option disabled>Loading users...</option>
+                      ) : availableUsers.length === 0 ? (
+                        <option disabled>No users available</option>
+                      ) : (
+                        availableUsers.map((user) => (
+                          <option key={user._id} value={user._id}>
+                            {user.full_name || user.user_name}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                  )
+                }
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Custom Query
+                  Customer Query
                 </label>
                 <textarea
                   name="customerQuery"
                   rows={4}
-                  placeholder="Enter your custom query here..."
+                  placeholder="Enter your customer query here..."
                   value={newLeadForm.customerQuery}
                   onChange={handleInputChange}
                   className={`w-full p-2 border text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical ${
@@ -840,7 +920,7 @@ const Leads = () => {
               {/* Courses Section in Custom Lead Form */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Courses Interested*
+                  Courses Interested
                 </label>
 
                 {formErrors.courses && (
@@ -1043,12 +1123,12 @@ const Leads = () => {
                             }
                           )
                         : "N/A"
-                    }
+                  }
                   />
                   {
                     selectedLead?.category === "Custom Lead" && (
                       <Field
-                        label="Custom Query"
+                        label="Customer Query"
                         value={
                           typeof selectedLead.custom_lead === "object" && selectedLead.custom_lead !== null && "customerQuery" in selectedLead.custom_lead
                             ? (selectedLead.custom_lead as { customerQuery?: string }).customerQuery
@@ -1063,6 +1143,7 @@ const Leads = () => {
                 {/* Course Information */}
                 {(selectedLead?.category === "Order Creation" ||
                   selectedLead?.category === "Abandoned Cart" ||
+                  selectedLead?.category === "Invoice" ||
                   selectedLead?.category === "Unpaid Training") && (
                   <CourseInfo selectedLead={selectedLead} />
                 )}

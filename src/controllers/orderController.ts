@@ -38,10 +38,18 @@ export const createOrder = async (orderData: any) => {
       orderData.domain
     );
 
+    // Extract user details from order data
+    const email = orderData.email || orderData.customerEmail || null;
+    const fullName = orderData.customerName || orderData.name || orderData.fullName || null;
+    const contactNo = orderData.contactNo || orderData.phone || orderData.customerPhone || null;
+
     // Create corresponding lead with proper category and formatting
     const leadData = new Lead({
       category: category,
       ...leadFields,
+      email: email,
+      fullname: fullName,
+      contactNo: contactNo,
       domain: formattedDomain,
       status: "Pending",
       resolve_status: "Pending",

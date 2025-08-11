@@ -44,7 +44,7 @@ export async function GET(req: Request) {
     if (!type && !form) {
       return NextResponse.json(leadsResult, { status: 200 });
     }
-    console.log("Lead Count: ",leadsResult.leads.length)
+    // console.log("Lead Count: ",leadsResult.leads.length)
 
     let filteredLeads = leadsResult.leads;
 
@@ -131,6 +131,9 @@ export async function POST(req: Request) {
       category: "Invoice",
       invoice: body.invoice,
       status: "Pending",
+      email: body.email,
+      fullname: body.fullname,
+      contactNo: body.contactNo,
       resolve_status: "Pending",
       assigned: body.assigned || false,
       assigned_to: body.assigned_to || null,

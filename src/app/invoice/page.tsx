@@ -774,6 +774,19 @@ const Invoice = () => {
       alert("Please log in to create invoices");
       return;
     }
+    
+    // Add validation for required fields
+    if (!formData.email || formData.email.trim() === "") {
+      alert("Email is required");
+      return;
+    }
+    
+    // Additional validation for email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      alert("Please enter a valid email address");
+      return;
+    }
     if (!invoiceData.dueDate || invoiceData.dueDate.trim() === "") {
       alert("Please select a due date before creating the invoice");
       return;
@@ -851,11 +864,7 @@ const Invoice = () => {
         hostedUrl: "",
       };
       
-      console.log("Invoice API Data:", invoiceApiData);
-      console.log("Form Data firstName:", firstName);
-      console.log("Form Data lastName:", lastName);
-      console.log("Customer exists:", customerExists);
-      console.log("Form Data fullName:", formData.fullName);
+      // console.log("Invoice API Data:", invoiceApiData);
 
       // 1. Create Invoice
       const response = await fetch("/api/invoice", {
@@ -868,8 +877,9 @@ const Invoice = () => {
 
       const result: CreateInvoiceApiResponse = await response.json();
 
-      console.log("Response of Invoice Api", result);
-      console.log("Invoice ID from response:", result.invoiceId);
+      // console.log("Response of Invoice Api", result);
+      console.log("Invoice ID from response:", formData);
+      console.log("Invoice ID from response:", invoiceApiData.customerEmail);
       if (response.ok && result.success) {
         // 2. Create Lead with category 'Invoice' and reference to invoice ID
         const leadData = {
@@ -878,12 +888,15 @@ const Invoice = () => {
           status: "Pending",
           resolve_status: "Pending",
           assigned: true,
+          email: formData.email,
+          fullname: formData.fullName,
+          contactNo: formData.contactNo,
           assigned_to: session._id,
           created_by: session._id,
           domain: getDomainFromSiteName(formData.siteName),
           conversion_value: finalTotal,
         };
-        console.log("Creating invoice lead with data:", leadData);
+        // console.log("Creating invoice lead with data:", leadData);
         try {
           const leadResponse = await fetch("/api/leads", {
             method: "POST",
@@ -894,7 +907,7 @@ const Invoice = () => {
           });
 
           const leadResult = await leadResponse.json();
-          console.log("Lead creation response:", leadResult);
+          // console.log("Lead creation response:", leadResult);
 
           if (!leadResponse.ok) {
             console.error("Failed to create lead... ", leadResult);

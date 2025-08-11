@@ -1,5 +1,7 @@
 import connectDB from "@/lib/db";
 import Invoice, { IInvoice, IInvoiceProduct } from "@/models/invoice";
+import { deleteLead } from "@/controllers/leadController";
+import Lead from "@/models/lead";
 import mongoose from "mongoose";
 
 export interface CreateInvoiceRequest {
@@ -52,14 +54,6 @@ export const createInvoice = async (
       };
     }
 
-    if (!invoiceData.products || invoiceData.products.length === 0) {
-      return {
-        success: false,
-        message: "At least one product is required",
-        error: "No products provided",
-      };
-    }
-
     if (!invoiceData.dueDate || invoiceData.dueDate.trim() === "") {
       return {
         success: false,
@@ -95,7 +89,7 @@ export const createInvoice = async (
     // Create the invoice
     const newInvoice = new Invoice({
       customerId: invoiceData.customerId,
-      customerEmail: invoiceData.customerEmail,
+      email: invoiceData.customerEmail,
       firstName: invoiceData.firstName || "",
       lastName: invoiceData.lastName || "",
       siteName: invoiceData.siteName,
@@ -113,7 +107,7 @@ export const createInvoice = async (
       status: "unpaid",
     });
     
-    console.log("New Invoice object:", newInvoice);
+    // console.log("New Invoice object:", newInvoice);
 
     const savedInvoice = await newInvoice.save();
 
@@ -284,5 +278,67 @@ export const updateInvoiceStatus = async (
   } catch (error) {
     console.error("Error updating invoice status:", error);
     return false;
+  }
+};
+
+export const deleteInvoice = async (
+  invoiceId: string,
+  userId: string,
+  userType: number
+): Promise<{ success: boolean; message: string; error?: string }> => {
+  try {
+    await connectDB();
+    
+    // Check if invoice exists
+    const invoice = await Invoice.findById(invoiceId);
+    if (!invoice) {
+      return {
+        success: false,
+        message: "Invoice not found",
+        error: "Invoice not found",
+      };
+    }
+
+    // Delete the invoice
+    const result = await Invoice.findByIdAndDelete(invoiceId);
+    
+    if (!result) {
+      return {
+        success: false,
+        message: "Failed to delete invoice",
+        error: "Delete operation failed",
+      };
+    }
+
+    // Also delete the associated lead if it exists
+    try {
+      // Find the lead associated with this invoice
+      const lead = await Lead.findOne({ invoice: invoiceId });
+      if (lead) {
+        // Use the existing deleteLead function to properly clean up all associated records
+        // We need to pass userType 1 (admin) to allow deletion
+        const result = await deleteLead(lead._id.toString(), userId, userType);
+        if (result.success) {
+          console.log(`Associated lead ${lead._id} deleted for invoice ${invoiceId}`);
+        } else {
+          console.warn("Failed to delete associated lead:", result.message);
+        }
+      }
+    } catch (leadError) {
+      console.warn("Failed to delete associated lead:", leadError);
+      // Don't fail the invoice deletion if lead deletion fails
+    }
+
+    return {
+      success: true,
+      message: "Invoice and associated lead deleted successfully",
+    };
+  } catch (error: any) {
+    console.error("Error deleting invoice:", error);
+    return {
+      success: false,
+      message: "Failed to delete invoice",
+      error: error.message || "Unknown error occurred",
+    };
   }
 };

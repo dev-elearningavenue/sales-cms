@@ -1038,7 +1038,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
 
             <tbody className="divide-y divide-gray-200">
               {currentLeads.map((lead, index) => (
-                <tr key={lead._id || index} className="hover:bg-gray-50">
+                <tr key={lead._id || index} className="hover:bg-gray-50 cursor-pointer" >
                   {/* CheckBox */}
                   <td className="w-12 px-2 py-4">
                     <input
@@ -1074,27 +1074,29 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   </td>
                   {/* Full Name */}
                   <td className="px-4 py-4">
-                    <div className="py-4 text-sm font-medium text-gray-600">
-                      {((lead.contact_us as any) || lead.shortcourse_discount)
-                        ?.name ||
-                        [
-                          lead.free_signup,
-                          lead.order_creation,
-                          lead.scholarship,
-                          lead.custom_lead,
-                          lead.abandoned_cart,
-                          lead.invoice,
-                        ]
-                          .map((entry) =>
-                            entry &&
-                            typeof entry === "object" &&
-                            "firstName" in entry &&
-                            "lastName" in entry
-                              ? `${entry.firstName} ${entry.lastName ?? ""}`
-                              : null
-                          )
-                          .filter(Boolean)[0] ||
-                        "No Data Available"}
+                    <div className="py-4 text-lg font-medium text-gray-600 underline cursor-pointer" onClick={() => {
+                  window.location.href = `/leads/${lead._id}/history`;
+                }}>
+                    {((lead.contact_us as any) || lead.shortcourse_discount)
+                      ?.name ||
+                      [
+                        lead.free_signup,
+                        lead.order_creation,
+                        lead.scholarship,
+                        lead.custom_lead,
+                        lead.abandoned_cart,
+                        lead.invoice,
+                      ]
+                        .map((entry) =>
+                          entry &&
+                          typeof entry === "object" &&
+                          "firstName" in entry &&
+                          "lastName" in entry
+                            ? `${entry.firstName} ${entry.lastName ?? ""}`
+                            : null
+                        )
+                        .filter(Boolean)[0] ||
+                      "No Data Available"}
                     </div>
                   </td>
                   {/* DOMAIN (LEAD SOURCE) */}

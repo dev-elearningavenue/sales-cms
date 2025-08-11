@@ -13,6 +13,15 @@ interface OrderItem {
   quantity: number;
 }
 
+interface InvoiceProduct {
+  product_id: string;
+  name: string;
+  price_id: string;
+  price: string;
+  quantity: number;
+  total: number;
+}
+
 const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
   //   const orderLead =
   //     selectedLead.order_creation &&
@@ -21,14 +30,33 @@ const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
   //       : null;
   // console.log("CourseInfo - Selected Lead: ", selectedLead);
 
-  // Check for both order_creation and abandoned_cart
-  const orderLead = (selectedLead.order_creation ||
-    selectedLead.abandoned_cart) as OrderCreation | null;
+  // Check for order_creation, abandoned_cart, or invoice data
+  let orderLead: OrderCreation | null = null;
+  let invoiceData: any = null;
+  let products: any[] = [];
+  let totalPrice: number = 0;
 
-  // console.log("CourseInfo - Order Lead: ", orderLead);
+  if (selectedLead.category === "Invoice" && selectedLead.invoice) {
+    // Handle Invoice data
+    invoiceData = selectedLead.invoice;
+    
+    if (invoiceData.products && Array.isArray(invoiceData.products)) {
+      products = invoiceData.products;
+      totalPrice = Number(invoiceData.totalPrice) || 0;
+    }
+  } else {
+    // Handle Order data (Order Creation, Abandoned Cart, Unpaid Training)
+    orderLead = (selectedLead.order_creation ||
+      selectedLead.abandoned_cart) as OrderCreation | null;
+    
+    if (orderLead && Array.isArray(orderLead.items)) {
+      products = orderLead.items;
+      totalPrice = Number(orderLead.total) || 0;
+    }
+  }
 
-  if (!orderLead || !Array.isArray(orderLead.items)) {
-    console.log("CourseInfo - No valid order data found");
+  if (!products || products.length === 0) {
+    console.log("CourseInfo - No valid product data found");
     return <h1 className="text-gray-500">No course information available.</h1>;
   }
 
@@ -37,23 +65,16 @@ const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
       <div className="mt-4 mb-4">
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-sm font-medium text-gray-800">Courses</h4>
-          {Array.isArray(orderLead?.items) && orderLead.items.length > 0 && (
+          {products.length > 0 && (
             <span className="text-sm font-semibold text-gray-700">
-              Total Price: ${orderLead.total}
-              {/* orderLead.items
-                  .reduce(
-                    (sum: number, item: OrderItem) =>
-                      sum + item.price * (item.quantity || 1),
-                    0
-                  )
-                  .toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  } */}
+              Total Price: {totalPrice.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </span>
           )}
         </div>
-        {Array.isArray(orderLead?.items) && orderLead.items.length > 0 ? (
+        {products.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full border border-gray-200 rounded-lg">
               <thead className="bg-gray-50">
@@ -70,13 +91,13 @@ const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
                 </tr>
               </thead>
               <tbody>
-                {orderLead.items.map((item: OrderItem, idx: number) => (
+                {products.map((item: any, idx: number) => (
                   <tr key={idx} className="border-t">
                     <td className="px-3 py-2 text-sm text-gray-900">
-                      {item.title}
+                      {selectedLead.category === "Invoice" ? item.name : item.title}
                     </td>
                     <td className="px-3 py-2 text-sm text-gray-900">
-                      {item.price}
+                      {selectedLead.category === "Invoice" ? item.price : item.price}
                     </td>
                     <td className="px-3 py-2 text-sm text-gray-900">
                       {item.quantity}

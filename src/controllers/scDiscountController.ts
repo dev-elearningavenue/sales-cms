@@ -23,10 +23,18 @@ export const creatediscountQuery = async (discountQuery: any) => {
       String(discountQuery.domain)
     );
 
+    // Extract user details from discount query data
+    const email = discountQuery.email || null;
+    const fullName = discountQuery.name || discountQuery.fullName || discountQuery.firstName || null;
+    const contactNo = discountQuery.contactNo || discountQuery.phone || discountQuery.contact || null;
+
     // Create corresponding lead with proper category and formatting
     const leadData = new Lead({
       category: category,
       ...leadFields,
+      email: email,
+      fullname: fullName,
+      contactNo: contactNo,
       domain: formattedDomain,
       status: "Pending",
       resolve_status: "Pending",

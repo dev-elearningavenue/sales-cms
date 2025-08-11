@@ -7,6 +7,7 @@ import {
   createLeadAssignedNotification,
   createStatusChangeNotification,
 } from "@/services/notificationService";
+import connectDB from "@/lib/db";
 
 // For server-side only imports
 let socketServer:
@@ -215,6 +216,9 @@ export const createLead = async (requestBody: Partial<ILead>) => {
     category,
     invoice,
     status,
+    email,
+    fullname,
+    contactNo,
     resolve_status,
     assigned,
     assigned_to,
@@ -233,11 +237,14 @@ export const createLead = async (requestBody: Partial<ILead>) => {
   }
 
   try {
-    console.log("Creating lead controller:", requestBody);
+    // console.log("Creating lead controller:", requestBody);
     const newLead = new Lead({
       category,
       invoice: invoice || null,
       status: status || "Pending",
+      email: email || "",
+      fullname: fullname || "",
+      contactNo: contactNo || "",
       resolve_status: resolve_status || "Pending",
       assigned,
       assigned_to: assigned_to || null,
@@ -496,6 +503,9 @@ export const createCustomLead = async (
       free_signup: null,
       abandoned_cart: null,
       order_creation: null,
+      email: customLeadData.email ,
+      fullname: `${customLeadData.firstName} ${customLeadData.lastName}`.trim(),
+      contactNo: customLeadData.contactNo,
       status: "Follow Up",
       resolve_status: "Pending",
       assigned: false,
@@ -600,7 +610,6 @@ export const deleteLead = async (
   userType: number
 ) => {
   try {
-    // Check if the user is authorized to delete leads (userType != 3)
     if (userType === 3) {
       return {
         success: false,
@@ -625,6 +634,7 @@ export const deleteLead = async (
     const { default: OrderCreation } = await import("@/models/orders");
     const { default: CustomLead } = await import("@/models/customLead");
     const { default: Scholarship } = await import("@/models/scholarship");
+    const { default: Invoice } = await import("@/models/invoice");
 
     // Delete associated records based on lead type
     const deletionPromises = [];
@@ -657,6 +667,11 @@ export const deleteLead = async (
     if (lead.scholarship) {
       deletionPromises.push(Scholarship.findByIdAndDelete(lead.scholarship));
       console.log(`Deleting scholarship record: ${lead.scholarship}`);
+    }
+
+    if (lead.invoice) {
+      deletionPromises.push(Invoice.findByIdAndDelete(lead.invoice));
+      console.log(`Deleting invoice record: ${lead.invoice}`);
     }
 
     // Execute all deletions in parallel
@@ -803,6 +818,92 @@ export const batchDeleteLeads = async (
     return {
       success: false,
       message: "Failed to delete leads",
+    };
+  }
+};
+
+export const getLeadHistory = async (email: string, domain: string) => {
+  try {
+    await connectDB();
+
+    // Build the query to find leads with the same email and domain
+    const query: any = {
+      domain: domain,
+      email: email, // Use direct email field
+    };
+
+    // Fetch leads with the same email and domain
+    const leads = await Lead.find(query)
+      .populate([
+        "contact_us",
+        "free_signup", 
+        "order_creation",
+        "abandoned_cart",
+        "scholarship",
+        "custom_lead",
+        { path: "assigned_to", model: "User", select: "full_name user_name" }
+      ])
+      .sort({ createdAt: -1 }) // Sort by newest first
+      .lean();
+
+    return {
+      success: true,
+      leads: leads,
+      count: leads.length,
+    };
+
+  } catch (error) {
+    console.error("Error fetching lead history:", error);
+    return {
+      success: false,
+      message: "Failed to fetch lead history",
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+};
+
+export const getLeadById = async (leadId: string) => {
+  try {
+    await connectDB();
+
+    if (!leadId) {
+      return {
+        success: false,
+        message: "Lead ID is required",
+      };
+    }
+
+    // Fetch the lead with all populated fields
+    const lead = await Lead.findById(leadId)
+      .populate([
+        "contact_us",
+        "free_signup",
+        "order_creation",
+        "abandoned_cart",
+        "scholarship",
+        "custom_lead",
+        { path: "assigned_to", model: "User", select: "full_name user_name" }
+      ])
+      .lean();
+
+    if (!lead) {
+      return {
+        success: false,
+        message: "Lead not found",
+      };
+    }
+
+    return {
+      success: true,
+      lead: lead,
+    };
+
+  } catch (error) {
+    console.error("Error fetching lead:", error);
+    return {
+      success: false,
+      message: "Failed to fetch lead",
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 };

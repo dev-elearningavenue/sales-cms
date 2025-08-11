@@ -2,6 +2,7 @@ import * as React from "react";
 import { ILead } from "@/types/leads";
 import { ICustomer } from "@/types/customer";
 import { OrderCreation } from "@/types/customer";
+import { IInvoice } from "@/models/invoice";
 
 interface ContactUs {
   name?: string;
@@ -50,6 +51,7 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
     "abandoned_cart",
     "scholarship",
     "custom_lead",
+    "invoice",
   ].find((key) => selectedLead[key as keyof ILead]);
 
   const leadData: LeadData = populatedKey
@@ -76,6 +78,37 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
                 <Field label="Contact No" value={leadData?.contactNo} />
               </>
             )}
+
+          {populatedKey === "invoice" &&
+            leadData &&
+            isInvoice(leadData) && (
+              <>
+                <Field label="First Name" value={leadData?.firstName} />
+                <Field label="Last Name" value={leadData?.lastName} />
+                <Field
+                  label="Invoice Number"
+                  value={
+                    leadData?.hostedUrl ? (
+                      <a
+                        href={leadData.hostedUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline hover:text-blue-800"
+                      >
+                        {leadData?.invoiceNumber}
+                      </a>
+                    ) : (
+                      leadData?.invoiceNumber
+                    )
+                  }
+                />
+                <Field label="Email" value={leadData?.email} />
+                <Field label="Invoice Status" value={leadData?.status} />
+                <Field label="Invoice Amount" value={leadData?.totalPrice} />
+                <Field label="Invoice Due Date" value={leadData?.dueDate} />
+                <Field label="Invoice Agent Name" value={leadData?.agentName} />
+              </>
+          )}
 
           {(populatedKey === "order_creation" ||
             populatedKey === "abandoned_cart") &&
@@ -204,6 +237,10 @@ export const Field: React.FC<FieldProps> = ({ label, value }) => (
 
 // Type Guards
 function isCustomer(data: LeadData): data is ICustomer | OrderCreation {
+  return data !== null && typeof data === "object" && "firstName" in data;
+}
+
+function isInvoice(data: LeadData): data is IInvoice  {
   return data !== null && typeof data === "object" && "firstName" in data;
 }
 

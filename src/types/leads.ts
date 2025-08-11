@@ -12,6 +12,9 @@ interface NextFollowUp {
 export interface ILead extends Document {
   _id?: string;
   category?: string;
+  email?: string;
+  fullname?: string;
+  contactNo?: string;
   contact_us?: mongoose.Types.ObjectId;
   scholarship?: mongoose.Types.ObjectId;
   free_signup?: mongoose.Types.ObjectId;

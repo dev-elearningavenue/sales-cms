@@ -1,6 +1,14 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { FileText, Loader2, X, Users, TrendingUp } from "lucide-react";
+import {
+  FileText,
+  Loader2,
+  X,
+  Users,
+  TrendingUp,
+  Eye,
+  ArrowUpRight,
+} from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 
 interface Invoice {
@@ -8,7 +16,7 @@ interface Invoice {
   lastName: string;
   _id: string;
   invoiceNumber: string;
-  customerEmail: string;
+  email: string;
   totalPrice: number;
   dueDate: string;
   status: string;
@@ -39,7 +47,9 @@ const YourInvoicesPage = () => {
   const { session } = useApp();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [agentsSales, setAgentsSales] = useState<AgentSales[]>([]);
-  const [sortBy, setSortBy] = useState<"dueDate" | "status" | "createdAt" | "paidAt" | null>(null);
+  const [sortBy, setSortBy] = useState<
+    "dueDate" | "status" | "createdAt" | "paidAt" | null
+  >(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [loading, setLoading] = useState(true);
   const [agentsLoading, setAgentsLoading] = useState(false);
@@ -127,6 +137,35 @@ const YourInvoicesPage = () => {
       return pass;
     });
   }
+
+  // Handle invoice deletion
+  const handleDeleteInvoice = async (invoiceId: string) => {
+    if (!confirm("Are you sure you want to delete this invoice? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/invoice?id=${invoiceId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // Remove the deleted invoice from the local state
+        setInvoices(prevInvoices => prevInvoices.filter(inv => inv._id !== invoiceId));
+        alert("Invoice deleted successfully");
+      } else {
+        alert(result.error || "Failed to delete invoice");
+      }
+    } catch (error) {
+      console.error("Error deleting invoice:", error);
+      alert("Failed to delete invoice. Please try again.");
+    }
+  };
   if (sortBy === "createdAt") {
     sortedInvoices.sort((a, b) => {
       const aDate = new Date(a.createdAt);
@@ -167,7 +206,7 @@ const YourInvoicesPage = () => {
         {/* Agents Sales Section - Only for Admin Users */}
         {session && (session.user_type === 1 || session.user_type === 2) && (
           <div className="mb-8">
-            <div className="text-center mb-6">
+            {/* <div className="text-center mb-6">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white mb-2 flex items-center justify-center gap-3">
                 <Users className="text-blue-600" size={32} />
                 All Agents Sales Overview
@@ -175,7 +214,7 @@ const YourInvoicesPage = () => {
               <p className="text-lg text-gray-600 dark:text-gray-300">
                 Sales performance of all agents
               </p>
-            </div>
+            </div> */}
 
             {agentsLoading ? (
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8">
@@ -185,6 +224,15 @@ const YourInvoicesPage = () => {
               </div>
             ) : agentsSales.length > 0 ? (
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6">
+                <div className="text-center mb-6">
+                  <h2 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white mb-2 flex items-center justify-center gap-3">
+                    <Users className="text-blue-600" size={32} />
+                    All Agents Sales Overview
+                  </h2>
+                  <p className="text-lg text-gray-600 dark:text-gray-300">
+                    Sales performance of all agents
+                  </p>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
                   {agentsSales.map((agent) => (
                     <div
@@ -425,40 +473,40 @@ const YourInvoicesPage = () => {
                         #
                       </th>
                       {/* Invoice # */}
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      {/* <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Invoice #
-                      </th>
+                      </th> */}
                       {/* Customer */}
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Customer
                       </th>
                       {/* Created At */}
-                      <th 
-                          className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-600"
-                          onClick={() => {
-                            setSortBy("createdAt");
-                            setSortOrder(
-                              sortBy === "createdAt" && sortOrder === "asc"
-                                ? "desc"
-                                : "asc"
-                            );
-                          }}
-                        >
-                          Created
-                          <span className="ml-2 text-xs">
-                            {sortBy === "createdAt"
-                              ? sortOrder === "asc"
-                                ? "▲"
-                                : "▼"
-                              : ""}
-                          </span>
-                        </th>
+                      <th
+                        className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-600"
+                        onClick={() => {
+                          setSortBy("createdAt");
+                          setSortOrder(
+                            sortBy === "createdAt" && sortOrder === "asc"
+                              ? "desc"
+                              : "asc"
+                          );
+                        }}
+                      >
+                        Created
+                        <span className="ml-2 text-xs">
+                          {sortBy === "createdAt"
+                            ? sortOrder === "asc"
+                              ? "▲"
+                              : "▼"
+                            : ""}
+                        </span>
+                      </th>
                       {/* Total Price */}
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Total
                       </th>
                       {/* Due Date */}
-                      <th 
+                      <th
                         className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-600"
                         onClick={() => {
                           setSortBy("dueDate");
@@ -499,9 +547,9 @@ const YourInvoicesPage = () => {
                             : ""}
                         </span>
                       </th>
-                      {/* <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Actions
-                      </th> */}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
@@ -519,7 +567,7 @@ const YourInvoicesPage = () => {
                           {idx + 1}
                         </td>
                         {/* INVOICE NUMBER */}
-                        <td className="px-3 py-4 font-mono text-blue-700 dark:text-blue-300">
+                        {/* <td className="px-3 py-4 font-mono text-blue-700 dark:text-blue-300">
                           {inv.hostedUrl && (
                             <a
                               href={inv.hostedUrl}
@@ -530,8 +578,8 @@ const YourInvoicesPage = () => {
                               {inv.invoiceNumber}
                             </a>
                           )}
-                        </td>
-                        {/* CUSTOMER EMAIL*/}
+                        </td> */}
+                        {/* CUSTOMER INFO*/}
                         <td className="px-3 py-4 text-gray-800 dark:text-white w-48">
                           <div
                             className="max-w-full font-bold truncate"
@@ -541,23 +589,35 @@ const YourInvoicesPage = () => {
                           </div>
                           <div
                             className="max-w-full text-sm truncate"
-                            title={inv.customerEmail}
+                            title={inv.email}
                           >
-                            {inv.customerEmail}
+                            {inv.email}
                           </div>
                         </td>
                         {/* CREATED AT | AGENT NAME */}
                         {session && session.user_type === 3 ? (
                           <td className="px-3 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
                             {new Date(inv.createdAt).toLocaleString()}
+                            <div
+                              className="max-w-full text-sm truncate"
+                              title={inv.invoiceNumber}
+                            >
+                              ID: {inv.invoiceNumber}
+                            </div>
                           </td>
                         ) : (
-                          <td className="px-3 py-3 text-left text-sm font-medium text-lime-600 dark:text-lime-300 uppercase tracking-wider whitespace-nowrap">
-                            <div className="text-sm font-bold ">
+                          <td className="px-3 py-3 text-left text-sm font-medium tracking-wider whitespace-nowrap">
+                            <div className="text-sm font-bold uppercase text-lime-600 dark:text-lime-300">
                               {inv.agentName}
                             </div>
                             <div>
                               {new Date(inv.createdAt).toLocaleString()}
+                            </div>
+                            <div
+                              className="max-w-full text-sm truncate"
+                              title={inv.invoiceNumber}
+                            >
+                              ID: {inv.invoiceNumber}
                             </div>
                           </td>
                         )}
@@ -596,18 +656,35 @@ const YourInvoicesPage = () => {
                           </span>
                         </td>
                         {/* ACTIONS */}
-                        {/* <td className="px-3 py-4 whitespace-nowrap">
-                          {inv.hostedUrl && (
-                            <a
-                              href={inv.hostedUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline font-semibold"
-                            >
-                              View
-                            </a>
-                          )}
-                        </td> */}
+                        <td className="px-3 py-4 whitespace-nowrap">
+                          <div className="flex gap-2">
+                            {inv.hostedUrl && (
+                              <button
+                                type="button"
+                                className="flex items-center px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm"
+                                onClick={() => {
+                                  window.open(
+                                    inv.hostedUrl,
+                                    "_blank",
+                                    "noopener,noreferrer"
+                                  );
+                                }}
+                              >
+                                View
+                                <ArrowUpRight size={14} className="mr-1" />
+                              </button>
+                            )}
+                            {(session && session.user_type !== 3) && (
+                              <button
+                                type="button"
+                                className="flex items-center px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm"
+                                onClick={() => handleDeleteInvoice(inv._id)}
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

@@ -42,6 +42,18 @@ const leadSchema = new Schema<ILead>(
       enum: lead_category_enum,
       required: true,
     },
+    email: {
+      type: String,
+      required: false,
+    },
+    fullname: {
+      type: String,
+      required: false,
+    },
+    contactNo: {
+      type: String,
+      required: false,
+    },
     contact_us: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Contact",

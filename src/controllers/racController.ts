@@ -57,10 +57,18 @@ export const createRac = async (racData: any) => {
       racData.domain
     );
 
+    // Extract user details from abandoned cart data
+    const email = racData.email || null;
+    const fullName = racData.customerName || racData.name || racData.fullName || null;
+    const contactNo = racData.contactNo || racData.phone || racData.customerPhone || null;
+
     // Create corresponding lead
     const leadData = new Lead({
       category: category,
       ...leadFields,
+      email: email,
+      fullname: fullName,
+      contactNo: contactNo,
       domain: formattedDomain,
       abandoned_cart: savedAbandonedCart._id,
       status: "Pending",

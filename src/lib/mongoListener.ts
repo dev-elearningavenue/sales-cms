@@ -427,7 +427,7 @@ function setupOrderCollectionWatch(
                 pendingOrders.delete(orderId);
               }
             })();
-          }, 6 * 60 * 1000);
+          }, 5 * 60 * 1000);
         }
       } else if (change.operationType === "update") {
         const updatedOrder = await collection.findOne({
@@ -497,12 +497,18 @@ function setupOrderCollectionWatch(
 
             // If we have the order result, update the lead with the new order reference
             if (orderResult?.insertedId) {
+              // Extract user details from the paid order
+              const { email, fullName, contactNo } = extractUserDetails(updatedOrder, "Order Creation");
+              
               await Lead.findOneAndUpdate(
                 { abandoned_cart: new ObjectId(orderId) },
                 {
                   $set: {
                     order_creation: orderResult.insertedId,
                     category: "Order Creation",
+                    email: email,
+                    fullname: fullName,
+                    contactNo: contactNo,
                   },
                 }
               );
@@ -531,6 +537,39 @@ function setupOrderCollectionWatch(
   //   `${domain.split(" - ")[1]} orders collection: ${activeChangeStreams.length}`
   // );
   return changeStream;
+}
+
+// Helper function to extract user details from different document types
+function extractUserDetails(document: any, type: string) {
+  let email = null;
+  let fullName = null;
+  let contactNo = null;
+
+  switch (type) {
+
+    case "Contact Us":
+      contactNo = document.contactNo ;
+      fullName = document.name;
+      email = document.email;
+      break;
+    
+    case "Free SignUp":
+    case "Scholarship":
+    case "Free Study Guide":
+    case "Abandoned Cart":
+    case "Order Creation":
+      fullName = `${document.firstName} ${document.lastName}`.trim() ;
+      contactNo = document.contactNo || document.phone;
+      email = document.email 
+      break;
+    
+    default:
+      email = document.email;
+      fullName = document.name;
+      contactNo = document.contactNo ;
+  }
+
+  return { email, fullName, contactNo };
 }
 
 async function syncToTargetCollection(
@@ -590,9 +629,16 @@ async function syncToTargetCollection(
       insertResult.insertedId,
       domain
     );
+    
+    // Extract user details from the source document
+    const { email, fullName, contactNo } = extractUserDetails(document, type);
+    
     const leadData = new Lead({
       category: category,
       ...leadFields,
+      email: email,
+      fullname: fullName,
+      contactNo: contactNo,
       domain: formattedDomain,
       status: "Pending",
       resolve_status: "Pending",

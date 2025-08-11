@@ -1,55 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
-import Lead from "@/models/lead";
-import { verifyToken } from "@/utils/auth";
+import { getDataFromToken } from "@/utils/get_token_data";
+import { getLeadById } from "@/controllers/leadController";
 
 export async function GET(
-  req: NextRequest,
+  request: NextRequest,
   { params }: { params: { leadId: string } }
 ) {
   try {
-    const token = req.cookies.get("token")?.value;
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Check authentication
+    const tokenData = await getDataFromToken();
+    if (!tokenData) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
-    const decoded: any = await verifyToken(token);
-    if (!decoded.data._id) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    const { leadId } = params;
 
-    const leadId = params.leadId;
     if (!leadId) {
-      return NextResponse.json({ error: "Lead ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: "Lead ID is required" },
+        { status: 400 }
+      );
     }
 
-    // Build the population paths
-    const populations = [
-      { path: "free_signup", model: "Customer" },
-      { path: "contact_us", model: "Contact" },
-      { path: "abandoned_cart", model: "AbandonedCart" },
-      { path: "scholarship", model: "Scholarship" },
-      { 
-        path: "order_creation", 
-        model: "OrderCreation",
-        // populate: {
-        //   path: "user",
-        //   model: "User",
-        //   select: "userName full_name"
-        // }
-      },
-      { path: "custom_lead", model: "CustomLead" },
-      { path: "assigned_to", model: "User", select: "full_name user_name" },
-      { path: "created_by", model: "User", select: "full_name user_name" }
-    ];
+    // Get lead from controller
+    const result = await getLeadById(leadId);
 
-    // Find the lead
-    const lead = await Lead.findById(leadId).populate(populations);
-    if (!lead) {
-      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, message: result.message },
+        { status: result.message === "Lead not found" ? 404 : 500 }
+      );
     }
 
-    return NextResponse.json({ 
-      success: true,
-      lead
-    });
+    return NextResponse.json(result);
+
   } catch (error) {
     console.error("Error fetching lead:", error);
-    return NextResponse.json({ error: "Failed to fetch lead" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: "Failed to fetch lead" },
+      { status: 500 }
+    );
   }
 } 

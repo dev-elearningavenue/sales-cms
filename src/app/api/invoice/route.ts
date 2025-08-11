@@ -4,10 +4,12 @@ import {
   CreateInvoiceRequest,
   getAllInvoices,
   getInvoicesByAgent,
+  deleteInvoice,
 } from "@/controllers/invoiceController";
 import { verifyToken } from "@/utils/auth";
 import { cookies } from "next/headers";
 import { TokenPayload } from "@/types/auth";
+import { getDataFromToken } from "@/utils/get_token_data";
 
 export const dynamic = "force-dynamic";
 
@@ -112,7 +114,7 @@ export async function POST(request: NextRequest) {
     // Prepare data for external API call
     const externalInvoiceData = {
       site_name: getSiteCode(invoiceData.siteName),
-      send_email: "yes", // Always send email as per your requirement
+      send_email: "yes",
       product_ids: invoiceData.products.map((product) => product.product_id),
       price_ids: invoiceData.products.map((product) => product.price_id),
       quantities: invoiceData.products.map((product) => product.quantity),
@@ -152,7 +154,6 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: any) {
     console.error("Error in invoice creation API:", error);
-
     return NextResponse.json(
       {
         success: false,
@@ -191,6 +192,53 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, invoices });
   } catch (error: any) {
     console.error("Error in invoice API:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Internal server error",
+        message: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    // Verify authentication
+
+    
+    const tokenData = await getDataFromToken();
+    if (!tokenData || typeof tokenData !== "object" || !tokenData._id) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const userId = tokenData._id.toString();
+    const userType =
+      typeof tokenData.user_type === "number" ? tokenData.user_type : 3;
+
+
+    // Get invoice ID from query parameters
+    const url = new URL(request.url);
+    const invoiceId = url.searchParams.get("id");
+
+    if (!invoiceId) {
+      return NextResponse.json(
+        { success: false, error: "Invoice ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Delete the invoice
+    const result = await deleteInvoice(invoiceId, userId, userType);
+
+    if (result.success) {
+      return NextResponse.json(result, { status: 200 });
+    } else {
+      return NextResponse.json(result, { status: 400 });
+    }
+  } catch (error: any) {
+    console.error("Error in invoice deletion API:", error);
     return NextResponse.json(
       {
         success: false,

@@ -29,7 +29,13 @@ export const createOrder = async (orderData: any) => {
     // }, 0) || 0;
 
     const totalOrderPrice = orderData.total_order_price;
-    const orderType = totalOrderPrice === 0 ? "Unpaid Training" : "Order Creation";
+    if (totalOrderPrice === 0) {
+      return {
+        success: true,
+        message: "Unpaid Trainings skipped successfully",
+      };
+    }
+    const orderType = "Order Creation";
     // console.log("Order Type: ", orderType, " ", totalOrderPrice);
     // Use getLeadDetails function for consistent lead creation
     const { category, leadFields, formattedDomain } = getLeadDetails(
@@ -61,7 +67,6 @@ export const createOrder = async (orderData: any) => {
 
     const leadResult = await leadData.save();
 
-    // Create notification for new lead
     createNewLeadNotification(leadResult);
 
     return {

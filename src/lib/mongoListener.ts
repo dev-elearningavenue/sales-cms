@@ -110,7 +110,7 @@ export async function watchCollections() {
       const contactUsCollection = leads_db.collection("contacts");
       const abandonedCartsCollection = leads_db.collection("abandonedcarts");
       const ordersCollection = leads_db.collection("paidorders");
-      const scholarshipCollection = leads_db.collection("scholarships");
+      // const scholarshipCollection = leads_db.collection("scholarships");
       // const logsCollection = leads_db.collection("logs");
       // const leadsCollection = leads_db.collection("leads");
 
@@ -177,11 +177,11 @@ export async function watchCollections() {
         );
       });
 
-      setupScholarshipCollectionWatch(
-        oor_db.collection("scholarships"),
-        "Osha Outreach - OOR",
-        scholarshipCollection
-      );
+      // setupScholarshipCollectionWatch(
+      //   oor_db.collection("scholarships"),
+      //   "Osha Outreach - OOR",
+      //   scholarshipCollection
+      // );
 
       setupConnectionMonitoring();
       break;
@@ -553,8 +553,8 @@ function extractUserDetails(document: any, type: string) {
       email = document.email;
       break;
     
-    case "Free SignUp":
-    case "Scholarship":
+      // case "Scholarship":
+      case "Free SignUp":
     case "Free Study Guide":
     case "Abandoned Cart":
     case "Order Creation":

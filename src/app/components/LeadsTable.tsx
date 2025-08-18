@@ -247,9 +247,8 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
           populatedKey === "scholarship" ||
           populatedKey === "custom_lead"
         ) {
-          const fullName = `${(leadData as any)?.firstName || ""} ${
-            (leadData as any)?.lastName || ""
-          }`
+          const fullName = `${(leadData as any)?.firstName || ""} ${(leadData as any)?.lastName || ""
+            }`
             .trim()
             .toLowerCase();
           return fullName.includes(searchQuery.toLowerCase());
@@ -327,15 +326,15 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
         const domainCode =
           value === "Osha Outreach" ? "OOR"
             : value === "Osha Online Center" ? "OOC"
-            : value === "Osha Education School" ? "OES"
-            : value === "Free Osha Courses" ? "FOC"
-            : value === "Osha 30 Construction" ? "30Construction"
-            : value === "EHS Practice" ? "EHSP"
-            : value === "EHS School" ? "EHSS"
-            : value === "Osha Practice" ? "OP"
-            : value === "NY Osha 30" ? "NY30"
-            : value === "Osha 360" ? "Osha360"
-            : "";
+              : value === "Osha Education School" ? "OES"
+                : value === "Free Osha Courses" ? "FOC"
+                  : value === "Osha 30 Construction" ? "30Construction"
+                    : value === "EHS Practice" ? "EHSP"
+                      : value === "EHS School" ? "EHSS"
+                        : value === "Osha Practice" ? "OP"
+                          : value === "NY Osha 30" ? "NY30"
+                            : value === "Osha 360" ? "Osha360"
+                              : "";
         newFilters.domain = domainCode;
       } else {
         (newFilters as any)[category] = value;
@@ -612,7 +611,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   // };
 
   // Reusable Modal Component
-  
+
   const ConfirmationModal = ({
     title,
     message,
@@ -690,17 +689,15 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
           <div className="flex flex-col text-xs md:flex-row md:items-center gap-3">
             <div className="flex flex-wrap gap-2">
               <button
-                className={`flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 ${
-                  isRefreshing ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                className={`flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 ${isRefreshing ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 onClick={handleRefresh}
                 disabled={isRefreshing}
                 title="Refresh leads"
               >
                 <RefreshCcw
-                  className={`h-5 w-5 text-gray-600 ${
-                    isRefreshing ? "animate-spin" : ""
-                  }`}
+                  className={`h-5 w-5 text-gray-600 ${isRefreshing ? "animate-spin" : ""
+                    }`}
                 />
               </button>
 
@@ -817,11 +814,10 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                 return (
                   <button
                     key={pageNum}
-                    className={`w-10 h-10 ${
-                      currentPage === pageNum
-                        ? "bg-gray-200 font-medium"
-                        : "hover:bg-gray-100"
-                    } border border-gray-300 rounded-md`}
+                    className={`w-10 h-10 ${currentPage === pageNum
+                      ? "bg-gray-200 font-medium"
+                      : "hover:bg-gray-100"
+                      } border border-gray-300 rounded-md`}
                     onClick={() => setCurrentPage(pageNum)}
                   >
                     {pageNum}
@@ -857,11 +853,10 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                 {[50, 100, 200, 500].map((value) => (
                   <button
                     key={value}
-                    className={`w-full px-4 py-2 text-left ${
-                      itemsPerPage === value
-                        ? "bg-blue-50 font-medium"
-                        : "hover:bg-gray-50"
-                    }`}
+                    className={`w-full px-4 py-2 text-left ${itemsPerPage === value
+                      ? "bg-blue-50 font-medium"
+                      : "hover:bg-gray-50"
+                      }`}
                     onClick={() => setItemsPerPage(value)}
                   >
                     {value}
@@ -908,15 +903,15 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                           filters.domain ===
                           (domain === "Osha Outreach" ? "OOR"
                             : domain === "Osha Online Center" ? "OOC"
-                            : domain === "Osha Education School" ? "OES"
-                            : domain === "Free Osha Courses" ? "FOC"
-                            : domain === "Osha 30 Construction" ? "30Construction"
-                            : domain === "EHS Practice" ? "EHSP"
-                            : domain === "Osha Practice" ? "OP"
-                            : domain === "EHS School" ? "EHSS"
-                            : domain === "NY Osha 30" ? "NY30"
-                            : domain === "Osha 360" ? "Osha360"
-                            : "")
+                              : domain === "Osha Education School" ? "OES"
+                                : domain === "Free Osha Courses" ? "FOC"
+                                  : domain === "Osha 30 Construction" ? "30Construction"
+                                    : domain === "EHS Practice" ? "EHSP"
+                                      : domain === "Osha Practice" ? "OP"
+                                        : domain === "EHS School" ? "EHSS"
+                                          : domain === "NY Osha 30" ? "NY30"
+                                            : domain === "Osha 360" ? "Osha360"
+                                              : "")
                         }
                         onChange={() => handleFilterChange("domain", domain)}
                         className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -1058,9 +1053,8 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   <td className="px-4 py-4">
                     <div className="flex flex-col items-start gap-1">
                       <div
-                        className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
-                          categoryColors[lead?.category ?? " "] || "bg-gray-500"
-                        }`}
+                        className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${categoryColors[lead?.category ?? " "] || "bg-gray-500"
+                          }`}
                       >
                         {lead?.category}
                       </div>
@@ -1075,132 +1069,124 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   {/* Full Name */}
                   <td className="px-4 py-4">
                     <div className="py-4 text-lg font-medium text-gray-600 underline cursor-pointer" onClick={() => {
-                  window.location.href = `/leads/${lead._id}/history`;
-                }}>
-                    {((lead.contact_us as any) || lead.shortcourse_discount)
-                      ?.name ||
-                      [
-                        lead.free_signup,
-                        lead.order_creation,
-                        lead.scholarship,
-                        lead.custom_lead,
-                        lead.abandoned_cart,
-                        lead.invoice,
-                      ]
-                        .map((entry) =>
-                          entry &&
-                          typeof entry === "object" &&
-                          "firstName" in entry &&
-                          "lastName" in entry
-                            ? `${entry.firstName} ${entry.lastName ?? ""}`
-                            : null
-                        )
-                        .filter(Boolean)[0] ||
-                      "No Data Available"}
+                      window.location.href = `/leads/${lead._id}/history`;
+                    }}>
+                      {((lead.contact_us as any) || lead.shortcourse_discount)
+                        ?.name ||
+                        [
+                          lead.free_signup,
+                          lead.order_creation,
+                          lead.scholarship,
+                          lead.custom_lead,
+                          lead.abandoned_cart,
+                          lead.invoice,
+                        ]
+                          .map((entry) =>
+                            entry &&
+                              typeof entry === "object" &&
+                              "firstName" in entry &&
+                              "lastName" in entry
+                              ? `${entry.firstName} ${entry.lastName ?? ""}`
+                              : null
+                          )
+                          .filter(Boolean)[0] ||
+                        "No Data Available"}
                     </div>
                   </td>
                   {/* DOMAIN (LEAD SOURCE) */}
                   <td className="px-4 py-4 text-sm">
-                    <div className="py-4 text-sm font-medium text-gray-600">
+                    <div className="py-4 text-sm font-medium text-gray-600 whitespace-nowrap">
                       {getDomainLabel(lead.domain || "")}
                     </div>
                   </td>
                   {/* DATE CREATED */}
                   <td className="px-4 py-4 text-sm">
-                    <div className="py-4 text-sm font-medium text-gray-600">
+                    <div className="py-4 text-sm font-medium text-gray-600 whitespace-nowrap">
                       {lead.createdAt
                         ? new Date(lead.createdAt).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })
                         : "N/A"}
                     </div>
                   </td>
                   {/* ACTION */}
-                  <td className="py-4">
-                    <div className="flex items-center justify-start gap-2">
-                      {/* View Details Button - Only for usertype 1 and 2 */}
-                      {session?.user_type !== 3 && (
-                        <button
-                          className="flex items-center px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm"
-                          onClick={() => {
-                            if (onViewDetails) {
-                              onViewDetails(lead);
-                            } else {
-                              // Fallback to old modal for My Leads page
-                              setSelectedLeadForDetails(lead);
-                              setShowDetailsModal(true);
-                            }
-                          }}
-                        >
-                          <Eye size={14} className="mr-1" />
-                          View
-                        </button>
-                      )}
+                  <td className="py-4 w-auto min-w-[180px] max-w-[280px] lg:min-w-[200px] lg:max-w-[300px]">
+                    {/* Admin/Manager layout rules */}
+                    {lead.assigned ? (
+                      // Case 2: Lead is assigned → two vertical stacks side-by-side
+                      <div className="flex items-start gap-2">
+                        {session?.user_type !== 3 && (
+                          <div className="flex flex-col gap-2">
+                            <button
+                              className="flex items-center px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm"
+                              onClick={() => {
+                                if (onViewDetails) {
+                                  onViewDetails(lead);
+                                } else {
+                                  setSelectedLeadForDetails(lead);
+                                  setShowDetailsModal(true);
+                                }
+                              }}
+                            >
+                              <Eye size={14} className="mr-1" />
+                              View
+                            </button>
+                            {selectedLeads.length === 0 && (
+                              <button
+                                className="flex items-center px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm"
+                                onClick={() => handleDeleteClick(lead._id as string)}
+                              >
+                                <Trash2 size={14} className="mr-1" />
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                        )}
 
-                      {lead.assigned ? (
-                        <>
-                          {/* Show current assignment info */}
-                          <div className="flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600 mr-2">
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600">
                             <span className="text-sm">
-                              Assigned to{" "}
-                              {lead.assigned_to &&
-                              typeof lead.assigned_to === "object"
+                              Assigned to {lead.assigned_to && typeof lead.assigned_to === "object"
                                 ? (lead.assigned_to as any).full_name
                                 : "Unknown User"}
                             </span>
                           </div>
-                          
-                          {/* Show reassignment dropdown for admin users (type 1 & 2) */}
-                          {session?.user_type !== 3 && (
-                            <div className="dropdown relative mr-2">
+
+                          {session?.user_type !== 3 && selectedLeads.length === 0 && (
+                            <div className="dropdown relative">
                               <button
                                 className="flex items-center justify-center px-4 py-2 border border-orange-300 rounded-md text-orange-600 hover:bg-orange-50 min-w-[140px]"
-                                onClick={() =>
-                                  toggleDropdown(lead._id as string)
-                                }
+                                onClick={() => toggleDropdown(lead._id as string)}
                               >
                                 <UserPlus className="h-4 w-4 mr-2" />
                                 <span className="mr-1">Reassign</span>
                                 <ChevronDown className="h-4 w-4" />
                               </button>
-
                               {openDropdownId === lead._id && (
                                 <div className="dropdown-menu absolute left-0 top-full mt-1 w-60 bg-white border border-gray-200 rounded-md shadow-lg z-50">
                                   <button
                                     onClick={() => {
-                                      if (lead._id && onAssign)
-                                        onAssign(lead._id);
+                                      if (lead._id && onAssign) onAssign(lead._id);
                                       setOpenDropdownId(null);
                                     }}
                                     className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm border-b border-gray-100"
                                   >
                                     Assign to Me
                                   </button>
-
                                   {loadingUsers ? (
-                                    <div className="px-4 py-2 text-sm text-gray-500">
-                                      Loading users...
-                                    </div>
+                                    <div className="px-4 py-2 text-sm text-gray-500">Loading users...</div>
                                   ) : (
                                     availableUsers.length > 0 && (
                                       <div className="max-h-48 overflow-y-auto">
                                         {availableUsers.map((user) => (
                                           <button
                                             key={user._id}
-                                            onClick={() =>
-                                              confirmAssign(
-                                                lead._id as string,
-                                                user._id
-                                              )
-                                            }
+                                            onClick={() => confirmAssign(lead._id as string, user._id)}
                                             className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm flex items-center justify-between"
                                           >
-                                            <span>
-                                              {user.full_name ||
-                                                user.user_name}
-                                            </span>
+                                            <span>{user.full_name || user.user_name}</span>
                                           </button>
                                         ))}
                                       </div>
@@ -1210,58 +1196,69 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                               )}
                             </div>
                           )}
-                        </>
-                      ) : (
-                        <>
-                          {session?.user_type !== 3 ? (
-                            <>
-                              <div className="dropdown relative mr-2">
+                        </div>
+                      </div>
+                    ) : (
+                      // Case 1: Lead is not assigned → all actions in one row (admin)
+                      <div className="flex flex-row flex-wrap items-center gap-2">
+                        {session?.user_type !== 3 && (
+                          <>
+                            <button
+                              className="flex items-center px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm"
+                              onClick={() => {
+                                if (onViewDetails) {
+                                  onViewDetails(lead);
+                                } else {
+                                  setSelectedLeadForDetails(lead);
+                                  setShowDetailsModal(true);
+                                }
+                              }}
+                            >
+                              <Eye size={14} className="mr-1" />
+                              View
+                            </button>
+                            {selectedLeads.length === 0 && (
+                              <button
+                                className="flex items-center px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm"
+                                onClick={() => handleDeleteClick(lead._id as string)}
+                              >
+                                <Trash2 size={14} className="mr-1" />
+                                Delete
+                              </button>
+                            )}
+                            {selectedLeads.length === 0 && (
+                              <div className="dropdown relative">
                                 <button
                                   className="flex items-center justify-center px-4 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50 min-w-[120px]"
-                                  onClick={() =>
-                                    toggleDropdown(lead._id as string)
-                                  }
+                                  onClick={() => toggleDropdown(lead._id as string)}
                                 >
                                   <UserPlus className="h-4 w-4 mr-2" />
                                   <span className="mr-1">Assign</span>
                                   <ChevronDown className="h-4 w-4" />
                                 </button>
-
                                 {openDropdownId === lead._id && (
                                   <div className="dropdown-menu absolute left-0 top-full mt-1 w-60 bg-white border border-gray-200 rounded-md shadow-lg z-50">
                                     <button
                                       onClick={() => {
-                                        if (lead._id && onAssign)
-                                          onAssign(lead._id);
+                                        if (lead._id && onAssign) onAssign(lead._id);
                                         setOpenDropdownId(null);
                                       }}
                                       className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm border-b border-gray-100"
                                     >
                                       Assign to Me
                                     </button>
-
                                     {loadingUsers ? (
-                                      <div className="px-4 py-2 text-sm text-gray-500">
-                                        Loading users...
-                                      </div>
+                                      <div className="px-4 py-2 text-sm text-gray-500">Loading users...</div>
                                     ) : (
                                       availableUsers.length > 0 && (
                                         <div className="max-h-48 overflow-y-auto">
                                           {availableUsers.map((user) => (
                                             <button
                                               key={user._id}
-                                              onClick={() =>
-                                                confirmAssign(
-                                                  lead._id as string,
-                                                  user._id
-                                                )
-                                              }
+                                              onClick={() => confirmAssign(lead._id as string, user._id)}
                                               className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm flex items-center justify-between"
                                             >
-                                              <span>
-                                                {user.full_name ||
-                                                  user.user_name}
-                                              </span>
+                                              <span>{user.full_name || user.user_name}</span>
                                             </button>
                                           ))}
                                         </div>
@@ -1270,33 +1267,25 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                                   </div>
                                 )}
                               </div>
-                              {/* Delete button */}
-                              <button
-                                className="flex items-center px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm"
-                                onClick={() =>
-                                  handleDeleteClick(lead._id as string)
-                                }
-                              >
-                                <Trash2 size={14} className="mr-1" />
-                                Delete
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                className="flex items-center px-4 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50 mr-2"
-                                onClick={() => {
-                                  if (lead._id && onAssign) onAssign(lead._id);
-                                }}
-                              >
-                                <UserPlus className="h-4 w-4 mr-2" />
-                                Assign Me
-                              </button>
-                            </>
-                          )}
-                        </>
-                      )}
-                    </div>
+                            )}
+
+                          </>
+                        )}
+
+                        {session?.user_type == 3 && (
+                          // Agent view (type 3)
+                          <button
+                            className="flex items-center px-4 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50"
+                            onClick={() => {
+                              if (lead._id && onAssign) onAssign(lead._id);
+                            }}
+                          >
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Assign Me
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

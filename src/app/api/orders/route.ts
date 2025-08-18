@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     let orderData;
     if (isWordPressData) {
       orderData = transformWordPressData(body);
-      console.log("Transformed data: ", orderData);
+      // console.log("Transformed data: ", orderData);
     } else {
       orderData = body;
     }

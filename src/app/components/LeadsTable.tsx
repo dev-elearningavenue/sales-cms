@@ -759,7 +759,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
-                setCurrentPage(1); // Reset to first page on search
+                setCurrentPage(1);
               }}
             />
             <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />

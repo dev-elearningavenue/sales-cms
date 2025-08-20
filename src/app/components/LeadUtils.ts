@@ -52,6 +52,18 @@ export const getDomainLabel = (domain: string): string => {
       return "Osha Education School";
     case "FOC":
       return "Free Osha Courses";
+    case "30Construction":
+      return "Osha 30 Construction";
+    case "Osha360":
+      return "Osha 360";
+    case "EHSS":
+      return "EHS School";
+    case "OP":
+      return "Osha Practice";
+    case "NY30":
+      return "NY Osha 30";
+    case "EHSP":
+      return "EHS Practice";
     default:
       return domain;
   }

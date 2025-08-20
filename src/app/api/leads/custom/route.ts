@@ -26,8 +26,6 @@ export async function POST(req: NextRequest) {
       );
     }
     const createdById = tokenData._id ? tokenData._id.toString() : undefined;
-
-    console.log("Custom Lead Data:", customLeadData);
     // Use the controller function to create the custom lead
     const result = await createCustomLead(customLeadData, createdById);
 
@@ -46,9 +44,9 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    console.error("Error creating custom lead:", error);
+    console.error("Error creating custom lead:", error.message);
     return NextResponse.json(
-      { message: "Failed to create custom lead", error: error.message },
+      { message: "Failed to create custom lead: ", error: error.message },
       { status: 500 }
     );
   }

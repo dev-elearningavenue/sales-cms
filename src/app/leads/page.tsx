@@ -25,11 +25,11 @@ const Leads = () => {
   const [backgroundLoading, setBackgroundLoading] = useState(false);
   const { session, addNotification } = useApp();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  
+
   // Add state for View Details modal (only for user types 1 and 2)
   const [selectedLead, setSelectedLead] = useState<ILead | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   const [newLeadForm, setNewLeadForm] = useState({
     firstName: "",
     lastName: "",
@@ -53,7 +53,7 @@ const Leads = () => {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
-  
+
   // State for available users (userType 3)
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -760,11 +760,10 @@ const Leads = () => {
                     name="firstName"
                     value={newLeadForm.firstName}
                     onChange={handleInputChange}
-                    className={`w-full p-2 border text-gray-700 ${
-                      formErrors.firstName
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    className={`w-full p-2 border text-gray-700 ${formErrors.firstName
+                      ? "border-red-500"
+                      : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   />
                   {formErrors.firstName && (
                     <p className="mt-1 text-sm text-red-600">
@@ -782,9 +781,8 @@ const Leads = () => {
                     name="lastName"
                     value={newLeadForm.lastName}
                     onChange={handleInputChange}
-                    className={`w-full p-2 border text-gray-700${
-                      formErrors.lastName ? "border-red-500" : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    className={`w-full p-2 border text-gray-700${formErrors.lastName ? "border-red-500" : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   />
                   {formErrors.lastName && (
                     <p className="mt-1 text-sm text-red-600">
@@ -802,9 +800,8 @@ const Leads = () => {
                     name="email"
                     value={newLeadForm.email}
                     onChange={handleInputChange}
-                    className={`w-full p-2 border text-gray-700${
-                      formErrors.email ? "border-red-500" : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    className={`w-full p-2 border text-gray-700${formErrors.email ? "border-red-500" : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   />
                   {formErrors.email && (
                     <p className="mt-1 text-sm text-red-600">
@@ -822,11 +819,10 @@ const Leads = () => {
                     name="contactNo"
                     value={newLeadForm.contactNo}
                     onChange={handleInputChange}
-                    className={`w-full p-2 border text-gray-700${
-                      formErrors.contactNo
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    className={`w-full p-2 border text-gray-700${formErrors.contactNo
+                      ? "border-red-500"
+                      : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   />
                   {formErrors.contactNo && (
                     <p className="mt-1 text-sm text-red-600">
@@ -848,6 +844,13 @@ const Leads = () => {
                     <option value="OOR">Osha Outreach</option>
                     <option value="OOC">Osha Online Center</option>
                     <option value="OES">Osha Education School</option>
+                    <option value="30Construction">Osha 30 Construction</option>
+                    <option value="FOC">Free Osha Courses</option>
+                    <option value="EHSP">EHS Practice</option>
+                    <option value="OP">Osha Practice</option>
+                    <option value="EHSS">EHS School</option>
+                    <option value="NY30">NY Osha 30</option>
+                    <option value="Osha360">Osha 360</option>
                   </select>
                 </div>
 
@@ -867,7 +870,7 @@ const Leads = () => {
                   </select>
                 </div>
 
-                { session?.user_type === 1 || session?.user_type === 2 && (
+                {session?.user_type === 1 || session?.user_type === 2 && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Assigned To
@@ -892,7 +895,7 @@ const Leads = () => {
                       )}
                     </select>
                   </div>
-                  )
+                )
                 }
               </div>
 
@@ -906,9 +909,8 @@ const Leads = () => {
                   placeholder="Enter your customer query here..."
                   value={newLeadForm.customerQuery}
                   onChange={handleInputChange}
-                  className={`w-full p-2 border text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical ${
-                    formErrors.customerQuery ? "border-red-500" : "border-gray-300"
-                  }`}
+                  className={`w-full p-2 border text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical ${formErrors.customerQuery ? "border-red-500" : "border-gray-300"
+                    }`}
                 />
                 {formErrors.customerQuery && (
                   <p className="mt-1 text-sm text-red-600">
@@ -969,11 +971,10 @@ const Leads = () => {
                       placeholder="Type to search courses..."
                       value={currentCourse.courseName}
                       onChange={handleCourseInputChange}
-                      className={`w-full p-2 border text-gray-700 ${
-                        formErrors.courseName
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      className={`w-full p-2 border text-gray-700 ${formErrors.courseName
+                        ? "border-red-500"
+                        : "border-gray-300"
+                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                     />
 
                     {/* Loading indicator */}
@@ -1100,9 +1101,8 @@ const Leads = () => {
                       Category
                     </label>
                     <div
-                      className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
-                        categoryColors[selectedLead?.category ?? " "] || "bg-gray-500"
-                      }`}
+                      className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${categoryColors[selectedLead?.category ?? " "] || "bg-gray-500"
+                        }`}
                     >
                       {selectedLead?.category}
                     </div>
@@ -1113,17 +1113,17 @@ const Leads = () => {
                     value={
                       selectedLead.createdAt
                         ? new Date(selectedLead.createdAt).toLocaleString(
-                            "en-US",
-                            {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )
                         : "N/A"
-                  }
+                    }
                   />
                   {
                     selectedLead?.category === "Custom Lead" && (
@@ -1145,8 +1145,8 @@ const Leads = () => {
                   selectedLead?.category === "Abandoned Cart" ||
                   selectedLead?.category === "Invoice" ||
                   selectedLead?.category === "Unpaid Training") && (
-                  <CourseInfo selectedLead={selectedLead} />
-                )}
+                    <CourseInfo selectedLead={selectedLead} />
+                  )}
 
                 {/* Customer Information */}
                 <Customer selectedLead={selectedLead} />

@@ -50,7 +50,7 @@ const customLeadSchema = new Schema<ICustomLead>(
     },
     domain: {
       type: String,
-      enum: ["OOR", "OOC", "OES"],
+      // enum: ["OOR", "OOC", "OES", "FOC", "OSHAPRO", "Osha360", "30Construction", "NY30", "EHSS", "EHSP", "OP"],
       required: true,
     },
     supportType: {

@@ -58,7 +58,7 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
     ? (selectedLead[populatedKey as keyof ILead] as LeadData)
     : null;
 
-  console.log("Customer Component - Lead Data:", leadData);
+  // console.log("Customer Component - Lead Data:", leadData);
   // console.log("Customer Component - Populated Key:", populatedKey);
 
   return (
@@ -108,7 +108,7 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
                 <Field label="Invoice Due Date" value={leadData?.dueDate} />
                 <Field label="Invoice Agent Name" value={leadData?.agentName} />
               </>
-          )}
+            )}
 
           {(populatedKey === "order_creation" ||
             populatedKey === "abandoned_cart") &&
@@ -117,18 +117,17 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
               <>
                 <Field
                   label="Full Name"
-                  value={`${leadData?.firstName ?? ""} ${
-                    leadData?.lastName ?? ""
-                  }`}
+                  value={`${leadData?.firstName ?? ""} ${leadData?.lastName ?? ""
+                    }`}
                 />
                 {/* <Field label="Last Name" value={leadData?.lastName} /> */}
                 <Field label="Order Id" value={leadData?.order_id} />
                 <Field label="Email" value={leadData?.email} />
                 <Field label="Contact No" value={leadData?.contactNo} />
                 {populatedKey === "order_creation" && leadData?.user && (
-                  <Field 
-                    label="User Name" 
-                    value={leadData?.user?.userName || leadData?.user?.full_name || "N/A"} 
+                  <Field
+                    label="User Name"
+                    value={leadData?.user?.userName || leadData?.user?.full_name || "N/A"}
                   />
                 )}
                 <Field label="Address" value={leadData?.address} />
@@ -169,9 +168,8 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
               <>
                 <Field
                   label="Full Name"
-                  value={`${leadData?.firstName ?? ""} ${
-                    leadData?.lastName ?? ""
-                  }`}
+                  value={`${leadData?.firstName ?? ""} ${leadData?.lastName ?? ""
+                    }`}
                 />
                 <Field label="Email" value={leadData?.email} />
                 <Field label="Contact Number" value={leadData?.phone} />
@@ -203,9 +201,8 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
               <>
                 <Field
                   label="Full Name"
-                  value={`${leadData?.firstName ?? ""} ${
-                    leadData?.lastName ?? ""
-                  }`}
+                  value={`${leadData?.firstName ?? ""} ${leadData?.lastName ?? ""
+                    }`}
                 />
                 <Field label="Email" value={leadData?.email} />
                 <Field label="Contact Number" value={leadData?.contactNo} />
@@ -240,7 +237,7 @@ function isCustomer(data: LeadData): data is ICustomer | OrderCreation {
   return data !== null && typeof data === "object" && "firstName" in data;
 }
 
-function isInvoice(data: LeadData): data is IInvoice  {
+function isInvoice(data: LeadData): data is IInvoice {
   return data !== null && typeof data === "object" && "firstName" in data;
 }
 

@@ -117,6 +117,25 @@ body {
   margin-bottom: 0 !important;
   /* margin: 1em 0 0.5em 0 !important; */
 }
+/* Ensure lists and quotes look correct inside CKEditor */
+.ck-content ul {
+  list-style-type: disc !important;
+  padding-left: 1.25rem !important;
+  margin: 0.5em 0 !important;
+}
+.ck-content ol {
+  list-style-type: decimal !important;
+  padding-left: 1.25rem !important;
+  margin: 0.5em 0 !important;
+}
+.ck-content li {
+  margin: 0.25em 0 !important;
+}
+.ck-content blockquote {
+  margin: 0.75em 0 !important;
+  padding-left: 0.75rem !important;
+  border-left: 3px solid #e5e7eb !important;
+}
 .ck-content h1 {
   margin-top: 0 !important;
   font-size: 2rem !important;

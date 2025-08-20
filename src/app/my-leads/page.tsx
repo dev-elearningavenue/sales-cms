@@ -83,7 +83,7 @@ const getLeadEmail = (lead: ILead): string => {
 
 // Helper function to get domain email
 const getDomainEmail = (domain: string): string => {
-  console.log("domain: ", domain);
+  // console.log("domain: ", domain);
   const domainEmails = {
     OOR: process.env.NEXT_PUBLIC_EMAIL_OOR,
     OOC: process.env.NEXT_PUBLIC_EMAIL_OOC,
@@ -660,7 +660,7 @@ const MyLeads = () => {
 
   const handleRefresh = async () => {
     if (isRefreshing) return;
-    
+
     setIsRefreshing(true);
     try {
       await fetchMyLeads(true);
@@ -697,9 +697,8 @@ const MyLeads = () => {
         populatedKey === "scholarship" ||
         populatedKey === "custom_lead"
       ) {
-        const fullName = `${(leadData as any)?.firstName || ""} ${
-          (leadData as any)?.lastName || ""
-        }`
+        const fullName = `${(leadData as any)?.firstName || ""} ${(leadData as any)?.lastName || ""
+          }`
           .trim()
           .toLowerCase();
         return fullName;
@@ -737,7 +736,7 @@ const MyLeads = () => {
       ) : (
         <div className="bg-white w-full rounded-lg shadow-lg border border-gray-200 overflow-hidden">
           <div className="p-4 w-full">
-                        <div className="flex flex-wrap gap-8 items-center justify-between mb-4">
+            <div className="flex flex-wrap gap-8 items-center justify-between mb-4">
               <h1 className="text-2xl font-bold text-gray-800 mr-2">
                 My Leads
               </h1>
@@ -779,17 +778,15 @@ const MyLeads = () => {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  className={`flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 ${
-                    isRefreshing ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
+                  className={`flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 ${isRefreshing ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                   onClick={handleRefresh}
                   disabled={isRefreshing}
                   title="Refresh my leads"
                 >
                   <RefreshCcw
-                    className={`h-5 w-5 text-gray-600 ${
-                      isRefreshing ? "animate-spin" : ""
-                    }`}
+                    className={`h-5 w-5 text-gray-600 ${isRefreshing ? "animate-spin" : ""
+                      }`}
                   />
                 </button>
                 <button
@@ -893,15 +890,15 @@ const MyLeads = () => {
                     value={
                       selectedLead.createdAt
                         ? new Date(selectedLead.createdAt).toLocaleString(
-                            "en-US",
-                            {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )
                         : "N/A"
                     }
                   />
@@ -911,8 +908,8 @@ const MyLeads = () => {
                 {(selectedLead?.category === "Order Creation" ||
                   selectedLead?.category === "Abandoned Cart" ||
                   selectedLead?.category === "Unpaid Training") && (
-                  <CourseInfo selectedLead={selectedLead} />
-                )}
+                    <CourseInfo selectedLead={selectedLead} />
+                  )}
 
                 {/* Customer Information */}
                 <Customer selectedLead={selectedLead} />
@@ -925,15 +922,14 @@ const MyLeads = () => {
                     Close
                   </button>
                   <select
-                    className={`px-4 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      selectedLead.status === "Converted"
+                    className={`px-4 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500 ${selectedLead.status === "Converted"
                         ? "bg-green-100 text-green-800 border-green-200"
                         : (selectedLead.status || "").startsWith("Follow Up")
-                        ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                        : selectedLead.status === "Pending"
-                        ? "bg-gray-100 text-gray-800 border-gray-200"
-                        : "bg-blue-100 text-blue-800 border-blue-200"
-                    }`}
+                          ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                          : selectedLead.status === "Pending"
+                            ? "bg-gray-100 text-gray-800 border-gray-200"
+                            : "bg-blue-100 text-blue-800 border-blue-200"
+                      }`}
                     value={getFollowUpDisplayStatus(selectedLead)}
                     onChange={(e) => {
                       handleStatusChange(

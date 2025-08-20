@@ -56,6 +56,22 @@ export async function POST(req: NextRequest) {
       "Subject:",
       subject
     );
+    // Use CKEditor HTML as-is to preserve list/quote structure.
+    // Only convert newlines when the body is plain text.
+    const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(body || "");
+    let htmlBody = looksLikeHtml ? (body || "") : (body || "").replace(/\n/g, "<br>");
+
+    // Targeted cleanup to avoid rendering glitches (empty bullets, poorly styled quotes)
+    if (looksLikeHtml) {
+      htmlBody = htmlBody
+        // Remove empty list items (which Gmail renders as a stray bullet)
+        .replace(/<li[^>]*>\s*(?:&nbsp;|<br\s*\/?\s*>|\s)*<\/li>/gi, "")
+        // Remove empty lists left after removing empty items
+        .replace(/<(ul|ol)[^>]*>\s*<\/\1>/gi, "")
+        // Ensure blockquotes have inline styling for consistent email client rendering
+        .replace(/<blockquote(?![^>]*style=)/gi, '<blockquote style="margin:12px 0; padding-left:12px; border-left:3px solid #e5e7eb;">');
+    }
+
     // Prepare email options with domain-specific sender
     const mailOptions = {
       from: `${smtpConfig.name} <${smtpConfig.from}>`,
@@ -63,10 +79,16 @@ export async function POST(req: NextRequest) {
       cc: smtpConfig.cc,
       subject: subject,
       html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-          ${body.replace(/\n/g, "<br>")}
-          
-          <br><br>
+        <div style="font-family: Arial, sans-serif; color: #333;">
+          <style>
+            ul { list-style-type: disc; padding-left: 20px; margin: 8px 0; }
+            ol { list-style-type: decimal; padding-left: 20px; margin: 8px 0; }
+            li { margin: 4px 0; }
+            blockquote { margin: 12px 0; padding-left: 12px; border-left: 3px solid #e5e7eb; }
+            p { margin: 8px 0; }
+            h1,h2,h3 { margin: 12px 0 8px; }
+          </style>
+          ${htmlBody}
         </div>
       `,
       text: body,

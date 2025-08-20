@@ -50,9 +50,9 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
   sendLvmEmail,
   applyFollowUpWithEmail,
 }) => {
-  console.log("selected Lead Data:", selectedLead);
+  // console.log("selected Lead Data:", selectedLead);
   const [emailAttachment, setEmailAttachment] = useState<File | null>(null);
-  
+
   return (
     <>
       {/* Conversion Value Modal */}
@@ -130,9 +130,8 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
       {showFollowUpModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div
-            className={`bg-white rounded-lg shadow-xl p-6 w-full mx-4 max-h-[90vh] overflow-y-auto ${
-              contactTypes.includes("email") ? "max-w-4xl" : "max-w-md"
-            }`}
+            className={`bg-white rounded-lg shadow-xl p-6 w-full mx-4 max-h-[90vh] overflow-y-auto ${contactTypes.includes("email") ? "max-w-4xl" : "max-w-md"
+              }`}
           >
             <h2 className="text-xl font-bold text-gray-800 mb-4">
               Schedule Follow Up
@@ -142,11 +141,10 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
             </p> */}
 
             <div
-              className={`mb-4 gap-4 ${
-                contactTypes.includes("email")
-                  ? "flex flex-row items-end"
-                  : "flex flex-col"
-              }`}
+              className={`mb-4 gap-4 ${contactTypes.includes("email")
+                ? "flex flex-row items-end"
+                : "flex flex-col"
+                }`}
             >
               <div
                 className={contactTypes.includes("email") ? "w-1/2" : "w-full"}
@@ -168,17 +166,15 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
                 className={contactTypes.includes("email") ? "w-1/2" : "w-full"}
               >
                 <label
-                  className={`block text-sm font-medium text-gray-700 mb-2  ${
-                    contactTypes.includes("email") ? "px-4" : ""
-                  }`}
+                  className={`block text-sm font-medium text-gray-700 mb-2  ${contactTypes.includes("email") ? "px-4" : ""
+                    }`}
                 >
                   Contact Method (select at least one)
                   <span className="px-1 text-red-500">*</span>
                 </label>
                 <div
-                  className={`flex items-center space-x-6 ${
-                    contactTypes.includes("email") ? "h-11 p-4" : ""
-                  }`}
+                  className={`flex items-center space-x-6 ${contactTypes.includes("email") ? "h-11 p-4" : ""
+                    }`}
                 >
                   <div className="flex items-center">
                     <input
@@ -249,29 +245,29 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
                 <h3 className="text-sm font-medium text-blue-800 mb-3">
                   Email Details
                 </h3>
-                
+
                 {/* User Information Display */}
                 {(() => {
                   // Get user info from assigned_to or created_by
                   const assignedUser = selectedLead?.assigned_to as any;
                   const createdByUser = selectedLead?.created_by as any;
                   const user = assignedUser || createdByUser;
-                  
+
                   // Get customer info from lead data
                   const populatedKey = [
                     "contact_us",
-                    "free_signup", 
+                    "free_signup",
                     "order_creation",
                     "abandoned_cart",
                     "scholarship",
                     "custom_lead",
                   ].find((key) => selectedLead?.[key as keyof ILead]);
-                  
+
                   const leadData = selectedLead?.[populatedKey as keyof ILead] as any;
-                  
+
                   let customerName = "";
                   let customerEmail = "";
-                  
+
                   if (leadData) {
                     if (populatedKey === "abandoned_cart" || populatedKey === "order_creation") {
                       customerName = `${leadData.firstName || ""} ${leadData.lastName || ""}`.trim();
@@ -290,7 +286,7 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
                       customerEmail = leadData.email || "";
                     }
                   }
-                  
+
                   return (
                     <div className="mb-4 p-3 bg-white border border-blue-100 rounded-md">
                       <h4 className="text-xs font-medium text-blue-700 mb-2">
@@ -303,7 +299,7 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
                             {customerName || "Not available"}
                           </span>
                         </div>
-                        <div> 
+                        <div>
                           <span className="text-gray-600 font-medium">Email:</span>
                           <span className="ml-2 text-gray-800 font-bold">
                             {customerEmail || "Not available"}
@@ -491,11 +487,10 @@ const LeadStatusModals: React.FC<MyLeadsModal> = ({
               </button>
               <button
                 onClick={applyStatusChange}
-                className={`px-4 py-2 ${
-                  pendingStatusChange === "Resolved"
-                    ? "bg-blue-600 hover:bg-blue-700"
-                    : "bg-gray-600 hover:bg-gray-700"
-                } text-white rounded-md`}
+                className={`px-4 py-2 ${pendingStatusChange === "Resolved"
+                  ? "bg-blue-600 hover:bg-blue-700"
+                  : "bg-gray-600 hover:bg-gray-700"
+                  } text-white rounded-md`}
               >
                 {pendingStatusChange === "Resolved"
                   ? "Resolve Lead"

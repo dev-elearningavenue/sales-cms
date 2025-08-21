@@ -43,6 +43,8 @@ type LeadData =
 export const Customer: React.FC<{ selectedLead: ILead }> = ({
   selectedLead,
 }) => {
+  const [externalUserName, setExternalUserName] = React.useState<string | null>(null);
+  const [isFetchingExternal, setIsFetchingExternal] = React.useState<boolean>(false);
   // Identify the populated object dynamically
   const populatedKey = [
     "contact_us",
@@ -60,6 +62,30 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
 
   // console.log("Customer Component - Lead Data:", leadData);
   // console.log("Customer Component - Populated Key:", populatedKey);
+
+  // When order_creation exists and contains a user with _id but missing userName, fetch from external DB
+  React.useEffect(() => {
+    const orderData = (selectedLead?.order_creation as any) || null;
+    const userRef = orderData?.user;
+    const userId = typeof userRef === "string" ? userRef : userRef?._id || userRef?.id;
+    const existingUserName = typeof userRef === "object" ? (userRef?.userName || userRef?.full_name) : undefined;
+    const domainCode = selectedLead?.domain;
+
+    if (!externalUserName && !existingUserName && userId && domainCode) {
+      setIsFetchingExternal(true);
+      fetch(`/api/external-user?userId=${encodeURIComponent(String(userId))}&domain=${encodeURIComponent(String(domainCode))}`)
+        .then(async (res) => {
+          if (!res.ok) return null;
+          const json = await res.json();
+          return json?.success ? (json.user?.userName || json.user?.full_name || null) : null;
+        })
+        .then((name) => {
+          if (name) setExternalUserName(name);
+        })
+        .catch(() => { })
+        .finally(() => setIsFetchingExternal(false));
+    }
+  }, [selectedLead?.order_creation, selectedLead?.domain, externalUserName]);
 
   return (
     <div className="mb-6">
@@ -124,10 +150,14 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
                 <Field label="Order Id" value={leadData?.order_id} />
                 <Field label="Email" value={leadData?.email} />
                 <Field label="Contact No" value={leadData?.contactNo} />
-                {populatedKey === "order_creation" && leadData?.user && (
+                {populatedKey === "order_creation" && (
                   <Field
                     label="User Name"
-                    value={leadData?.user?.userName || leadData?.user?.full_name || "N/A"}
+                    value={
+                      (isOrderCreation(leadData) && leadData.user && (leadData.user.userName || leadData.user.full_name)) ||
+                      externalUserName ||
+                      (isFetchingExternal ? "Loading..." : "N/A")
+                    }
                   />
                 )}
                 <Field label="Address" value={leadData?.address} />

@@ -47,9 +47,8 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
         "firstName" in obj &&
         "lastName" in obj
       ) {
-        return `${(obj as any).firstName} ${
-          (obj as any).lastName || ""
-        }`.trim();
+        return `${(obj as any).firstName} ${(obj as any).lastName || ""
+          }`.trim();
       }
     }
 
@@ -83,9 +82,8 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
                 Category
               </label>
               <div
-                className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${
-                  categoryColors[lead?.category ?? " "] || "bg-gray-500"
-                }`}
+                className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${categoryColors[lead?.category ?? " "] || "bg-gray-500"
+                  }`}
               >
                 {lead?.category}
               </div>
@@ -133,12 +131,12 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
               <p className="text-gray-900 font-medium">
                 {lead.createdAt
                   ? new Date(lead.createdAt).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
                   : "N/A"}
               </p>
             </div>
@@ -149,11 +147,10 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
               </label>
               <p className="text-gray-900 font-medium">
                 {lead.assigned
-                  ? `Assigned to ${
-                      lead.assigned_to && typeof lead.assigned_to === "object"
-                        ? (lead.assigned_to as any).full_name || "Unknown User"
-                        : "Unknown User"
-                    }`
+                  ? `Assigned to ${lead.assigned_to && typeof lead.assigned_to === "object"
+                    ? (lead.assigned_to as any).full_name || "Unknown User"
+                    : "Unknown User"
+                  }`
                   : "Not Assigned"}
               </p>
             </div>

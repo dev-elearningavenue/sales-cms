@@ -903,6 +903,18 @@ const MyLeads = () => {
                     }
                   />
                 </div>
+                {
+                  selectedLead?.category === "Custom Lead" && (
+                    <Field
+                      label="Customer Query"
+                      value={
+                        typeof selectedLead.custom_lead === "object" && selectedLead.custom_lead !== null && "customerQuery" in selectedLead.custom_lead
+                          ? (selectedLead.custom_lead as { customerQuery?: string }).customerQuery
+                          : ""
+                      }
+                    />
+                  )
+                }
 
                 {/* Course Information */}
                 {(selectedLead?.category === "Order Creation" ||
@@ -923,12 +935,12 @@ const MyLeads = () => {
                   </button>
                   <select
                     className={`px-4 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500 ${selectedLead.status === "Converted"
-                        ? "bg-green-100 text-green-800 border-green-200"
-                        : (selectedLead.status || "").startsWith("Follow Up")
-                          ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                          : selectedLead.status === "Pending"
-                            ? "bg-gray-100 text-gray-800 border-gray-200"
-                            : "bg-blue-100 text-blue-800 border-blue-200"
+                      ? "bg-green-100 text-green-800 border-green-200"
+                      : (selectedLead.status || "").startsWith("Follow Up")
+                        ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                        : selectedLead.status === "Pending"
+                          ? "bg-gray-100 text-gray-800 border-gray-200"
+                          : "bg-blue-100 text-blue-800 border-blue-200"
                       }`}
                     value={getFollowUpDisplayStatus(selectedLead)}
                     onChange={(e) => {

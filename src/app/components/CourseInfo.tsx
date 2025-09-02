@@ -39,7 +39,7 @@ const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
   if (selectedLead.category === "Invoice" && selectedLead.invoice) {
     // Handle Invoice data
     invoiceData = selectedLead.invoice;
-    
+
     if (invoiceData.products && Array.isArray(invoiceData.products)) {
       products = invoiceData.products;
       totalPrice = Number(invoiceData.totalPrice) || 0;
@@ -48,10 +48,20 @@ const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
     // Handle Order data (Order Creation, Abandoned Cart, Unpaid Training)
     orderLead = (selectedLead.order_creation ||
       selectedLead.abandoned_cart) as OrderCreation | null;
-    
+
     if (orderLead && Array.isArray(orderLead.items)) {
       products = orderLead.items;
+      // Try different possible total fields
       totalPrice = Number(orderLead.total) || 0;
+
+      // If total is still 0, calculate from items
+      if (totalPrice === 0 && products.length > 0) {
+        totalPrice = products.reduce((sum, item) => {
+          const itemPrice = Number(item.price) || 0;
+          const itemQuantity = Number(item.quantity) || 1;
+          return sum + (itemPrice * itemQuantity);
+        }, 0);
+      }
     }
   }
 

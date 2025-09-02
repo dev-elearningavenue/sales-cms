@@ -469,8 +469,7 @@ const Invoice = () => {
     } catch (error) {
       console.error("Error processing customer:", error);
       alert(
-        `Failed to process customer: ${
-          error instanceof Error ? error.message : "Unknown error"
+        `Failed to process customer: ${error instanceof Error ? error.message : "Unknown error"
         }`
       );
       setIsCreating(false);
@@ -774,13 +773,13 @@ const Invoice = () => {
       alert("Please log in to create invoices");
       return;
     }
-    
+
     // Add validation for required fields
     if (!formData.email || formData.email.trim() === "") {
       alert("Email is required");
       return;
     }
-    
+
     // Additional validation for email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email.trim())) {
@@ -837,14 +836,14 @@ const Invoice = () => {
       // Handle firstName and lastName for both new and existing customers
       let firstName = formData.firstName;
       let lastName = formData.lastName;
-      
+
       // If it's an existing customer, split the fullName
       if (customerExists && formData.fullName && !firstName && !lastName) {
         const nameParts = formData.fullName.trim().split(' ');
         firstName = nameParts[0] || '';
         lastName = nameParts.slice(1).join(' ') || '';
       }
-      
+
       // Prepare invoice data for API
       const invoiceApiData: CreateInvoiceApiRequest = {
         customerId: invoiceData.customerId,
@@ -863,9 +862,6 @@ const Invoice = () => {
         percent_off: percentOffString,
         hostedUrl: "",
       };
-      
-      // console.log("Invoice API Data:", invoiceApiData);
-
       // 1. Create Invoice
       const response = await fetch("/api/invoice", {
         method: "POST",
@@ -877,9 +873,6 @@ const Invoice = () => {
 
       const result: CreateInvoiceApiResponse = await response.json();
 
-      // console.log("Response of Invoice Api", result);
-      console.log("Invoice ID from response:", formData);
-      console.log("Invoice ID from response:", invoiceApiData.customerEmail);
       if (response.ok && result.success) {
         // 2. Create Lead with category 'Invoice' and reference to invoice ID
         const leadData = {
@@ -955,8 +948,7 @@ const Invoice = () => {
     } catch (error) {
       console.error("Error creating invoice:", error);
       alert(
-        `Failed to create invoice: ${
-          error instanceof Error ? error.message : "Unknown error"
+        `Failed to create invoice: ${error instanceof Error ? error.message : "Unknown error"
         }`
       );
     } finally {
@@ -1044,9 +1036,8 @@ const Invoice = () => {
                 <div className="relative">
                   <Plus
                     size={24}
-                    className={`transition-all duration-300 ${
-                      isHovered ? "rotate-90 scale-110" : "rotate-0"
-                    }`}
+                    className={`transition-all duration-300 ${isHovered ? "rotate-90 scale-110" : "rotate-0"
+                      }`}
                   />
                   <Sparkles
                     size={12}
@@ -1059,9 +1050,8 @@ const Invoice = () => {
                 </span>
                 <FileText
                   size={24}
-                  className={`transition-all duration-300 ${
-                    isHovered ? "translate-x-2" : "translate-x-0"
-                  }`}
+                  className={`transition-all duration-300 ${isHovered ? "translate-x-2" : "translate-x-0"
+                    }`}
                 />
               </div>
 
@@ -1152,13 +1142,12 @@ const Invoice = () => {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
-            className={`bg-white rounded-lg shadow-2xl ${
-              step === 3
+            className={`bg-white rounded-lg shadow-2xl ${step === 3
                 ? "max-w-4xl w-full"
                 : step === 2
-                ? "w-[850px] max-w-[90vw]"
-                : "max-w-md w-full"
-            } mx-4 overflow-hidden ${step === 2 ? "max-h-[80vh]" : ""}`}
+                  ? "w-[850px] max-w-[90vw]"
+                  : "max-w-md w-full"
+              } mx-4 overflow-hidden ${step === 2 ? "max-h-[80vh]" : ""}`}
             style={step === 2 ? { minHeight: "250px", maxHeight: "80vh" } : {}}
           >
             {/* Modal Header */}
@@ -1167,8 +1156,8 @@ const Invoice = () => {
                 {step === 1
                   ? "Create Stripe Customer"
                   : step === 2
-                  ? "Customer Details"
-                  : "Create Invoice"}
+                    ? "Customer Details"
+                    : "Create Invoice"}
                 {/* {step === 3 && (
                   <span className="text-sm font-normal ml-2">
                     Customer ID: {invoiceData.customerId}
@@ -1185,9 +1174,8 @@ const Invoice = () => {
 
             {/* Modal Body */}
             <div
-              className={`p-6 ${
-                step === 2 ? "overflow-y-auto max-h-[calc(80vh-80px)]" : ""
-              }`}
+              className={`p-6 ${step === 2 ? "overflow-y-auto max-h-[calc(80vh-80px)]" : ""
+                }`}
             >
               {step === 1 ? (
                 // Step 1: Site Name and Email
@@ -1413,9 +1401,9 @@ const Invoice = () => {
                               value={
                                 formData.contactNo
                                   ? formData.contactNo.replace(
-                                      /^\+\d{1,3}\s?/,
-                                      ""
-                                    )
+                                    /^\+\d{1,3}\s?/,
+                                    ""
+                                  )
                                   : ""
                               }
                               onChange={(e) =>
@@ -1608,7 +1596,7 @@ const Invoice = () => {
                             {/* Product Dropdown */}
                             {productSearchStates[index]?.showDropdown &&
                               productSearchStates[index]?.options.length >
-                                0 && (
+                              0 && (
                                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
                                   {productSearchStates[index]?.options.map(
                                     (option) => (
@@ -1659,8 +1647,8 @@ const Invoice = () => {
                                 {isLoadingPrices[index]
                                   ? "Loading..."
                                   : !product.product_id
-                                  ? "Select product first"
-                                  : "— Select price —"}
+                                    ? "Select product first"
+                                    : "— Select price —"}
                               </option>
                               {(priceOptions[index] || []).map(
                                 (priceOption) => (
@@ -1716,8 +1704,8 @@ const Invoice = () => {
                                   discounted =
                                     Math.floor(
                                       product.total *
-                                        (1 - selectedCoupon.percent_off / 100) *
-                                        100
+                                      (1 - selectedCoupon.percent_off / 100) *
+                                      100
                                     ) / 100;
                                 } else if (selectedCoupon?.amount_off) {
                                   // Distribute amount_off proportionally (optional: here, just show full amount_off on first product)
@@ -1780,11 +1768,10 @@ const Invoice = () => {
                                   Math.floor(
                                     ((subtotal * selectedCoupon.percent_off) /
                                       100) *
-                                      100
+                                    100
                                   ) / 100;
-                                return `-$${discount.toFixed(2)} (${
-                                  selectedCoupon.percent_off
-                                }%)`;
+                                return `-$${discount.toFixed(2)} (${selectedCoupon.percent_off
+                                  }%)`;
                               } else if (selectedCoupon?.amount_off) {
                                 return `-$${selectedCoupon.amount_off.toFixed(
                                   2

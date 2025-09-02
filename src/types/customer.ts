@@ -45,6 +45,7 @@ export interface OrderItem {
 
 export interface OrderCreation extends ICustomer {
   total: string;
+  price: string;
   transaction_id?: string;
   order_id?: string;
   items: OrderItem[];

@@ -3,6 +3,7 @@ import { ILead } from "@/types/leads";
 import { ICustomer } from "@/types/customer";
 import { OrderCreation } from "@/types/customer";
 import { IInvoice } from "@/models/invoice";
+import { getStateName } from "@/utils/stateMapping";
 
 interface ContactUs {
   name?: string;
@@ -161,7 +162,7 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
                   />
                 )}
                 <Field label="Address" value={leadData?.address} />
-                <Field label="State" value={leadData?.state} />
+                <Field label="State" value={getStateName(leadData?.state)} />
                 <Field label="City" value={leadData?.city} />
                 <Field label="Country" value={leadData?.country} />
                 <Field label="Zip Code" value={leadData?.zipCode} />

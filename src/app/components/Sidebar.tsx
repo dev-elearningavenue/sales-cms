@@ -12,6 +12,7 @@ import {
   Pin,
   PinOff,
   Receipt,
+  Building,
 } from "lucide-react";
 import Link from "next/link";
 import { useApp } from "@/contexts/AppContext";
@@ -129,9 +130,8 @@ const Sidebar = () => {
   return (
     <div
       ref={sidebarRef}
-      className={`${
-        isExpanded ? "w-64" : "w-16"
-      } h-full dark:bg-gray-800 bg-white text-black dark:text-white p-4 transition-all duration-300 ease-in-out relative group left-0 top-0 shadow-md z-10 overflow-hidden`}
+      className={`${isExpanded ? "w-64" : "w-16"
+        } h-full dark:bg-gray-800 bg-white text-black dark:text-white p-4 transition-all duration-300 ease-in-out relative group left-0 top-0 shadow-md z-10 overflow-hidden`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -184,7 +184,7 @@ const Sidebar = () => {
         />
         <NavItem
           icon={<ClipboardList size={20} />}
-          text="Leads"
+          text="InBound Leads"
           href="/leads"
           badge={unassignedLeads}
           isExpanded={isExpanded}
@@ -194,6 +194,12 @@ const Sidebar = () => {
           text="My Leads"
           href="/my-leads"
           badge={unresolvedLeads}
+          isExpanded={isExpanded}
+        />
+        <NavItem
+          icon={<Building size={20} />}
+          text="OutBound Leads"
+          href="/company-leads"
           isExpanded={isExpanded}
         />
         {/* <NavItem
@@ -234,9 +240,8 @@ const NavItem: React.FC<NavItemProps> = ({
     <li>
       <Link
         href={href}
-        className={`flex items-center text-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white p-2 rounded-lg transition-all duration-200 group ${
-          isActive ? "bg-gray-200 dark:bg-gray-700" : ""
-        }`}
+        className={`flex items-center text-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white p-2 rounded-lg transition-all duration-200 group ${isActive ? "bg-gray-200 dark:bg-gray-700" : ""
+          }`}
       >
         <div className="flex justify-center items-center w-8 h-8 relative">
           {icon}
@@ -247,11 +252,10 @@ const NavItem: React.FC<NavItemProps> = ({
           )}
         </div>
         <span
-          className={`ml-3 transition-all duration-300 whitespace-nowrap ${
-            isExpanded
-              ? "opacity-100 translate-x-0"
-              : "opacity-0 -translate-x-4 absolute pointer-events-none"
-          }`}
+          className={`ml-3 transition-all duration-300 whitespace-nowrap ${isExpanded
+            ? "opacity-100 translate-x-0"
+            : "opacity-0 -translate-x-4 absolute pointer-events-none"
+            }`}
         >
           {text}
           {badge !== undefined && badge > 0 && isExpanded && (

@@ -12,7 +12,7 @@ export interface SocialMedia {
 export interface ICompanyLead extends Document {
   companyName: string;
   companyEmail: string;
-  phoneNumber: string;
+  contactNo: string;
   address: string;
   companyWebsite?: string;
   socials?: SocialMedia;
@@ -23,15 +23,19 @@ export interface ICompanyLead extends Document {
   industry?: string;
   companySize?: string;
   contactPerson?: string;
-  contactPersonName?: string;
+  contactPersonEmail?: string;
+  contactPersonPhone?: string;
   notes?: string;
   status: "new" | "contacted" | "qualified" | "converted" | "lost" | "pending" | "follow_up";
+  assigned?: boolean;
   assignedTo?: mongoose.Types.ObjectId;
   assignedAt?: Date;
   nextFollowUp?: Date;
   followUpNotes?: string;
   conversionValue?: number;
   source: string; // CSV file name or source
+  uploadedBy?: mongoose.Types.ObjectId;
+  domain?: string;
   next_follow_up?: Array<{
     date: Date;
     contact_type: ("chat" | "email" | "call")[];
@@ -43,6 +47,7 @@ export interface ICompanyLead extends Document {
     type: ("chat" | "email" | "call")[];
     notes?: string;
     status: string;
+    by?: mongoose.Types.ObjectId;
   }>;
   lastContacted?: Date;
   lastStatusChange?: Date;
@@ -69,7 +74,8 @@ const contactHistorySchema = new Schema({
   date: { type: Date, required: true },
   type: { type: [String], enum: ["chat", "email", "call"], required: true },
   notes: { type: String },
-  status: { type: String, required: true }
+  status: { type: String, required: true },
+  by: { type: Schema.Types.ObjectId, ref: "User" }
 }, { _id: false });
 
 const companyLeadSchema = new Schema<ICompanyLead>(
@@ -86,7 +92,7 @@ const companyLeadSchema = new Schema<ICompanyLead>(
       lowercase: true,
       default: "",
     },
-    phoneNumber: {
+    contactNo: {
       type: String,
       required: false,
       trim: true,
@@ -101,6 +107,7 @@ const companyLeadSchema = new Schema<ICompanyLead>(
     companyWebsite: {
       type: String,
       trim: true,
+      default: "",
     },
     socials: {
       type: socialMediaSchema,
@@ -139,8 +146,14 @@ const companyLeadSchema = new Schema<ICompanyLead>(
     contactPerson: {
       type: String,
       trim: true,
+      default: "",
     },
-    contactPersonName: {
+    contactPersonEmail: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    contactPersonPhone: {
       type: String,
       trim: true,
       default: "",
@@ -154,6 +167,10 @@ const companyLeadSchema = new Schema<ICompanyLead>(
       type: String,
       enum: ["new", "contacted", "qualified", "converted", "lost"],
       default: "new",
+    },
+    assigned: {
+      type: Boolean,
+      default: false,
     },
     assignedTo: {
       type: Schema.Types.ObjectId,
@@ -175,7 +192,15 @@ const companyLeadSchema = new Schema<ICompanyLead>(
     },
     source: {
       type: String,
-      required: true,
+      trim: true,
+      default: "",
+    },
+    uploadedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    domain: {
+      type: String,
       trim: true,
       default: "",
     },

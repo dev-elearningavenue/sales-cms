@@ -7,6 +7,7 @@ export interface IUser extends Document {
   password?: string;
   user_type?: number;
   is_blocked?: boolean;
+  assignedDomain?: string;
 }
 // Define User Schema
 const userSchema = new Schema<IUser>(
@@ -40,6 +41,11 @@ const userSchema = new Schema<IUser>(
     },
     is_blocked: {
       type: Boolean,
+    },
+    assignedDomain: {
+      type: String,
+      trim: true,
+      default: "",
     },
   },
   { timestamps: true }

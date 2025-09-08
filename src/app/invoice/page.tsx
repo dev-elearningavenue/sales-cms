@@ -1143,10 +1143,10 @@ const Invoice = () => {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
             className={`bg-white rounded-lg shadow-2xl ${step === 3
-                ? "max-w-4xl w-full"
-                : step === 2
-                  ? "w-[850px] max-w-[90vw]"
-                  : "max-w-md w-full"
+              ? "max-w-4xl w-full"
+              : step === 2
+                ? "w-[850px] max-w-[90vw]"
+                : "max-w-md w-full"
               } mx-4 overflow-hidden ${step === 2 ? "max-h-[80vh]" : ""}`}
             style={step === 2 ? { minHeight: "250px", maxHeight: "80vh" } : {}}
           >

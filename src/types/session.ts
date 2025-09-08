@@ -4,4 +4,5 @@ export interface UserSession {
   full_name: string;
   user_name: string;
   user_type: number;
+  assignedDomain: string;
 }

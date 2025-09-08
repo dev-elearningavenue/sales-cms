@@ -13,6 +13,7 @@ export const generateToken = async (user: IUser): Promise<string> => {
     full_name: user.full_name || "",
     user_name: user.user_name || "",
     user_type: user.user_type || 3,
+    assignedDomain: user.assignedDomain || "",
   };
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET is not defined in environment variables");

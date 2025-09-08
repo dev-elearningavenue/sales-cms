@@ -5,7 +5,7 @@ export type { ICompanyLead };
 export interface CompanyLeadData {
   companyName: string;
   companyEmail: string;
-  phoneNumber: string;
+  contactNo: string;
   address: string;
   companyWebsite?: string;
   socials?: {
@@ -23,7 +23,6 @@ export interface CompanyLeadData {
   industry?: string;
   companySize?: string;
   contactPerson?: string;
-  contactPersonName?: string;
   notes?: string;
   status?: "new" | "contacted" | "qualified" | "converted" | "lost";
   assignedTo?: string;

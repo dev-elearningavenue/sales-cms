@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db";
 import CompanyLead from "@/models/companyLead";
 import { getDataFromToken } from "@/utils/get_token_data";
+import { updateCompanyLead } from "@/controllers/companyLeadController";
+
+connectToDatabase().catch(console.error)
 
 // GET single company lead
 export async function GET(
@@ -13,8 +16,6 @@ export async function GET(
     if (!tokenData || typeof tokenData !== "object" || !tokenData._id) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
-
-    await connectToDatabase();
 
     const lead = await CompanyLead.findById(params.id)
       .populate("assignedTo", "firstName lastName email");
@@ -47,64 +48,20 @@ export async function PUT(
     if (!tokenData || typeof tokenData !== "object" || !tokenData._id) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
-
-    await connectToDatabase();
-
+  
     const body = await request.json();
-    const {
-      status,
-      assignedTo,
-      nextFollowUp,
-      followUpNotes,
-      notes,
-      conversionValue,
-      ...otherFields
-    } = body;
+    const userId = tokenData._id.toString();
 
-    const updateData: any = { ...otherFields };
+    console.log("Body Json: ", body);
 
-    // Handle status change
-    if (status) {
-      updateData.status = status;
+    // Use controller method instead of direct mongoose
+    const result = await updateCompanyLead(params.id, body, userId);
+
+    if (result.success) {
+      return NextResponse.json(result);
+    } else {
+      return NextResponse.json(result, { status: 400 });
     }
-
-    // Handle assignment
-    if (assignedTo !== undefined) {
-      updateData.assignedTo = assignedTo || null;
-      updateData.assignedAt = assignedTo ? new Date() : null;
-    }
-
-    // Handle follow-up
-    if (nextFollowUp) {
-      updateData.nextFollowUp = new Date(nextFollowUp);
-    }
-
-    if (followUpNotes !== undefined) {
-      updateData.followUpNotes = followUpNotes;
-    }
-
-    if (notes !== undefined) {
-      updateData.notes = notes;
-    }
-
-    if (conversionValue !== undefined) {
-      updateData.conversionValue = Number(conversionValue) || 0;
-    }
-
-    const lead = await CompanyLead.findByIdAndUpdate(
-      params.id,
-      updateData,
-      { new: true, runValidators: true }
-    ).populate("assignedTo", "firstName lastName email");
-
-    if (!lead) {
-      return NextResponse.json(
-        { success: false, message: "Lead not found" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ success: true, lead });
 
   } catch (error) {
     console.error("Update company lead error:", error);

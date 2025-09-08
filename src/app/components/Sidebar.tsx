@@ -202,6 +202,12 @@ const Sidebar = () => {
           href="/company-leads"
           isExpanded={isExpanded}
         />
+        <NavItem
+          icon={<Building size={20} />}
+          text="My OutBound Leads"
+          href="/my-assigned-leads"
+          isExpanded={isExpanded}
+        />
         {/* <NavItem
           icon={<Settings size={20} />}
           text="Settings"

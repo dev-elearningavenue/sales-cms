@@ -135,7 +135,7 @@ async function processLeadsBatch(leads: any[], batchSize: number = 100) {
 }
 
 // Upload CSV/XLSX data with parallel processing
-export async function uploadCSVData(file: File, state?: string) {
+export async function uploadCSVData(file: File, state?: string, userId?: string, userAssignedDomain?: string) {
   try {
     console.log(`Starting file upload: ${file.name}, size: ${file.size} bytes`);
     
@@ -193,16 +193,16 @@ export async function uploadCSVData(file: File, state?: string) {
         });
 
         // Build lead by mapping CSV keys to model keys; leave missing keys unset so defaults apply
-        const lead: any = { source: state || file.name };
+        const lead: any = {};
 
         const fieldMap: Record<string, string> = {
           "company name": "companyName",
           "company": "companyName",
           "company email": "companyEmail",
           "email": "companyEmail",
-          "phone number": "phoneNumber",
-          "phone": "phoneNumber",
-          "contact": "phoneNumber",
+          "phone number": "contactNo",
+          "phone": "contactNo",
+          "contact": "contactNo",
           "address": "address",
           "company address": "address",
           "state": "state",
@@ -218,8 +218,6 @@ export async function uploadCSVData(file: File, state?: string) {
           "companysize": "companySize",
           "size": "companySize",
           "contact person": "contactPerson",
-          "contact person title": "contactPersonName",
-          "title": "contactPersonName",
           "notes": "notes",
           "description": "notes",
           "company website": "companyWebsite",
@@ -231,6 +229,9 @@ export async function uploadCSVData(file: File, state?: string) {
           const normalizedBodyState = getStateName(String(state));
           if (normalizedBodyState) lead.state = normalizedBodyState;
         }
+
+        if (userId) lead.uploadedBy = userId as any;
+        if (userAssignedDomain) lead.domain = userAssignedDomain;
 
         for (const [key, raw] of Object.entries(rowData)) {
           const lc = key.toLowerCase();
@@ -305,7 +306,7 @@ export async function uploadCSVData(file: File, state?: string) {
 }
 
 // Get timezone-based lead with improved logic
-export async function getTimezoneBasedLead() {
+export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?: string) {
   try {
     // Get all US states with their timezones
     const stateTimezones: { [key: string]: string } = {
@@ -329,7 +330,7 @@ export async function getTimezoneBasedLead() {
     };
     
     const now = new Date();
-    const businessHoursStart = 5; // 9:30 AM
+    const businessHoursStart = 0; // 9:30 AM
     const businessHoursEnd = 17; // 5:00 PM
     
     // Check each state systematically
@@ -355,15 +356,27 @@ export async function getTimezoneBasedLead() {
           if (lead) {
             console.log(`Found lead in ${stateName}: ${lead.companyName}`);
             
-            // Update last contacted timestamp
-            await CompanyLead.findByIdAndUpdate(lead._id, {
+            // Update lead with assignment and last contacted timestamp
+            const updateData: any = {
               lastContacted: new Date(),
               updatedAt: new Date()
-            });
+            };
+            
+            // Auto-assign if not already assigned
+            if (!lead.assigned && userId) {
+              updateData.assigned = true;
+              updateData.assignedTo = userId;
+              updateData.assignedAt = new Date();
+              if (userAssignedDomain) {
+                updateData.domain = userAssignedDomain;
+              }
+            }
+            
+            const updatedLead = await CompanyLead.findByIdAndUpdate(lead._id, updateData, { new: true });
             
             return {
               success: true,
-              lead: lead,
+              lead: updatedLead,
               message: `Found lead in ${stateName}`
             };
           }
@@ -392,25 +405,42 @@ export async function getTimezoneBasedLead() {
 }
 
 // Update lead with follow-up and contact history
-export async function updateLeadWithFollowUp(leadId: string, updates: any) {
+export async function updateLeadWithFollowUp(leadId: string, updates: any, userId?: string, userAssignedDomain?: string) {
   try {
     const lead = await CompanyLead.findById(leadId);
     if (!lead) {
       return { success: false, message: "Lead not found" };
     }
+
+    console.log("Updates: ", updates)
     
     const updateData: any = {
       ...updates,
       updatedAt: new Date()
     };
     
+    // Auto-assign and set domain if not already assigned
+    if (userId && userAssignedDomain && !lead.assigned) {
+      updateData.assigned = true;
+      updateData.assignedTo = userId;
+      updateData.assignedAt = new Date();
+      updateData.domain = userAssignedDomain;
+    }
+    
     // Handle status change
     if (updates.status) {
       updateData.lastStatusChange = new Date();
     }
     
-    // Handle follow-up addition
+    // Handle follow-up addition (supports both new comprehensive format and old simple format)
+    console.log("=== Follow-up Check ===");
+    console.log("updates.newFollowUp:", updates.newFollowUp);
+    console.log("updates.nextFollowUp:", updates.nextFollowUp);
+    console.log("updates.contactTypes:", updates.contactTypes);
+    console.log("updates.notes:", updates.notes);
+    
     if (updates.newFollowUp) {
+      console.log("Using newFollowUp format");
       const followUp = {
         date: new Date(),
         contact_type: updates.newFollowUp.contact_type,
@@ -419,25 +449,79 @@ export async function updateLeadWithFollowUp(leadId: string, updates: any) {
       };
       
       updateData.$push = {
-        nextFollowUp: followUp,
+        next_follow_up: followUp,
         contactHistory: {
           date: new Date(),
           type: updates.newFollowUp.contact_type,
           notes: updates.newFollowUp.notes,
-          status: updates.status || lead.status
+          status: updates.status || lead.status,
+          by: userId
         }
       };
       
       updateData.lastContacted = new Date();
+      delete updateData.newFollowUp;
+      
+      console.log("Created newFollowUp:", followUp);
+    } else if (updates.nextFollowUp && updates.contactTypes && Array.isArray(updates.contactTypes) && updates.contactTypes.length > 0) {
+      console.log("Using old format from frontend modal");
+      const followUp = {
+        date: new Date(updates.nextFollowUp),
+        contact_type: updates.contactTypes,
+        notes: updates.notes || "",
+        status: updates.status || "scheduled"
+      };
+      
+      updateData.$push = {
+        next_follow_up: followUp,
+        contactHistory: {
+          date: new Date(),
+          type: updates.contactTypes,
+          notes: updates.notes || "",
+          status: updates.status || lead.status,
+          by: userId
+        }
+      };
+      
+      updateData.lastContacted = new Date();
+      
+      // Don't include these in direct field update
+      delete updateData.nextFollowUp;
+      delete updateData.contactTypes;
+      
+      console.log("Created followUp:", followUp);
+      console.log("UpdateData.$push:", updateData.$push);
+    } else {
+      console.log("No follow-up conditions met");
     }
     
     // Handle contact info update
     if (updates.contactInfo) {
-      updateData.contactPerson = updates.contactInfo.contactPerson;
-      updateData.contactPersonName = updates.contactInfo.contactPersonName;
-      updateData.phoneNumber = updates.contactInfo.phoneNumber;
+      updateData.contactPerson = updates.contactInfo.contactPerson || updates.contactInfo.contactPerson;
+      updateData.contactPersonEmail = updates.contactInfo.contactPersonEmail || updates.contactInfo.contactEmail;
+      updateData.contactPersonPhone = updates.contactInfo.contactPersonPhone || updates.contactInfo.contactPhone;
+      updateData.contactNo = updates.contactInfo.contactNo;
       updateData.companyEmail = updates.contactInfo.companyEmail;
+      
+      // Add contact history for contact info update
+      if (!updateData.$push) {
+        updateData.$push = { contactHistory: [] };
+      }
+      if (Array.isArray(updateData.$push.contactHistory)) {
+        updateData.$push.contactHistory = [];
+      }
+      updateData.$push.contactHistory = {
+        date: new Date(),
+        type: ["chat"],
+        notes: "Contact information updated",
+        status: lead.status,
+        by: userId
+      };
+      updateData.lastContacted = new Date();
+      delete updateData.contactInfo; // Remove from direct update
     }
+    
+    console.log("Updating lead with data:", updateData);
     
     const updatedLead = await CompanyLead.findByIdAndUpdate(
       leadId,
@@ -453,6 +537,142 @@ export async function updateLeadWithFollowUp(leadId: string, updates: any) {
     
   } catch (error) {
     console.error("Update lead error:", error);
+    return {
+      success: false,
+      message: "Error updating lead"
+    };
+  }
+}
+
+// Update company lead with merge logic
+export async function updateCompanyLead(id: string, newData: any, userId?: string) {
+  try {
+    console.log("=== updateCompanyLead ===");
+    console.log("Lead ID:", id);
+    console.log("New Data:", JSON.stringify(newData, null, 2));
+    
+    const oldLead = await CompanyLead.findById(id);
+    if (!oldLead) {
+      return { success: false, message: "Lead not found" };
+    }
+
+    // Merge handling - preserve old values if new ones are empty
+    const mergedData: any = {};
+    const oldLeadObj = oldLead.toObject();
+    
+    // First, copy all old data
+    Object.keys(oldLeadObj).forEach((key) => {
+      mergedData[key] = (oldLeadObj as any)[key];
+    });
+    
+    // Then, overwrite with new data where provided and not empty
+    Object.keys(newData).forEach((key) => {
+      if (key === 'socials') {
+        // Special handling for socials object - merge instead of replace
+        if (newData[key] && typeof newData[key] === 'object') {
+          mergedData[key] = {
+            ...(mergedData[key] || {}),
+            ...newData[key]
+          };
+        }
+      } else if (newData[key] !== undefined && newData[key] !== "") {
+        mergedData[key] = newData[key];
+      }
+    });
+
+    // Always update these fields
+    mergedData.updatedAt = new Date();
+    
+    // Auto-assign and set domain if not already assigned
+    if (userId && !oldLead.assigned) {
+      mergedData.assigned = true;
+      mergedData.assignedTo = userId;
+      mergedData.assignedAt = new Date();
+      mergedData.domain = oldLead.domain;
+    }
+
+    // Handle status change timestamp (only if status actually changed)
+    if (newData.status && newData.status !== oldLead.status) {
+      mergedData.lastStatusChange = new Date();
+    }
+
+    // Handle follow-up addition for modal submissions
+    console.log("=== updateCompanyLead Follow-up Check ===");
+    console.log("newData.nextFollowUp:", newData.nextFollowUp);
+    console.log("newData.contactTypes:", newData.contactTypes);
+    console.log("newData.notes:", newData.notes);
+    
+    // Handle follow-up separately with $push operation
+    let pushOperations = null;
+    if (newData.nextFollowUp && newData.contactTypes && Array.isArray(newData.contactTypes) && newData.contactTypes.length > 0) {
+      console.log("Adding follow-up entry from modal");
+      const followUp = {
+        date: new Date(newData.nextFollowUp),
+        contact_type: newData.contactTypes,
+        notes: newData.notes || "",
+        status: newData.status || "scheduled"
+      };
+      
+      pushOperations = {
+        next_follow_up: followUp,
+        contactHistory: {
+          date: new Date(),
+          type: newData.contactTypes,
+          notes: newData.notes || "",
+          status: newData.status || oldLead.status,
+          by: userId
+        }
+      };
+      
+      mergedData.lastContacted = new Date();
+      
+      console.log("Created followUp in updateCompanyLead:", followUp);
+      
+      // Don't include these in direct field update
+      delete mergedData.nextFollowUp;
+      delete mergedData.contactTypes;
+    }
+
+    // NOTE: "Save All Changes" sirf fields update karta hai, contact history nahi banata
+    // Contact history sirf follow-up, email sending, resolve waghaira se banta hai
+
+    console.log("Old Lead Socials:", oldLeadObj.socials);
+    console.log("New Data Socials:", newData.socials);
+    console.log("Merged Data Socials:", mergedData.socials);
+    console.log("Final Merged Data:", JSON.stringify(mergedData, null, 2));
+    console.log("Push Operations:", pushOperations);
+
+    // 4. Update with merged data - separate regular updates from $push operations
+    let updated;
+    
+    if (pushOperations) {
+      // If we have follow-up data, do a separate $push operation first
+      console.log("Performing $push operation for follow-up");
+      await CompanyLead.findByIdAndUpdate(id, { $push: pushOperations });
+      
+      // Then do the regular field update
+      console.log("Performing regular field update");
+      updated = await CompanyLead.findByIdAndUpdate(id, mergedData, {
+        new: true,
+        runValidators: true
+      });
+    } else {
+      // No push operations, just regular update
+      console.log("Performing regular update only");
+      updated = await CompanyLead.findByIdAndUpdate(id, mergedData, {
+        new: true,
+        runValidators: true
+      });
+    }
+
+    return {
+      success: true,
+      lead: updated,
+      message: "Lead updated successfully"
+    };
+
+  } catch (error) {
+    console.error("Update company lead error:", error);
     return {
       success: false,
       message: "Error updating lead"

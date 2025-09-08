@@ -139,64 +139,65 @@ const CompanyLeadDetailsModal: React.FC<CompanyLeadDetailsModalProps> = ({
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             ) : (
-                                <p className="text-gray-900">{lead.companyEmail}</p>
+                                <p className="text-gray-900">{lead.companyEmail || "N/A"}</p>
                             )}
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Phone Number
+                                Contact Number
                             </label>
                             {isEditing ? (
                                 <input
                                     type="text"
-                                    value={formData.phoneNumber || ""}
-                                    onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
+                                    value={formData.contactNo || ""}
+                                    onChange={(e) => handleInputChange("contactNo", e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             ) : (
-                                <p className="text-gray-900">{lead.phoneNumber}</p>
+                                <p className="text-gray-900">{lead.contactNo}</p>
                             )}
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Website
-                            </label>
-                            {isEditing ? (
-                                <input
-                                    type="url"
-                                    value={formData.companyWebsite || ""}
-                                    onChange={(e) => handleInputChange("companyWebsite", e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            ) : (
-                                <p className="text-gray-900">{lead.companyWebsite || "N/A"}</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                LinkedIn
-                            </label>
-                            {isEditing ? (
-                                <input
-                                    type="url"
-                                    value={formData.socials?.linkedin || ""}
-                                    onChange={(e) => handleInputChange("socials", { ...formData.socials, linkedin: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            ) : (
-                                <p className="text-gray-900">
-                                    {lead.socials?.linkedin ? (
-                                        <a href={lead.socials.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                            {lead.socials.linkedin}
-                                        </a>
-                                    ) : (
-                                        "N/A"
-                                    )}
-                                </p>
-                            )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Website
+                                </label>
+                                {isEditing ? (
+                                    <input
+                                        type="url"
+                                        value={formData.companyWebsite || ""}
+                                        onChange={(e) => handleInputChange("companyWebsite", e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                ) : (
+                                    <p className="text-gray-900">{lead.companyWebsite || "N/A"}</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    LinkedIn
+                                </label>
+                                {isEditing ? (
+                                    <input
+                                        type="url"
+                                        value={formData.socials?.linkedin || ""}
+                                        onChange={(e) => handleInputChange("socials", { ...formData.socials, linkedin: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                ) : (
+                                    <p className="text-gray-900">
+                                        {lead.socials?.linkedin ? (
+                                            <a href={lead.socials.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                                {lead.socials.linkedin}
+                                            </a>
+                                        ) : (
+                                            "N/A"
+                                        )}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -439,12 +440,12 @@ const CompanyLeadDetailsModal: React.FC<CompanyLeadDetailsModalProps> = ({
                             {isEditing ? (
                                 <input
                                     type="text"
-                                    value={formData.contactPersonName || ""}
-                                    onChange={(e) => handleInputChange("contactPersonName", e.target.value)}
+                                    value={formData.contactPerson || ""}
+                                    onChange={(e) => handleInputChange("contactPerson", e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             ) : (
-                                <p className="text-gray-900">{lead.contactPersonName || "N/A"}</p>
+                                <p className="text-gray-900">{lead.contactPerson || "N/A"}</p>
                             )}
                         </div>
                     </div>
@@ -453,7 +454,7 @@ const CompanyLeadDetailsModal: React.FC<CompanyLeadDetailsModalProps> = ({
                 {/* Notes Section */}
                 <div className="mt-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Notes</h3>
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                 General Notes
@@ -470,7 +471,6 @@ const CompanyLeadDetailsModal: React.FC<CompanyLeadDetailsModalProps> = ({
                                 <p className="text-gray-900">{lead.notes || "No notes available"}</p>
                             )}
                         </div>
-
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Follow-up Notes
@@ -522,10 +522,7 @@ const CompanyLeadDetailsModal: React.FC<CompanyLeadDetailsModalProps> = ({
 
                 {/* Metadata */}
                 <div className="mt-6 pt-6 border-t border-gray-200">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
-                        <div>
-                            <span className="font-medium">Source:</span> {lead.source}
-                        </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-md text-gray-500">
                         <div>
                             <span className="font-medium">Domain:</span> {lead.domain}
                         </div>

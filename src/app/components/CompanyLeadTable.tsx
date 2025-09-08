@@ -102,7 +102,7 @@ const CompanyLeadTable: React.FC<CompanyLeadTableProps> = ({
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex flex-col">
                                     <div className="text-sm text-gray-900">{lead.companyEmail}</div>
-                                    <div className="text-sm text-gray-500">{lead.phoneNumber}</div>
+                                    <div className="text-sm text-gray-500">{lead.contactNo}</div>
                                 </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -208,8 +208,8 @@ const CompanyLeadTable: React.FC<CompanyLeadTableProps> = ({
                                             key={page}
                                             onClick={() => onPageChange(page)}
                                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${page === pagination.page
-                                                    ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                                                    : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                                                ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                                                : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
                                                 }`}
                                         >
                                             {page}

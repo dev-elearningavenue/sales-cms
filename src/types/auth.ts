@@ -4,4 +4,5 @@ export interface TokenPayload {
   full_name: string;
   user_name: string;
   user_type: number;
+  assignedDomain: string;
 }

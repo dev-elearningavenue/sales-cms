@@ -101,10 +101,7 @@ export async function PATCH(req: NextRequest) {
     if (!tokenData || typeof tokenData !== "object" || !tokenData._id) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-
     const userId = tokenData._id.toString();
-
-    // Build additional data object based on provided values
     const additionalData: any = {};
 
     if (conversionValue !== undefined) {

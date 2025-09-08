@@ -1,0 +1,85 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getDataFromToken } from "@/utils/get_token_data";
+import connectToDatabase from "@/lib/db";
+import CompanyLead from "@/models/companyLead";
+
+export async function GET(request: NextRequest) {
+  try {
+    const tokenData = await getDataFromToken();
+    if (!tokenData || typeof tokenData !== "object" || !tokenData._id) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
+
+    await connectToDatabase();
+
+    const userId = String(tokenData._id);
+    
+    // Get total assigned leads count for this user
+    const totalAssigned = await CompanyLead.countDocuments({
+      assignedTo: userId,
+      assigned: true
+    });
+
+    // Get counts by date range (using American Eastern timezone)
+    const now = new Date();
+    const americanTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    
+    // Start of today in American timezone
+    const startOfTodayAmerican = new Date(americanTime.getFullYear(), americanTime.getMonth(), americanTime.getDate());
+    const startOfWeek = new Date(americanTime);
+    startOfWeek.setDate(americanTime.getDate() - 7);
+    const startOfMonth = new Date(americanTime.getFullYear(), americanTime.getMonth(), 1);
+
+    const [todayCount, weekCount, monthCount] = await Promise.all([
+      CompanyLead.countDocuments({
+        assignedTo: userId,
+        assigned: true,
+        assignedAt: { $gte: startOfTodayAmerican }
+      }),
+      CompanyLead.countDocuments({
+        assignedTo: userId,
+        assigned: true,
+        assignedAt: { $gte: startOfWeek }
+      }),
+      CompanyLead.countDocuments({
+        assignedTo: userId,
+        assigned: true,
+        assignedAt: { $gte: startOfMonth }
+      })
+    ]);
+
+    // Get counts by domain if user has assignedDomain
+    let domainCounts = {};
+    if (tokenData.assignedDomain) {
+      domainCounts = {
+        [tokenData.assignedDomain as string]: await CompanyLead.countDocuments({
+          assignedTo: userId,
+          assigned: true,
+          domain: tokenData.assignedDomain
+        })
+      };
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        total: totalAssigned,
+        today: todayCount,
+        week: weekCount,
+        month: monthCount,
+        byDomain: domainCounts,
+        quota: {
+          daily: 100,
+          current: todayCount
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error("Get assigned count error:", error);
+    return NextResponse.json(
+      { success: false, message: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

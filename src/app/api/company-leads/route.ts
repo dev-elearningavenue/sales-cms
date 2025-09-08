@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db";
 import { getDataFromToken } from "@/utils/get_token_data";
 import { uploadCSVData, getTimezoneBasedLead } from "@/controllers/companyLeadController";
+import CompanyLead from "@/models/companyLead";
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +24,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await uploadCSVData(file, state);
+    const userId = String(tokenData._id);
+    const userAssignedDomain = (tokenData as any)?.assignedDomain as string | undefined;
+    const result = await uploadCSVData(file, state, userId, userAssignedDomain);
     if (result.success) {
       return NextResponse.json({ success: true, message: result.message }, { status: 201 });
     } else {
@@ -52,6 +55,19 @@ export async function GET(request: NextRequest) {
     const result = await getTimezoneBasedLead();
     
     if (result.success) {
+      // Assign to current user when fetched
+      try {
+        if ((result as any).lead?._id) {
+          await CompanyLead.findByIdAndUpdate((result as any).lead._id, {
+            assignedTo: tokenData._id,
+            assignedAt: new Date(),
+            assigned: true,
+            domain: (tokenData as any)?.assignedDomain || "",
+          });
+        }
+      } catch (e) {
+        console.error("Assignment on fetch failed:", e);
+      }
       return NextResponse.json(result);
     } else {
       return NextResponse.json(result, { status: 404 });

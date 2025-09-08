@@ -596,12 +596,6 @@ export async function updateCompanyLead(id: string, newData: any, userId?: strin
       mergedData.lastStatusChange = new Date();
     }
 
-    // Handle follow-up addition for modal submissions
-    console.log("=== updateCompanyLead Follow-up Check ===");
-    console.log("newData.nextFollowUp:", newData.nextFollowUp);
-    console.log("newData.contactTypes:", newData.contactTypes);
-    console.log("newData.notes:", newData.notes);
-    
     // Handle follow-up separately with $push operation
     let pushOperations = null;
     if (newData.nextFollowUp && newData.contactTypes && Array.isArray(newData.contactTypes) && newData.contactTypes.length > 0) {
@@ -632,15 +626,6 @@ export async function updateCompanyLead(id: string, newData: any, userId?: strin
       delete mergedData.nextFollowUp;
       delete mergedData.contactTypes;
     }
-
-    // NOTE: "Save All Changes" sirf fields update karta hai, contact history nahi banata
-    // Contact history sirf follow-up, email sending, resolve waghaira se banta hai
-
-    console.log("Old Lead Socials:", oldLeadObj.socials);
-    console.log("New Data Socials:", newData.socials);
-    console.log("Merged Data Socials:", mergedData.socials);
-    console.log("Final Merged Data:", JSON.stringify(mergedData, null, 2));
-    console.log("Push Operations:", pushOperations);
 
     // 4. Update with merged data - separate regular updates from $push operations
     let updated;

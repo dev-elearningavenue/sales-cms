@@ -328,7 +328,7 @@ const CompanyLeadDetailsModal: React.FC<CompanyLeadDetailsModalProps> = ({
                             </label>
                             {isEditing ? (
                                 <select
-                                    value={formData.assignedTo?._id || ""}
+                                    value={typeof formData.assignedTo === 'object' && formData.assignedTo?._id ? formData.assignedTo._id.toString() : formData.assignedTo?.toString() || ""}
                                     onChange={(e) => handleInputChange("assignedTo", e.target.value || null)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
@@ -341,7 +341,9 @@ const CompanyLeadDetailsModal: React.FC<CompanyLeadDetailsModalProps> = ({
                                 </select>
                             ) : (
                                 <p className="text-gray-900">
-                                    {lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : "Unassigned"}
+                                    {lead.assignedTo && typeof lead.assignedTo === 'object' && 'firstName' in lead.assignedTo && 'lastName' in lead.assignedTo
+                                        ? `${(lead.assignedTo as any).firstName} ${(lead.assignedTo as any).lastName}`
+                                        : "Unassigned"}
                                 </p>
                             )}
                         </div>

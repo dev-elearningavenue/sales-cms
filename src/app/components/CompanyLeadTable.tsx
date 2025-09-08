@@ -90,7 +90,7 @@ const CompanyLeadTable: React.FC<CompanyLeadTableProps> = ({
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                     {leads.map((lead) => (
-                        <tr key={lead._id} className="hover:bg-gray-50">
+                        <tr key={String(lead._id)} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex flex-col">
                                     <div className="text-sm font-medium text-gray-900">
@@ -113,8 +113,8 @@ const CompanyLeadTable: React.FC<CompanyLeadTableProps> = ({
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <select
-                                    value={lead.status}
-                                    onChange={(e) => handleStatusChange(lead._id!, e.target.value)}
+                                    value={typeof lead.status === "string" ? lead.status : ""}
+                                    onChange={(e) => handleStatusChange(lead._id!.toString(), e.target.value as string)}
                                     className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(lead.status)}`}
                                 >
                                     <option value="new">New</option>
@@ -128,7 +128,7 @@ const CompanyLeadTable: React.FC<CompanyLeadTableProps> = ({
                                 {lead.assignedTo ? (
                                     <div className="flex flex-col">
                                         <div>
-                                            {lead.assignedTo.firstName} {lead.assignedTo.lastName}
+                                            {/* {lead.assignedTo.firstName} {lead.assignedTo.lastName} */}"Unknown User"
                                         </div>
                                         <div className="text-xs text-gray-500">
                                             {formatDate(lead.assignedAt!)}

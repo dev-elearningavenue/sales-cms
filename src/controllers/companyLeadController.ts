@@ -344,20 +344,20 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
         
         // Check if state is in business hours
         if (stateHour >= businessHoursStart && stateHour <= businessHoursEnd) {
-          console.log(`Checking ${stateName} (${timezone}) - Current time: ${stateHour.toFixed(2)}`);
+          // console.log(`Checking ${stateName} (${timezone}) - Current time: ${stateHour.toFixed(2)}`);
           
-          // Find available lead in this state
           const lead = await CompanyLead.findOne({
             state: stateName,
             status: { $in: ["new", "pending", "follow_up"] },
+            assigned: { $eq: false },
             $or: [
               { lastContacted: { $exists: false } },
               { lastContacted: { $lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } } // Not contacted in last 24 hours
             ]
-          }).sort({ createdAt: 1 }); // Oldest first
+          }).sort({ createdAt: 1 });
           
           if (lead) {
-            console.log(`Found lead in ${stateName}: ${lead.companyName}`);
+            // console.log(`Found lead in ${stateName}: ${lead.companyName}`);
             
             // Update lead with assignment and last contacted timestamp
             const updateData: any = {

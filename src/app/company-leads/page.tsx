@@ -288,8 +288,10 @@ export default function CompanyLeadsPage() {
 
     // Handle Get Lead
     const handleGetLead = async () => {
-        if (currentLead) {
-            showToast("Please resolve or update the current lead first", "info");
+        // Allow getting new lead if current lead has been processed (not pending)
+        // or if there's no current lead
+        if (currentLead && currentLead.status === "pending") {
+            showToast("Please update the status of the current lead first", "info");
             return;
         }
 
@@ -479,6 +481,18 @@ export default function CompanyLeadsPage() {
                                             <span className="ml-2 font-semibold text-blue-900">
                                                 {(session as any)?.assignedDomain || "Not Assigned"}
                                             </span>
+                                            {currentLead && (
+                                                <span className={`ml-3 px-2 py-1 rounded-full text-xs font-medium ${currentLead.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                                                    currentLead.status === "processing" ? "bg-blue-100 text-blue-800" :
+                                                        currentLead.status === "resolved" ? "bg-green-100 text-green-800" :
+                                                            currentLead.status === "closed" ? "bg-red-100 text-red-800" :
+                                                                currentLead.status === "follow_up" ? "bg-purple-100 text-purple-800" :
+                                                                    "bg-gray-100 text-gray-800"
+                                                    }`}>
+                                                    {currentLead.status === "follow_up" ? "Follow Up" :
+                                                        currentLead.status.charAt(0).toUpperCase() + currentLead.status.slice(1)}
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="text-center">
                                             <div className="text-2xl font-bold text-green-600">{assignedLeadsCount.total}</div>
@@ -522,10 +536,15 @@ export default function CompanyLeadsPage() {
                             )}
                             <button
                                 onClick={handleGetLead}
-                                disabled={dataLoading}
-                                className="bg-green-600 hover:bg-green-700 text-white px-12 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 shadow-sm whitespace-nowrap min-w-[160px]"
+                                disabled={dataLoading || (currentLead?.status === "pending")}
+                                className={`px-12 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 shadow-sm whitespace-nowrap min-w-[160px] ${currentLead?.status === "pending"
+                                    ? "bg-gray-400 cursor-not-allowed"
+                                    : "bg-green-600 hover:bg-green-700 text-white"
+                                    }`}
                             >
-                                {dataLoading ? "⏳ Loading..." : "📞 Get Lead"}
+                                {dataLoading ? "⏳ Loading..." :
+                                    currentLead?.status === "pending" ?
+                                        "⚠️ Update Status First" : "📞 Get Lead"}
                             </button>
                         </div>
                     </div>
@@ -834,7 +853,7 @@ export default function CompanyLeadsPage() {
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Instructions</h3>
                     <div className="space-y-2 text-gray-600">
                         <p>• <strong>Upload CSV:</strong> Upload company data in CSV format</p>
-                        <p>• <strong>Get Lead:</strong> Get a lead from states currently in business hours (9:30 AM - 5:00 PM)</p>
+                        <p>• <strong>Get Lead:</strong> Get a lead from states currently in business hours (9:30 AM - 5:00 PM). Update status to get new leads.</p>
                         <p>• <strong>Send Email:</strong> Use CKEditor to compose and send emails</p>
                         <p>• <strong>Add Follow-up:</strong> Schedule next follow-up with notes</p>
                         <p>• <strong>Update Contact:</strong> Save new contact information from calls</p>

@@ -61,35 +61,13 @@ export default function MyAssignedLeadsPage() {
         router.push(`/company-leads/${lead._id}`);
     };
 
-    const handleStatusUpdate = async (leadId: string, newStatus: string) => {
-        try {
-            const response = await fetch(`/api/company-leads/${leadId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: newStatus })
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                showToast("Lead status updated successfully!", "success");
-                fetchAssignedLeads(); // Refresh the list
-            } else {
-                showToast(result.message || "Failed to update lead", "error");
-            }
-        } catch (error) {
-            console.error("Update lead error:", error);
-            showToast("Failed to update lead. Please try again.", "error");
-        }
-    };
-
     const getStatusColor = (status: string) => {
         switch (status) {
-            case "new": return "bg-blue-100 text-blue-800";
-            case "contacted": return "bg-yellow-100 text-yellow-800";
-            case "qualified": return "bg-green-100 text-green-800";
-            case "converted": return "bg-purple-100 text-purple-800";
-            case "lost": return "bg-red-100 text-red-800";
-            case "follow_up": return "bg-orange-100 text-orange-800";
+            case "pending": return "bg-yellow-100 text-yellow-800";
+            case "processing": return "bg-blue-100 text-blue-800";
+            case "resolved": return "bg-green-100 text-green-800";
+            case "closed": return "bg-red-100 text-red-800";
+            case "follow_up": return "bg-purple-100 text-purple-800";
             default: return "bg-gray-100 text-gray-800";
         }
     };
@@ -140,11 +118,10 @@ export default function MyAssignedLeadsPage() {
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                                 <option value="">All Statuses</option>
-                                <option value="new">New</option>
-                                <option value="contacted">Contacted</option>
-                                <option value="qualified">Qualified</option>
-                                <option value="converted">Converted</option>
-                                <option value="lost">Lost</option>
+                                <option value="pending">Pending</option>
+                                <option value="processing">Processing</option>
+                                <option value="resolved">Resolved</option>
+                                <option value="closed">Closed</option>
                                 <option value="follow_up">Follow Up</option>
                             </select>
                         </div>
@@ -203,6 +180,9 @@ export default function MyAssignedLeadsPage() {
                                             Status
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Category
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Assigned Date
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -239,31 +219,30 @@ export default function MyAssignedLeadsPage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(lead.status)}`}>
-                                                    {lead.status}
+                                                    {lead.status === "follow_up" ? "Follow Up" :
+                                                        lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
                                                 </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-gray-900">
+                                                    {lead.statusCategory || 'Not Set'}
+                                                </div>
+                                                {lead.resolveStatus && (
+                                                    <div className="text-xs text-gray-500">
+                                                        {lead.resolveStatus}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 {lead.assignedAt ? new Date(lead.assignedAt).toLocaleDateString() : 'N/A'}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <button
                                                     onClick={() => handleLeadClick(lead)}
-                                                    className="text-blue-600 hover:text-blue-900"
+                                                    className="text-blue-600 hover:text-blue-900 font-medium"
                                                 >
                                                     View Details
                                                 </button>
-                                                {/* <select
-                                                    value={lead.status}
-                                                    onChange={(e) => handleStatusUpdate(lead._id!.toString(), e.target.value)}
-                                                    className="text-sm border border-gray-300 rounded px-2 py-1"
-                                                >
-                                                    <option value="new">New</option>
-                                                    <option value="contacted">Contacted</option>
-                                                    <option value="qualified">Qualified</option>
-                                                    <option value="converted">Converted</option>
-                                                    <option value="lost">Lost</option>
-                                                    <option value="follow_up">Follow Up</option>
-                                                </select> */}
                                             </td>
                                         </tr>
                                     ))}

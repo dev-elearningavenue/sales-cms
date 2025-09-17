@@ -142,6 +142,31 @@ export async function uploadCSVData(file: File, state?: string, userId?: string,
   try {
     console.log(`Starting file upload: ${file.name}, size: ${file.size} bytes`);
     
+    // Check file size (50MB limit)
+    if (file.size > 50 * 1024 * 1024) {
+      return {
+        success: false,
+        message: "File too large. Maximum size is 50MB.",
+        totalRecords: 0,
+        importedRecords: 0,
+        failedRecords: 0,
+        errors: ["File size exceeds 50MB limit"]
+      };
+    }
+    
+    // Check file type
+    const allowedTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+    if (!allowedTypes.includes(file.type) && !file.name.match(/\.(csv|xlsx|xls)$/i)) {
+      return {
+        success: false,
+        message: "Invalid file type. Please upload CSV or Excel files only.",
+        totalRecords: 0,
+        importedRecords: 0,
+        failedRecords: 0,
+        errors: ["Invalid file type"]
+      };
+    }
+    
     let data: string[][];
     const fileExtension = file.name.toLowerCase().split('.').pop();
     
@@ -223,8 +248,9 @@ export async function uploadCSVData(file: File, state?: string, userId?: string,
           "contact person": "contactPerson",
           "notes": "notes",
           "description": "notes",
-          "company website": "companyWebsite",
           "website": "companyWebsite",
+          "company website": "companyWebsite",
+          "Company Website": "companyWebsite",
         };
 
         // Prefer body state if provided
@@ -234,7 +260,7 @@ export async function uploadCSVData(file: File, state?: string, userId?: string,
         }
 
         if (userId) lead.uploadedBy = userId as any;
-        if (userAssignedDomain) lead.domain = userAssignedDomain;
+        // if (userAssignedDomain) lead.domain = userAssignedDomain;
 
         for (const [key, raw] of Object.entries(rowData)) {
           const lc = key.toLowerCase();

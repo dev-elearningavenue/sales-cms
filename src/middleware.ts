@@ -3,6 +3,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "./utils/auth";
 
 export async function middleware(req: NextRequest) {
+  // Handle large file uploads for company-leads API
+  if (req.nextUrl.pathname === '/api/company-leads' && req.method === 'POST') {
+    // Increase timeout and body size limit for this specific route
+    const response = NextResponse.next();
+    response.headers.set('X-Request-Timeout', '300000'); // 5 minutes
+    response.headers.set('X-Body-Size-Limit', '52428800'); // 50MB
+    return response;
+  }
+
   // Next.js middleware mein req object modify nahi kar sakte
   // Yahan req.user set nahi kar sakte
   const token = req.cookies.get("token")?.value;
@@ -36,6 +45,9 @@ export const config = {
     "/settings/:path*",
     "/invoice/:path*",
     "/my-leads/:path*",
+    "/company-leads/:path*",
+    "/my-assigned-leads/:path*",
+    "/api/company-leads/:path*",
     "/login",
   ],
 };

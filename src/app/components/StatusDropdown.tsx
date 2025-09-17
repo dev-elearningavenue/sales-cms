@@ -39,7 +39,7 @@ export default function StatusDropdown({
     };
 
     return (
-        <div className="relative">
+        <div className="select-status-dropdown relative">
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}

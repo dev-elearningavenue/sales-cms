@@ -4,6 +4,11 @@ const nextConfig = {
   //   ignoreBuildErrors: true,
   // },
   reactStrictMode: false,
+  
+  // Increase body size limit for large CSV uploads
+  experimental: {
+    serverComponentsExternalPackages: ['mongoose'],
+  },
 
   // Fix chunk loading errors
   webpack: (config, { dev, isServer }) => {

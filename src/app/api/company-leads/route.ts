@@ -4,14 +4,12 @@ import { getDataFromToken } from "@/utils/get_token_data";
 import { uploadCSVData, getTimezoneBasedLead } from "@/controllers/companyLeadController";
 import CompanyLead from "@/models/companyLead";
 
-// Configure for large file uploads
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '50mb',
-    },
-  },
-};
+// Note: For App Router, body size limits are handled differently
+// The middleware and server configuration handle large file uploads
+
+// Route segment config for App Router
+export const runtime = 'nodejs';
+export const maxDuration = 300; // 5 minutes for large uploads
 
 export async function POST(request: NextRequest) {
   try {

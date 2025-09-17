@@ -3,6 +3,10 @@ import connectToDatabase from "@/lib/db";
 import { getDataFromToken } from "@/utils/get_token_data";
 import { updateCompanyLeadStatus } from "@/controllers/companyLeadController";
 
+// Route segment config for App Router
+export const runtime = 'nodejs';
+export const maxDuration = 60; // 1 minute for status updates
+
 connectToDatabase().catch(console.error);
 
 export async function PUT(

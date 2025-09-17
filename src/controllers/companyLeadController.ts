@@ -333,8 +333,11 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
     };
     
     const now = new Date();
-    const businessHoursStart = 0; // 9:30 AM
-    const businessHoursEnd = 17; // 5:00 PM
+    const businessHoursStart = 7;
+    const businessHoursEnd = 19; // 7:00 PM
+    
+    console.log(`🕐 Current server time: ${now.toISOString()}`);
+    console.log(`📅 Business hours: ${businessHoursStart} to ${businessHoursEnd}`);
     
     // Check each state systematically
     for (const [stateName, timezone] of Object.entries(stateTimezones)) {
@@ -344,12 +347,12 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
         
         // Check if state is in business hours
         if (stateHour >= businessHoursStart && stateHour <= businessHoursEnd) {
-          // console.log(`Checking ${stateName} (${timezone}) - Current time: ${stateHour.toFixed(2)}`);
+          console.log(`✅ ${stateName} (${timezone}) - Current time: ${stateHour.toFixed(2)} - IN BUSINESS HOURS`);
           
           const lead = await CompanyLead.findOne({
             state: stateName,
-            status: { $in: ["new", "pending", "follow_up"] },
-            assigned: { $eq: false },
+            status: { $in: ["pending"] },
+            assigned: { $ne: true },
             $or: [
               { lastContacted: { $exists: false } },
               { lastContacted: { $lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } } // Not contacted in last 24 hours
@@ -357,7 +360,7 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
           }).sort({ createdAt: 1 });
           
           if (lead) {
-            // console.log(`Found lead in ${stateName}: ${lead.companyName}`);
+            console.log(`🎯 Found lead in ${stateName}: ${lead.companyName}`);
             
             // Update lead with assignment and last contacted timestamp
             const updateData: any = {
@@ -382,6 +385,8 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
               lead: updatedLead,
               message: `Found lead in ${stateName}`
             };
+          } else {
+            console.log(`❌ No available leads in ${stateName} (in business hours but no leads found)`);
           }
         }
       } catch (error) {
@@ -390,7 +395,6 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
       }
     }
     
-    // If no lead found in any business hours state
     return {
       success: false,
       message: "No leads available in states currently in business hours (9:30 AM - 5:00 PM)",

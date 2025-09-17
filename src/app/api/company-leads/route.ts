@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     await connectToDatabase();
 
     const result = await getTimezoneBasedLead();
-    
+    console.log("Result: ", result);
     if (result.success) {
       // Assign to current user when fetched
       try {

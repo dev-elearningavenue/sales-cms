@@ -5,7 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ICompanyLead, CompanyLeadStats as CompanyLeadStatsType } from "@/types/companyLead";
 import { useApp } from "@/contexts/AppContext";
 import CSVUploadModal from "@/app/components/CSVUploadModal";
-import CompanyLeadDetailsModal from "@/app/components/CompanyLeadDetailsModal";
+import FollowUpModal from "@/app/components/FollowUpModal";
+import StatusDropdown from "@/app/components/StatusDropdown";
+import StatusUpdateModal from "@/app/components/StatusUpdateModal";
+import ResolveHistory from "@/app/components/ResolveHistory";
+import { StatusCategory, StatusUpdateData } from "@/types/companyLead";
+import { domainShortCodes, getDomainEmail } from "@/utils/helper";
 import dynamic from "next/dynamic";
 import { Eye } from "lucide-react";
 
@@ -39,10 +44,10 @@ export default function CompanyLeadsPage() {
     const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
     const [contactInfoModalOpen, setContactInfoModalOpen] = useState(false);
 
-    // Email form state
-    const [emailTo, setEmailTo] = useState("");
-    const [emailSubject, setEmailSubject] = useState("");
-    const [emailBody, setEmailBody] = useState("");
+    // New status system state
+    const [statusUpdateModalOpen, setStatusUpdateModalOpen] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<StatusCategory | null>(null);
+    const [selectedResolveStatus, setSelectedResolveStatus] = useState("");
 
     // Status/Follow-up form state
     const [nextFollowUpDate, setNextFollowUpDate] = useState("");
@@ -211,75 +216,70 @@ export default function CompanyLeadsPage() {
         }
     };
 
-    const handleOpenEmail = () => {
-        if (!currentLead) return;
-        setEmailTo(currentLead.companyEmail || "");
-        setEmailSubject("");
-        setEmailBody("");
-        setEmailModalOpen(true);
-    };
-
-    const handleSendEmail = async () => {
-        if (!currentLead) return;
-        try {
-            setDataLoading(true);
-            const domain = (session as any)?.assignedDomain;
-            const res = await fetch("/api/send-email", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ to: emailTo, subject: emailSubject, body: emailBody, domain })
-            });
-            const result = await res.json();
-            if (res.ok) {
-                showToast("Email sent successfully", "success");
-                setEmailModalOpen(false);
-                // Record contact history
-                await fetch(`/api/company-leads/${(currentLead as any)._id}`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ contactTypes: ["email"], notes: emailSubject || "Email sent" })
-                });
-            } else {
-                showToast(result?.error || "Failed to send email", "error");
-            }
-        } catch (e) {
-            showToast("Failed to send email", "error");
-        } finally {
-            setDataLoading(false);
-        }
-    };
 
     const toggleContactType = (type: string) => {
         setContactTypes((prev) => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
     };
 
-    const handleApplyStatusAndFollowUp = async () => {
+    const handleFollowUpSubmit = async (data: any) => {
         if (!currentLead) return;
         try {
             setDataLoading(true);
+
+            // First, update the lead status and follow-up
             const payload: any = {
-                status: newStatus,
-                notes: followUpNotes,
-                contactTypes,
+                status: data.status,
+                notes: data.followUpNotes,
+                contactTypes: data.contactTypes,
             };
-            if (nextFollowUpDate) payload.nextFollowUp = nextFollowUpDate;
-            if (contactPerson) payload.contactPerson = contactPerson;
-            if (contactEmail) payload.contactEmail = contactEmail;
-            if (contactPhone) payload.contactPhone = contactPhone;
+            if (data.nextFollowUpDate) payload.nextFollowUp = data.nextFollowUpDate;
+            if (data.contactPerson) payload.contactPerson = data.contactPerson;
+            if (data.contactEmail) payload.contactEmail = data.contactEmail;
+            if (data.contactPhone) payload.contactPhone = data.contactPhone;
+
             const res = await fetch(`/api/company-leads/${(currentLead as any)._id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
             const result = await res.json();
-            if (result.success) {
-                setCurrentLead(result.lead);
-                setFollowUpModalOpen(false);
-                showToast("Lead updated", "success");
-            } else {
-                showToast("Failed to update lead", "error");
+
+            if (!result.success) {
+                showToast("Failed to update lead status", "error");
+                return;
             }
+
+            // Then, send the email if email fields are filled
+            if (data.emailTo && data.emailSubject && data.emailBody) {
+                const domain = domainShortCodes[(session as any)?.assignedDomain];
+                console.log("Sending email with domain: ", domain);
+
+                const emailResponse = await fetch("/api/send-email", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        to: data.emailTo,
+                        subject: data.emailSubject,
+                        body: data.emailBody,
+                        domain
+                    })
+                });
+
+                const emailResult = await emailResponse.json();
+                if (emailResult.success) {
+                    showToast("Status updated and email sent successfully", "success");
+                } else {
+                    showToast("Lead updated but email failed to send", "error");
+                }
+            } else {
+                showToast("Lead updated successfully", "success");
+            }
+
+            setCurrentLead(result.lead);
+            setFollowUpModalOpen(false);
+
         } catch (e) {
+            console.error("Error in follow-up:", e);
             showToast("Failed to update lead", "error");
         } finally {
             setDataLoading(false);
@@ -387,34 +387,6 @@ export default function CompanyLeadsPage() {
         }
     };
 
-    // Handle follow-up
-    const handleFollowUp = async (leadId: string, followUpData: any) => {
-        try {
-            const response = await fetch(`/api/company-leads/${leadId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    followUpEntry: followUpData,
-                    nextFollowUp: followUpData.nextFollowUp,
-                    followUpNotes: followUpData.notes
-                }),
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                setCurrentLead(result.lead);
-                setFollowUpModalOpen(false);
-                showToast("Follow-up added successfully!", "success");
-            } else {
-                showToast("Failed to add follow-up.", "error");
-            }
-        } catch (error) {
-            console.error("Follow-up error:", error);
-            showToast("Failed to add follow-up.", "error");
-        }
-    };
-
     // Handle contact info update
     const handleContactInfoUpdate = async (leadId: string, contactInfo: any) => {
         try {
@@ -436,6 +408,45 @@ export default function CompanyLeadsPage() {
         } catch (error) {
             console.error("Contact info error:", error);
             showToast("Failed to update contact information.", "error");
+        }
+    };
+
+    // New status system handlers
+    const handleStatusSelect = (category: StatusCategory, resolveStatus: string) => {
+        setSelectedCategory(category);
+        setSelectedResolveStatus(resolveStatus);
+        setStatusUpdateModalOpen(true);
+    };
+
+    const handleStatusUpdate = async (data: StatusUpdateData) => {
+        if (!currentLead) return;
+
+        try {
+            setDataLoading(true);
+            const response = await fetch(`/api/company-leads/${currentLead._id}/status`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setCurrentLead(result.lead);
+                setStatusUpdateModalOpen(false);
+                showToast("Lead status updated successfully!", "success");
+
+                if (result.emailResult && !result.emailResult.success) {
+                    showToast("Status updated but email failed to send", "info");
+                }
+            } else {
+                showToast(result.message || "Failed to update lead status", "error");
+            }
+        } catch (error) {
+            console.error("Status update error:", error);
+            showToast("Error updating lead status", "error");
+        } finally {
+            setDataLoading(false);
         }
     };
 
@@ -522,7 +533,7 @@ export default function CompanyLeadsPage() {
 
                 {/* Current Lead Display */}
                 {currentLead && (
-                    <div className="bg-white rounded-lg shadow p-6 mb-6">
+                    <div className="company-lead-wrapper bg-white rounded-lg shadow p-6 mb-6">
                         {/* Header with action buttons */}
                         <div className="flex justify-between items-start mb-6">
                             <div>
@@ -536,31 +547,15 @@ export default function CompanyLeadsPage() {
                                     <p className="text-sm text-gray-500">Assigned: {new Date(currentLead.assignedAt).toLocaleDateString()}</p>
                                 )}
                             </div>
-                            <div className="flex flex-wrap gap-2">
-                                <button
-                                    onClick={handleOpenEmail}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm whitespace-nowrap"
-                                >
-                                    Send Email
-                                </button>
-                                <button
-                                    onClick={() => setFollowUpModalOpen(true)}
-                                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm whitespace-nowrap"
-                                >
-                                    Add Follow-up
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        if (typeof currentLead._id === "string" && currentLead._id) {
-                                            handleResolveLead(currentLead._id, "converted");
-                                        } else {
-                                            console.error("Invalid lead id");
-                                        }
-                                    }}
-                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm whitespace-nowrap"
-                                >
-                                    Resolve
-                                </button>
+                            <div className="flex flex-wrap gap-2 items-center">
+                                <div className="min-w-[200px]">
+                                    <StatusDropdown
+                                        onStatusSelect={handleStatusSelect}
+                                        disabled={dataLoading}
+                                        currentCategory={currentLead.statusCategory}
+                                        currentResolveStatus={currentLead.resolveStatus}
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -776,6 +771,14 @@ export default function CompanyLeadsPage() {
                             </button>
                         </div>
 
+                        {/* Resolve History */}
+                        <div className="mb-6">
+                            <ResolveHistory
+                                history={currentLead.resolveHistory || []}
+                                loading={dataLoading}
+                            />
+                        </div>
+
                         {/* Follow-up History */}
                         {Array.isArray((currentLead as any).next_follow_up) && (currentLead as any).next_follow_up.length > 0 && (
                             <div className="mt-6 border-t pt-6">
@@ -848,72 +851,28 @@ export default function CompanyLeadsPage() {
                 loading={dataLoading}
             />
 
-            {/* Send Email Modal */}
-            {emailModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-3xl mx-4">
-                        <h2 className="text-xl font-semibold mb-4">Send Email ({(session as any)?.assignedDomain || "No domain"})</h2>
-                        <div className="grid grid-cols-2 gap-4 mb-3">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">To</label>
-                                <input className="w-full border rounded px-3 py-2" value={emailTo} onChange={e => setEmailTo(e.target.value)} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Subject</label>
-                                <input className="w-full border rounded px-3 py-2" value={emailSubject} onChange={e => setEmailSubject(e.target.value)} />
-                            </div>
-                        </div>
-                        <div className="mb-4">
-                            <CKEditorWrapper value={emailBody} onChange={(v: string) => setEmailBody(v)} />
-                        </div>
-                        <div className="flex justify-end gap-2">
-                            <button className="px-4 py-2 border rounded" onClick={() => setEmailModalOpen(false)}>Cancel</button>
-                            <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={handleSendEmail}>Send</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Follow-up Modal */}
+            <FollowUpModal
+                isOpen={followUpModalOpen}
+                onClose={() => setFollowUpModalOpen(false)}
+                onSubmit={handleFollowUpSubmit}
+                currentLead={currentLead}
+                session={session}
+                loading={dataLoading}
+            />
 
-            {/* Follow-up / Status Modal */}
-            {followUpModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
-                        <h2 className="text-xl font-semibold mb-4">Update Status / Follow-up</h2>
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Status</label>
-                                <select className="w-full border rounded px-3 py-2" value={newStatus} onChange={e => setNewStatus(e.target.value)}>
-                                    <option value="new">new</option>
-                                    <option value="pending">pending</option>
-                                    <option value="follow_up">follow_up</option>
-                                    <option value="contacted">contacted</option>
-                                    <option value="qualified">qualified</option>
-                                    <option value="converted">converted</option>
-                                    <option value="lost">lost</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Next Follow-up</label>
-                                <input type="date" className="w-full border rounded px-3 py-2" value={nextFollowUpDate} onChange={e => setNextFollowUpDate(e.target.value)} />
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-6 mb-4">
-                            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={contactTypes.includes("email")} onChange={() => toggleContactType("email")} /> Email</label>
-                            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={contactTypes.includes("call")} onChange={() => toggleContactType("call")} /> Call</label>
-                            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={contactTypes.includes("chat")} onChange={() => toggleContactType("chat")} /> Chat</label>
-                        </div>
-                        <div className="grid grid-cols-3 gap-4 mb-4">
-                            <input className="border rounded px-3 py-2" placeholder="Contact person name (optional)" value={contactPerson} onChange={e => setcontactPerson(e.target.value)} />
-                            <input className="border rounded px-3 py-2" placeholder="Contact email (optional)" value={contactEmail} onChange={e => setContactEmail(e.target.value)} />
-                            <input className="border rounded px-3 py-2" placeholder="Contact phone (optional)" value={contactPhone} onChange={e => setContactPhone(e.target.value)} />
-                        </div>
-                        <textarea className="w-full border rounded px-3 py-2 mb-4" rows={3} placeholder="Notes (optional)" value={followUpNotes} onChange={e => setFollowUpNotes(e.target.value)} />
-                        <div className="flex justify-end gap-2">
-                            <button className="px-4 py-2 border rounded" onClick={() => setFollowUpModalOpen(false)}>Cancel</button>
-                            <button className="px-4 py-2 bg-yellow-600 text-white rounded" onClick={handleApplyStatusAndFollowUp}>Apply</button>
-                        </div>
-                    </div>
-                </div>
+            {/* Status Update Modal */}
+            {selectedCategory && selectedResolveStatus && (
+                <StatusUpdateModal
+                    isOpen={statusUpdateModalOpen}
+                    onClose={() => setStatusUpdateModalOpen(false)}
+                    onSubmit={handleStatusUpdate}
+                    category={selectedCategory}
+                    resolveStatus={selectedResolveStatus}
+                    currentLead={currentLead}
+                    session={session}
+                    loading={dataLoading}
+                />
             )}
         </div>
     );

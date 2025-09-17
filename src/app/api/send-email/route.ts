@@ -51,8 +51,8 @@ export async function POST(req: NextRequest) {
     });
 
     console.log(
-      `Sending email from (${smtpConfig.from}) cc:`,
-      smtpConfig.cc,
+      `Sending email from (${smtpConfig.from}) to:`,
+      to,
       "Subject:",
       subject
     );

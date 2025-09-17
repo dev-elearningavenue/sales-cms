@@ -40,3 +40,22 @@ export const getDomainSMTPConfig = (domain: string) => {
   };
   return configs[domain as keyof typeof configs];
 };
+
+ // map full domain name to short code
+export const domainShortCodes: Record<string, string> = {
+  "Osha Outreach": "OOR",
+  "Osha Online Center": "OOC",
+  "Osha Education School": "OES",
+};
+
+// Helper function to get domain email
+export const getDomainEmail = (domain: string): string => {
+  // console.log("domain: ", domain);
+  const domainEmails = {
+    OOR: process.env.NEXT_PUBLIC_EMAIL_OOR,
+    OOC: process.env.NEXT_PUBLIC_EMAIL_OOC,
+    OES: process.env.NEXT_PUBLIC_EMAIL_OES,
+    FOC: process.env.NEXT_PUBLIC_EMAIL_FOC,
+  };
+  return domainEmails[domain as keyof typeof domainEmails] || "";
+};

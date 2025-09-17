@@ -111,9 +111,8 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
                   {/* Category */}
                   <td className="px-4 py-3">
                     <div
-                      className={`py-1 px-2 inline-block rounded-lg text-sm font-medium text-white ${
-                        categoryColors[lead?.category ?? ""] || "bg-gray-500"
-                      }`}
+                      className={`py-1 px-2 inline-block rounded-lg text-sm font-medium text-white ${categoryColors[lead?.category ?? ""] || "bg-gray-500"
+                        }`}
                     >
                       {lead?.category}
                     </div>
@@ -133,14 +132,14 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
                         const dateToShow = lead.updatedAt || lead.assignedAt || lead.createdAt;
                         return dateToShow
                           ? new Date(dateToShow).toLocaleString("en-US", {
-                              timeZone: "America/New_York",
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              hour12: false,
-                            }) + " EST"
+                            timeZone: "America/New_York",
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: false,
+                          }) + " EST"
                           : "N/A";
                       })()}
                     </div>
@@ -149,15 +148,14 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
                   {/* Status */}
                   <td className="px-4 py-3">
                     <select
-                      className={`text-sm px-2 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500 w-full ${
-                        lead.status === "Converted"
+                      className={`text-sm px-2 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500 w-full ${lead.status === "Converted"
                           ? "bg-green-100 text-green-800 border-green-200"
                           : (lead.status || "").startsWith("Follow Up")
-                          ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                          : lead.status === "Pending"
-                          ? "bg-gray-100 text-gray-800 border-gray-200"
-                          : "bg-blue-100 text-blue-800 border-blue-200"
-                      }`}
+                            ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                            : lead.status === "Pending"
+                              ? "bg-gray-100 text-gray-800 border-gray-200"
+                              : "bg-blue-100 text-blue-800 border-blue-200"
+                        }`}
                       value={getFollowUpDisplayStatus(lead)}
                       onChange={(e) =>
                         handleStatusChange(lead._id as string, e.target.value)
@@ -184,24 +182,24 @@ const MyLeadTable: React.FC<MyLeadTableProps> = ({
                         onClick={() => handleViewNotes(lead)}
                       >
                         <MessageSquare size={14} className="mr-1" /> Notes
-                        
+
                         {/* Notes Badge */}
                         {lead.notes &&
                           Array.isArray(lead.notes) &&
                           lead.notes.length > 0 && (
-                            <span 
+                            <span
                               className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold"
                               title={`${lead.notes.length} note${lead.notes.length > 1 ? 's' : ''}`}
                             >
                               {lead.notes.length}
                             </span>
                           )}
-                        
+
                         {/* Follow-ups Badge */}
                         {lead.next_follow_up &&
                           Array.isArray(lead.next_follow_up) &&
                           lead.next_follow_up.length > 0 && (
-                            <span 
+                            <span
                               className="absolute -bottom-1 -right-1 bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold"
                               title={`${lead.next_follow_up.length} follow-up${lead.next_follow_up.length > 1 ? 's' : ''}`}
                             >

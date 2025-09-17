@@ -1,6 +1,7 @@
 import { ICompanyLead } from "@/models/companyLead";
+import { MainStatus, StatusCategory } from "@/constants/statusHierarchy";
 
-export type { ICompanyLead };
+export type { ICompanyLead, MainStatus, StatusCategory };
 
 export interface CompanyLeadData {
   companyName: string;
@@ -62,11 +63,40 @@ export interface CompanyLeadFilter {
 
 export interface CompanyLeadStats {
   total: number;
-  new: number;
-  contacted: number;
-  qualified: number;
-  converted: number;
-  lost: number;
+  pending: number;
+  processing: number;
+  resolved: number;
+  closed: number;
+  followUp: number;
   byState: Record<string, number>;
   byDomain: Record<string, number>;
+  byCategory: Record<StatusCategory, number>;
+}
+
+// Status update interfaces
+export interface StatusUpdateData {
+  statusCategory: StatusCategory;
+  resolveStatus: string;
+  notes?: string;
+  followUp?: boolean;
+  followUpDate?: Date;
+  emailData?: {
+    from: string;
+    to: string;
+    subject: string;
+    body: string;
+    send: boolean;
+  };
+}
+
+export interface ResolveHistoryEntry {
+  date: Date;
+  statusCategory: string;
+  status: string;
+  resolveStatus: string;
+  notes?: string;
+  followUp?: boolean;
+  followUpDate?: Date;
+  emailSent?: boolean;
+  by?: string | any; // Can be string or ObjectId from database
 }

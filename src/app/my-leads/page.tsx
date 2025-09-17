@@ -15,7 +15,7 @@ import LeadFilterPanel from "@/components/LeadFilterPanel";
 import MyLeadTable from "@/components/MyLeadTable";
 import LeadStatusModals from "@/components/LeadStatusModals";
 import Pagination from "@/components/Pagination";
-
+import { getDomainEmail } from "@/utils/helper";
 // Import utility functions
 import {
   categoryColors,
@@ -79,18 +79,6 @@ const getLeadEmail = (lead: ILead): string => {
   }
 
   return ""; // No email found
-};
-
-// Helper function to get domain email
-const getDomainEmail = (domain: string): string => {
-  // console.log("domain: ", domain);
-  const domainEmails = {
-    OOR: process.env.NEXT_PUBLIC_EMAIL_OOR,
-    OOC: process.env.NEXT_PUBLIC_EMAIL_OOC,
-    OES: process.env.NEXT_PUBLIC_EMAIL_OES,
-    FOC: process.env.NEXT_PUBLIC_EMAIL_FOC,
-  };
-  return domainEmails[domain as keyof typeof domainEmails] || "";
 };
 
 const MyLeads = () => {

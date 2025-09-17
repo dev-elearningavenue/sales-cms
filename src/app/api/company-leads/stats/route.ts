@@ -20,23 +20,24 @@ export async function GET(request: NextRequest) {
     const filter: any = {};
     if (domain) filter.domain = domain;
 
-    // Get overall stats
+    // Get overall stats using new status hierarchy
     const [
       total,
-      newCount,
-      contactedCount,
-      qualifiedCount,
-      convertedCount,
-      lostCount,
+      pendingCount,
+      processingCount,
+      resolvedCount,
+      closedCount,
+      followUpCount,
       stateStats,
-      domainStats
+      domainStats,
+      categoryStats
     ] = await Promise.all([
       CompanyLead.countDocuments(filter),
-      CompanyLead.countDocuments({ ...filter, status: "new" }),
-      CompanyLead.countDocuments({ ...filter, status: "contacted" }),
-      CompanyLead.countDocuments({ ...filter, status: "qualified" }),
-      CompanyLead.countDocuments({ ...filter, status: "converted" }),
-      CompanyLead.countDocuments({ ...filter, status: "lost" }),
+      CompanyLead.countDocuments({ ...filter, status: "pending" }),
+      CompanyLead.countDocuments({ ...filter, status: "processing" }),
+      CompanyLead.countDocuments({ ...filter, status: "resolved" }),
+      CompanyLead.countDocuments({ ...filter, status: "closed" }),
+      CompanyLead.countDocuments({ ...filter, status: "follow_up" }),
       CompanyLead.aggregate([
         { $match: filter },
         { $group: { _id: "$state", count: { $sum: 1 } } },
@@ -45,6 +46,11 @@ export async function GET(request: NextRequest) {
       CompanyLead.aggregate([
         { $match: filter },
         { $group: { _id: "$domain", count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]),
+      CompanyLead.aggregate([
+        { $match: filter },
+        { $group: { _id: "$statusCategory", count: { $sum: 1 } } },
         { $sort: { count: -1 } }
       ])
     ]);
@@ -60,15 +66,21 @@ export async function GET(request: NextRequest) {
       byDomain[stat._id] = stat.count;
     });
 
+    const byCategory: Record<string, number> = {};
+    categoryStats.forEach((stat: any) => {
+      byCategory[stat._id] = stat.count;
+    });
+
     const stats: CompanyLeadStats = {
       total,
-      new: newCount,
-      contacted: contactedCount,
-      qualified: qualifiedCount,
-      converted: convertedCount,
-      lost: lostCount,
+      pending: pendingCount,
+      processing: processingCount,
+      resolved: resolvedCount,
+      closed: closedCount,
+      followUp: followUpCount,
       byState,
       byDomain,
+      byCategory
     };
 
     return NextResponse.json({ success: true, stats });

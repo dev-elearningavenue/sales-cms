@@ -86,7 +86,7 @@ export const categoryColors: Record<string, string> = {
 export const getFollowUpDisplayStatus = (lead: ILead): string => {
   // Pehle resolve_status check karein
   if (lead.resolve_status && lead.resolve_status !== "Pending") {
-    return lead.resolve_status; // "Resolved", "Converted", etc.
+    return lead.resolve_status;
   }
   
   // Phir status check karein

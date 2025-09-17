@@ -26,7 +26,9 @@ export interface ICompanyLead extends Document {
   contactPersonEmail?: string;
   contactPersonPhone?: string;
   notes?: string;
-  status: "new" | "contacted" | "qualified" | "converted" | "lost" | "pending" | "follow_up";
+  status: "pending" | "processing" | "resolved" | "closed" | "follow_up";
+  statusCategory: "Interested" | "Invalid Contact" | "Delayed Interest" | "Rejection";
+  resolveStatus?: string; 
   assigned?: boolean;
   assignedTo?: mongoose.Types.ObjectId;
   assignedAt?: Date;
@@ -47,6 +49,17 @@ export interface ICompanyLead extends Document {
     type: ("chat" | "email" | "call")[];
     notes?: string;
     status: string;
+    by?: mongoose.Types.ObjectId;
+  }>;
+  resolveHistory?: Array<{
+    date: Date;
+    statusCategory: string;
+    status: string;
+    resolveStatus: string;
+    notes?: string;
+    followUp?: boolean;
+    followUpDate?: Date;
+    emailSent?: boolean;
     by?: mongoose.Types.ObjectId;
   }>;
   lastContacted?: Date;
@@ -75,6 +88,17 @@ const contactHistorySchema = new Schema({
   type: { type: [String], enum: ["chat", "email", "call"], required: true },
   notes: { type: String },
   status: { type: String, required: true },
+  by: { type: Schema.Types.ObjectId, ref: "User" }
+}, { _id: false });
+
+const resolveHistorySchema = new Schema({
+  date: { type: Date, required: true, default: Date.now },
+  statusCategory: { type: String, required: true, enum: ["Interested" , "Invalid Contact" , "Delayed Interest" , "Rejection"] },
+  resolveStatus: { type: String, required: true },
+  notes: { type: String },
+  followUp: { type: Boolean, default: false },
+  followUpDate: { type: Date },
+  emailSent: { type: Boolean, default: false },
   by: { type: Schema.Types.ObjectId, ref: "User" }
 }, { _id: false });
 
@@ -163,10 +187,18 @@ const companyLeadSchema = new Schema<ICompanyLead>(
       trim: true,
       default: "",
     },
+    statusCategory: {
+      type: String,
+      enum: ["Interested" , "Invalid Contact" , "Delayed Interest" , "Rejection"],
+    },
+    resolveStatus: {
+      type: String,
+      default: "",
+    },
     status: {
       type: String,
-      enum: ["new", "contacted", "qualified", "converted", "lost"],
-      default: "new",
+      enum: ["pending", "processing", "resolved", "closed" , "follow_up"],
+      default: "pending",
     },
     assigned: {
       type: Boolean,
@@ -178,13 +210,6 @@ const companyLeadSchema = new Schema<ICompanyLead>(
     },
     assignedAt: {
       type: Date,
-    },
-    nextFollowUp: {
-      type: Date,
-    },
-    followUpNotes: {
-      type: String,
-      trim: true,
     },
     conversionValue: {
       type: Number,
@@ -204,12 +229,16 @@ const companyLeadSchema = new Schema<ICompanyLead>(
       trim: true,
       default: "",
     },
-    next_follow_up: {
+    nextFollowUp: {
       type: [followUpSchema],
       default: [],
     },
     contactHistory: {
       type: [contactHistorySchema],
+      default: [],
+    },
+    resolveHistory: {
+      type: [resolveHistorySchema],
       default: [],
     },
     lastContacted: {
@@ -226,6 +255,7 @@ const companyLeadSchema = new Schema<ICompanyLead>(
 companyLeadSchema.index({ companyEmail: 1 });
 companyLeadSchema.index({ state: 1 });
 companyLeadSchema.index({ status: 1 });
+companyLeadSchema.index({ statusCategory: 1 });
 companyLeadSchema.index({ assignedTo: 1 });
 companyLeadSchema.index({ createdAt: -1 });
 

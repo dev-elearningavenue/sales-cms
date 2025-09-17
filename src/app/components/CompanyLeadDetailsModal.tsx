@@ -311,11 +311,12 @@ const CompanyLeadDetailsModal: React.FC<CompanyLeadDetailsModalProps> = ({
                                     <option value="lost">Lost</option>
                                 </select>
                             ) : (
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${lead.status === "new" ? "bg-gray-100 text-gray-800" :
-                                    lead.status === "contacted" ? "bg-blue-100 text-blue-800" :
-                                        lead.status === "qualified" ? "bg-yellow-100 text-yellow-800" :
-                                            lead.status === "converted" ? "bg-green-100 text-green-800" :
-                                                "bg-red-100 text-red-800"
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${lead.status === "pending" ? "bg-gray-100 text-gray-800" :
+                                        lead.status === "processing" ? "bg-blue-100 text-blue-800" :
+                                            lead.status === "resolved" ? "bg-green-100 text-green-800" :
+                                                lead.status === "closed" ? "bg-red-100 text-red-800" :
+                                                    lead.status === "follow_up" ? "bg-yellow-100 text-yellow-800" :
+                                                        "bg-gray-200 text-gray-700"
                                     }`}>
                                     {lead.status}
                                 </span>
@@ -437,7 +438,7 @@ const CompanyLeadDetailsModal: React.FC<CompanyLeadDetailsModalProps> = ({
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Contact Person Title
+                                Contact Person
                             </label>
                             {isEditing ? (
                                 <input

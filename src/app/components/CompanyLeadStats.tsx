@@ -8,16 +8,16 @@ interface CompanyLeadStatsProps {
 const CompanyLeadStats: React.FC<CompanyLeadStatsProps> = ({ stats }) => {
     const getStatusColor = (status: string) => {
         switch (status) {
-            case "new":
+            case "pending":
                 return "bg-gray-500";
-            case "contacted":
+            case "processing":
                 return "bg-blue-500";
-            case "qualified":
-                return "bg-yellow-500";
-            case "converted":
+            case "resolved":
                 return "bg-green-500";
-            case "lost":
+            case "closed":
                 return "bg-red-500";
+            case "followUp":
+                return "bg-yellow-500";
             default:
                 return "bg-gray-500";
         }
@@ -55,8 +55,8 @@ const CompanyLeadStats: React.FC<CompanyLeadStatsProps> = ({ stats }) => {
                             </div>
                         </div>
                         <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-500">New</p>
-                            <p className="text-2xl font-semibold text-gray-900">{stats.new}</p>
+                            <p className="text-sm font-medium text-gray-500">Pending</p>
+                            <p className="text-2xl font-semibold text-gray-900">{stats.pending}</p>
                         </div>
                     </div>
                 </div>
@@ -71,8 +71,8 @@ const CompanyLeadStats: React.FC<CompanyLeadStatsProps> = ({ stats }) => {
                             </div>
                         </div>
                         <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-500">Contacted</p>
-                            <p className="text-2xl font-semibold text-gray-900">{stats.contacted}</p>
+                            <p className="text-sm font-medium text-gray-500">Processing</p>
+                            <p className="text-2xl font-semibold text-gray-900">{stats.processing}</p>
                         </div>
                     </div>
                 </div>
@@ -82,13 +82,13 @@ const CompanyLeadStats: React.FC<CompanyLeadStatsProps> = ({ stats }) => {
                         <div className="flex-shrink-0">
                             <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
                                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
                             </div>
                         </div>
                         <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-500">Qualified</p>
-                            <p className="text-2xl font-semibold text-gray-900">{stats.qualified}</p>
+                            <p className="text-sm font-medium text-gray-500">Follow Up</p>
+                            <p className="text-2xl font-semibold text-gray-900">{stats.followUp}</p>
                         </div>
                     </div>
                 </div>
@@ -103,8 +103,8 @@ const CompanyLeadStats: React.FC<CompanyLeadStatsProps> = ({ stats }) => {
                             </div>
                         </div>
                         <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-500">Converted</p>
-                            <p className="text-2xl font-semibold text-gray-900">{stats.converted}</p>
+                            <p className="text-sm font-medium text-gray-500">Resolved</p>
+                            <p className="text-2xl font-semibold text-gray-900">{stats.resolved}</p>
                         </div>
                     </div>
                 </div>
@@ -119,15 +119,15 @@ const CompanyLeadStats: React.FC<CompanyLeadStatsProps> = ({ stats }) => {
                             </div>
                         </div>
                         <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-500">Lost</p>
-                            <p className="text-2xl font-semibold text-gray-900">{stats.lost}</p>
+                            <p className="text-sm font-medium text-gray-500">Closed</p>
+                            <p className="text-2xl font-semibold text-gray-900">{stats.closed}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Top States and Domains */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Top States */}
                 <div className="bg-white p-4 rounded-lg shadow">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Top States</h3>
@@ -153,6 +153,21 @@ const CompanyLeadStats: React.FC<CompanyLeadStatsProps> = ({ stats }) => {
                             .map(([domain, count]) => (
                                 <div key={domain} className="flex items-center justify-between">
                                     <span className="text-sm text-gray-600">{domain}</span>
+                                    <span className="text-sm font-medium text-gray-900">{count}</span>
+                                </div>
+                            ))}
+                    </div>
+                </div>
+
+                {/* Status Categories */}
+                <div className="bg-white p-4 rounded-lg shadow">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">By Category</h3>
+                    <div className="space-y-3">
+                        {Object.entries(stats.byCategory)
+                            .sort(([, a], [, b]) => b - a)
+                            .map(([category, count]) => (
+                                <div key={category} className="flex items-center justify-between">
+                                    <span className="text-sm text-gray-600">{category}</span>
                                     <span className="text-sm font-medium text-gray-900">{count}</span>
                                 </div>
                             ))}

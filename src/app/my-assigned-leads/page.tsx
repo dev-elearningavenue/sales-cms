@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ICompanyLead } from "@/types/companyLead";
 import { useApp } from "@/contexts/AppContext";
-import CompanyLeadDetailsModal from "@/app/components/CompanyLeadDetailsModal";
 
 export default function MyAssignedLeadsPage() {
     const { session, loading, showToast } = useApp();
@@ -12,8 +11,6 @@ export default function MyAssignedLeadsPage() {
     // State management
     const [leads, setLeads] = useState<ICompanyLead[]>([]);
     const [dataLoading, setDataLoading] = useState(false);
-    const [selectedLead, setSelectedLead] = useState<ICompanyLead | null>(null);
-    const [detailsModalOpen, setDetailsModalOpen] = useState(false);
     const [filters, setFilters] = useState({
         status: "",
         search: "",
@@ -61,8 +58,7 @@ export default function MyAssignedLeadsPage() {
     }, [session, filters]);
 
     const handleLeadClick = (lead: ICompanyLead) => {
-        setSelectedLead(lead);
-        setDetailsModalOpen(true);
+        router.push(`/company-leads/${lead._id}`);
     };
 
     const handleStatusUpdate = async (leadId: string, newStatus: string) => {
@@ -256,7 +252,7 @@ export default function MyAssignedLeadsPage() {
                                                 >
                                                     View Details
                                                 </button>
-                                                <select
+                                                {/* <select
                                                     value={lead.status}
                                                     onChange={(e) => handleStatusUpdate(lead._id!.toString(), e.target.value)}
                                                     className="text-sm border border-gray-300 rounded px-2 py-1"
@@ -267,7 +263,7 @@ export default function MyAssignedLeadsPage() {
                                                     <option value="converted">Converted</option>
                                                     <option value="lost">Lost</option>
                                                     <option value="follow_up">Follow Up</option>
-                                                </select>
+                                                </select> */}
                                             </td>
                                         </tr>
                                     ))}
@@ -277,22 +273,6 @@ export default function MyAssignedLeadsPage() {
                     )}
                 </div>
 
-                {/* Details Modal */}
-                {selectedLead && (
-                    <CompanyLeadDetailsModal
-                        isOpen={detailsModalOpen}
-                        onClose={() => {
-                            setDetailsModalOpen(false);
-                            setSelectedLead(null);
-                        }}
-                        lead={selectedLead}
-                        onUpdate={() => {
-                            fetchAssignedLeads();
-                            setDetailsModalOpen(false);
-                            setSelectedLead(null);
-                        }}
-                    />
-                )}
             </div>
         </div>
     );

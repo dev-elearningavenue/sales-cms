@@ -1,6 +1,8 @@
 import CompanyLead from "@/models/companyLead";
 import { getStateName } from "@/utils/stateMapping";
+import { getDomainSMTPConfig } from "@/utils/helper";
 import * as XLSX from 'xlsx';
+import nodemailer from 'nodemailer';
 
 // Parse XLSX file using Buffer (server-side)
 async function parseXLSXFile(file: File): Promise<string[][]> {
@@ -119,6 +121,7 @@ function findHeaderRow(data: string[][]): number {
   
   return 0; // Fallback to first row
 }
+
 async function processLeadsBatch(leads: any[], batchSize: number = 100) {
   const results = [];
   for (let i = 0; i < leads.length; i += batchSize) {
@@ -432,15 +435,7 @@ export async function updateLeadWithFollowUp(leadId: string, updates: any, userI
       updateData.lastStatusChange = new Date();
     }
     
-    // Handle follow-up addition (supports both new comprehensive format and old simple format)
-    console.log("=== Follow-up Check ===");
-    console.log("updates.newFollowUp:", updates.newFollowUp);
-    console.log("updates.nextFollowUp:", updates.nextFollowUp);
-    console.log("updates.contactTypes:", updates.contactTypes);
-    console.log("updates.notes:", updates.notes);
-    
     if (updates.newFollowUp) {
-      console.log("Using newFollowUp format");
       const followUp = {
         date: new Date(),
         contact_type: updates.newFollowUp.contact_type,
@@ -550,6 +545,10 @@ export async function updateCompanyLead(id: string, newData: any, userId?: strin
     console.log("=== updateCompanyLead ===");
     console.log("Lead ID:", id);
     console.log("New Data:", JSON.stringify(newData, null, 2));
+    console.log("Contact Person Fields:");
+    console.log("- contactPerson:", newData.contactPerson);
+    console.log("- contactEmail:", newData.contactEmail);
+    console.log("- contactPhone:", newData.contactPhone);
     
     const oldLead = await CompanyLead.findById(id);
     if (!oldLead) {
@@ -576,6 +575,7 @@ export async function updateCompanyLead(id: string, newData: any, userId?: strin
           };
         }
       } else if (newData[key] !== undefined && newData[key] !== "") {
+        console.log(`Updating field ${key}: ${newData[key]}`);
         mergedData[key] = newData[key];
       }
     });
@@ -599,7 +599,12 @@ export async function updateCompanyLead(id: string, newData: any, userId?: strin
     // Handle follow-up separately with $push operation
     let pushOperations = null;
     if (newData.nextFollowUp && newData.contactTypes && Array.isArray(newData.contactTypes) && newData.contactTypes.length > 0) {
-      console.log("Adding follow-up entry from modal");
+      console.log("=== FOLLOW-UP PROCESSING ===");
+      console.log("nextFollowUp:", newData.nextFollowUp);
+      console.log("contactTypes:", newData.contactTypes);
+      console.log("notes:", newData.notes);
+      console.log("status:", newData.status);
+      
       const followUp = {
         date: new Date(newData.nextFollowUp),
         contact_type: newData.contactTypes,
@@ -621,6 +626,7 @@ export async function updateCompanyLead(id: string, newData: any, userId?: strin
       mergedData.lastContacted = new Date();
       
       console.log("Created followUp in updateCompanyLead:", followUp);
+      console.log("Created contactHistory:", pushOperations.contactHistory);
       
       // Don't include these in direct field update
       delete mergedData.nextFollowUp;
@@ -661,6 +667,179 @@ export async function updateCompanyLead(id: string, newData: any, userId?: strin
     return {
       success: false,
       message: "Error updating lead"
+    };
+  }
+}
+
+// Update lead status with hierarchical system and maintain resolve history
+export async function updateCompanyLeadStatus(
+  leadId: string,
+  statusData: {
+    statusCategory: string;
+    resolveStatus: string;
+    notes?: string;
+    followUp?: boolean;
+    followUpDate?: Date;
+    emailData?: {
+      from: string;
+      to: string;
+      subject: string;
+      body: string;
+      send: boolean;
+    };
+  },
+  userId?: string
+) {
+  try {
+    // console.log("Status Data:", JSON.stringify(statusData, null, 2));
+
+    const lead = await CompanyLead.findById(leadId);
+    if (!lead) {
+      return { success: false, message: "Lead not found" };
+    }
+
+    // Determine main status based on category and action
+    let mainStatus = "processing";
+    if (statusData.statusCategory === "Rejection") {
+      mainStatus = "closed";
+    } else if (statusData.followUp) {
+      mainStatus = "follow_up";
+    } else if (["Trial Training", "Schedule Meeting", "Already Our Customer"].includes(statusData.resolveStatus)) {
+      mainStatus = "resolved";
+    }
+
+    // Create resolve history entry
+    const resolveHistoryEntry = {
+      date: new Date(),
+      statusCategory: statusData.statusCategory,
+      status: mainStatus,
+      resolveStatus: statusData.resolveStatus,
+      notes: statusData.notes || "",
+      followUp: statusData.followUp || false,
+      followUpDate: statusData.followUpDate,
+      emailSent: statusData.emailData?.send || false,
+      by: userId
+    };
+
+    // Prepare update data
+    const updateData: any = {
+      statusCategory: statusData.statusCategory,
+      resolveStatus: statusData.resolveStatus,
+      status: mainStatus,
+      lastStatusChange: new Date(),
+      lastContacted: new Date(),
+      $push: {
+        resolveHistory: resolveHistoryEntry
+      }
+    };
+
+    // Auto-assign if not already assigned
+    if (userId && !lead.assigned) {
+      updateData.assigned = true;
+      updateData.assignedTo = userId;
+      updateData.assignedAt = new Date();
+    }
+
+    // Handle follow-up
+    if (statusData.followUp && statusData.followUpDate) {
+      const followUpEntry = {
+        date: statusData.followUpDate,
+        contact_type: ["call"] as ("chat" | "email" | "call")[],
+        notes: statusData.notes || "",
+        status: "scheduled"
+      };
+
+      updateData.$push = {
+        ...updateData.$push,
+        nextFollowUp: followUpEntry
+      };
+    }
+
+
+    const updatedLead = await CompanyLead.findByIdAndUpdate(leadId, updateData, {
+      new: true,
+      runValidators: true
+    });
+
+    // Handle email sending if requested
+    let emailResult = null;
+    if (statusData.emailData?.send && statusData.emailData.from && statusData.emailData.to) {
+      try {
+        // Extract domain from email to get SMTP config
+        const emailDomain = statusData.emailData.from.split('@')[1];
+        let domain = "";
+        
+        // Map email domain to our domain codes
+        const domainMapping: Record<string, string> = {
+          "oshaoutreachcourses.com": "OOR",
+          "oshaeducationschool.com": "OES",
+          "oshaonlinecenter.com": "OOC"
+        };
+        
+        domain = domainMapping[emailDomain] || "OOR"; // Default fallback
+        
+        // console.log("Sending email with domain:", domain);
+        // console.log("Email data:", {
+        //   to: statusData.emailData.to,
+        //   subject: statusData.emailData.subject,
+        //   body: statusData.emailData.body,
+        //   domain: domain
+        // });
+        
+        // Send email using imported modules
+        const smtpConfig = getDomainSMTPConfig(domain);
+        
+        if (smtpConfig && smtpConfig.user && smtpConfig.password) {
+          const transporter = nodemailer.createTransport({
+            host: smtpConfig.host,
+            port: smtpConfig.port,
+            secure: false,
+            auth: {
+              user: smtpConfig.user,
+              pass: smtpConfig.password,
+            },
+          });
+
+          const mailOptions = {
+            from: statusData.emailData.from,
+            to: statusData.emailData.to,
+            subject: statusData.emailData.subject,
+            html: statusData.emailData.body,
+          };
+
+          const info = await transporter.sendMail(mailOptions);
+          console.log("Email sent successfully:", info.messageId);
+          
+          emailResult = { 
+            success: true, 
+            messageId: info.messageId,
+            message: "Email sent successfully"
+          };
+        } else {
+          emailResult = { 
+            success: false, 
+            message: `Email service not configured for ${domain} domain`
+          };
+        }
+        
+      } catch (emailError) {
+        console.error("Email sending error:", emailError);
+        emailResult = { success: false, message: "Failed to send email" };
+      }
+    }
+
+    return {
+      success: true,
+      lead: updatedLead,
+      emailResult,
+      message: "Lead status updated successfully"
+    };
+
+  } catch (error) {
+    console.error("Update lead status hierarchical error:", error);
+    return {
+      success: false,
+      message: "Error updating lead status"
     };
   }
 }

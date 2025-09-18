@@ -17,7 +17,7 @@ const LeadFilterPanel: React.FC<LeadFilterPanelProps> = ({
   getStatusOptionsForCategory,
 }) => {
   return (
-    <div className="bg-gray-50 p-4 rounded-md mb-4 border border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="lead-filter-panel bg-gray-50 p-4 rounded-md mb-4 border border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-4">
       <div>
         <label className="block text-xs font-normal text-gray-700 mb-1">
           Domain

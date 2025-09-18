@@ -6,9 +6,7 @@ import connectDB from "@/lib/db";
 import User from "@/models/user";
 import { verifyToken } from "@/utils/auth";
 import { assignLeadToUser } from "@/controllers/leadController";
-
-// Connect to database at route initialization
-connectDB().catch(console.error);
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {

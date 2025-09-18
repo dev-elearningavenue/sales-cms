@@ -344,7 +344,7 @@ export default function CompanyLeadDetailsPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="company-information-wrapper grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Lead Information */}
                     <div className="lg:col-span-2">
                         <div className="bg-white rounded-lg shadow-sm border p-6">

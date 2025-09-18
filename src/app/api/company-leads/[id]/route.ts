@@ -3,8 +3,7 @@ import connectToDatabase from "@/lib/db";
 import CompanyLead from "@/models/companyLead";
 import { getDataFromToken } from "@/utils/get_token_data";
 import { updateCompanyLead } from "@/controllers/companyLeadController";
-
-connectToDatabase().catch(console.error)
+export const dynamic = 'force-dynamic';
 
 // GET single company lead
 export async function GET(

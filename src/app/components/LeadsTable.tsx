@@ -750,7 +750,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
         </div>
 
         {/* Search, Filters and Pagination Row*/}
-        <div className="flex flex-col text-xs md:flex-row md:items-center md:justify-between mb-4 gap-3">
+        <div className="filter-section flex flex-col text-xs md:flex-row md:items-center md:justify-between mb-4 gap-3">
           <div className="relative flex-grow">
             <input
               type="text"
@@ -869,9 +869,9 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
 
         {/* Filters Panel */}
         {showFilters && (
-          <div className="border border-gray-200 rounded-md p-4 mb-4">
+          <div className="filter-options-wrapper border border-gray-200 rounded-md p-4 mb-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-base font-medium">Filters</h3>
+              <h3 className="text-black text-base font-medium">Filters</h3>
               <button
                 className="text-gray-500 hover:text-gray-700"
                 onClick={() => setShowFilters(false)}
@@ -1031,7 +1031,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="leads-table-body divide-y divide-gray-200">
               {currentLeads.map((lead, index) => (
                 <tr key={lead._id || index} className="hover:bg-gray-50 cursor-pointer" >
                   {/* CheckBox */}
@@ -1052,12 +1052,12 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   {/* TYPE */}
                   <td className="px-4 py-4">
                     <div className="flex flex-col items-start gap-1">
-                      <div
+                      <p
                         className={`py-1 px-2 inline-block rounded-lg font-medium text-white ${categoryColors[lead?.category ?? " "] || "bg-gray-500"
                           }`}
                       >
                         {lead?.category}
-                      </div>
+                      </p>
                       {/* Show status for users other than usertype 3 */}
                       {session?.user_type !== 3 && (
                         <div className="text-xs text-gray-500 font-medium">

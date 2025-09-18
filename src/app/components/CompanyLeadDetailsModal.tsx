@@ -106,7 +106,7 @@ const CompanyLeadDetailsModal: React.FC<CompanyLeadDetailsModalProps> = ({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className=" company-information-wrapper grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Company Information */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-gray-900">Company Information</h3>
@@ -312,11 +312,11 @@ const CompanyLeadDetailsModal: React.FC<CompanyLeadDetailsModalProps> = ({
                                 </select>
                             ) : (
                                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${lead.status === "pending" ? "bg-gray-100 text-gray-800" :
-                                        lead.status === "processing" ? "bg-blue-100 text-blue-800" :
-                                            lead.status === "resolved" ? "bg-green-100 text-green-800" :
-                                                lead.status === "closed" ? "bg-red-100 text-red-800" :
-                                                    lead.status === "follow_up" ? "bg-yellow-100 text-yellow-800" :
-                                                        "bg-gray-200 text-gray-700"
+                                    lead.status === "processing" ? "bg-blue-100 text-blue-800" :
+                                        lead.status === "resolved" ? "bg-green-100 text-green-800" :
+                                            lead.status === "closed" ? "bg-red-100 text-red-800" :
+                                                lead.status === "follow_up" ? "bg-yellow-100 text-yellow-800" :
+                                                    "bg-gray-200 text-gray-700"
                                     }`}>
                                     {lead.status}
                                 </span>

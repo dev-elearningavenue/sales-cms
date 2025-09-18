@@ -359,11 +359,11 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
     };
     
     const now = new Date();
-    const businessHoursStart = 7;
+    const businessHoursStart = 0;
     const businessHoursEnd = 19; // 7:00 PM
     
-    console.log(`🕐 Current server time: ${now.toISOString()}`);
-    console.log(`📅 Business hours: ${businessHoursStart} to ${businessHoursEnd}`);
+    // console.log(`🕐 Current server time: ${now.toISOString()}`);
+    // console.log(`📅 Business hours: ${businessHoursStart} to ${businessHoursEnd}`);
     
     // Check each state systematically
     for (const [stateName, timezone] of Object.entries(stateTimezones)) {

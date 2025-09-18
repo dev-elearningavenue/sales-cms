@@ -578,8 +578,8 @@ export default function CompanyLeadsPage() {
                             </div>
                         </div>
 
-                        {/* Comprehensive editable fields */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                        {/* Comprehensive editable fields - Outbound Leads */}
+                        <div className="company-information-wrapper grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                             {/* Company Information */}
                             <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Company Email</label>

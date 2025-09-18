@@ -21,9 +21,13 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* input {
+textarea {
   color: black;
-} */
+}
+
+input {
+  color: black;
+}
 
 .company-lead-wrapper input{
   color: black;
@@ -34,6 +38,50 @@ body {
 }
 
 .select-status-dropdown button{
+  color: black;
+}
+
+.filter-section select{
+  color: black;
+}
+
+.filter-section input{
+  color: black;
+}
+
+.filter-section button{
+  color: black;
+}
+
+.filter-options-wrapper div{
+  color: black;
+}
+
+.leads-table-body div{
+  color: black;
+}
+
+.lead-filter-panel select{
+  color: black;
+}
+
+.lead-filter-panel select{
+  color: black;
+}
+
+/* .pagination-component-wrapper button{
+  color: black;
+} */
+
+.company-information-wrapper select{
+  color: black;
+}
+
+.company-information-wrapper input{
+  color: black;
+}
+
+.company-information-wrapper button{
   color: black;
 }
 

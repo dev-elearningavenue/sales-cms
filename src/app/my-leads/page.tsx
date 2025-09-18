@@ -7,7 +7,7 @@ import { Filter, X, Search, RefreshCcw } from "lucide-react";
 import { Dialog } from "@/components/Dialog";
 import { Customer, Field } from "@/components/Customer";
 import CourseInfo from "@/components/CourseInfo";
-import LeadNotes from "../components/LeadNotes";
+import NotesModal from "../components/NotesModal";
 import { useSocket } from "@/hooks/useSocket";
 import { useLeadsData, SortConfig, FilterConfig } from "@/hooks/useLeadsData";
 
@@ -617,6 +617,52 @@ const MyLeads = () => {
     setShowNotesModal(true);
   };
 
+  // Handle adding a note for regular lead
+  const handleNoteAdded = async (newNote: string) => {
+    if (!selectedLeadForNotes) return;
+
+    try {
+      // Send the note to the API
+      const response = await fetch("/api/my-leads", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          leadId: selectedLeadForNotes._id,
+          note: newNote.trim(),
+          // Keep the current status
+          newStatus: selectedLeadForNotes.status,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add note");
+      }
+
+      // Optimistically update the UI
+      const newNoteObj = {
+        text: newNote,
+        created_at: new Date().toISOString(),
+      };
+
+      if (!selectedLeadForNotes.notes) {
+        selectedLeadForNotes.notes = [newNoteObj as any];
+      } else {
+        selectedLeadForNotes.notes = [newNoteObj as any, ...selectedLeadForNotes.notes];
+      }
+
+      // Refresh leads data to get updated notes
+      await fetchMyLeads();
+
+      showToast("Note added successfully", "success");
+    } catch (error) {
+      console.error("Error adding note:", error);
+      showToast("Failed to add note", "error");
+      throw error;
+    }
+  };
+
   // Generate pagination buttons
   const getPaginationButtons = () => {
     if (totalPages <= 5) {
@@ -990,13 +1036,13 @@ const MyLeads = () => {
       />
 
       {/* Lead Notes Modal */}
-      {selectedLeadForNotes && (
-        <LeadNotes
-          lead={selectedLeadForNotes}
-          isOpen={showNotesModal}
-          onClose={() => setShowNotesModal(false)}
-        />
-      )}
+      <NotesModal
+        isOpen={showNotesModal}
+        onClose={() => setShowNotesModal(false)}
+        lead={selectedLeadForNotes}
+        leadType="regular"
+        onNoteAdded={handleNoteAdded}
+      />
     </div>
   );
 };

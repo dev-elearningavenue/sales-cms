@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDataFromToken } from "@/utils/get_token_data";
 import { getLeadHistory } from "@/controllers/leadController";
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {

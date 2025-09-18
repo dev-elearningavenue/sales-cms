@@ -3,6 +3,7 @@ import connectToDatabase from "@/lib/db";
 import CompanyLead from "@/models/companyLead";
 import { getDataFromToken } from "@/utils/get_token_data";
 import { CompanyLeadStats } from "@/types/companyLead";
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {

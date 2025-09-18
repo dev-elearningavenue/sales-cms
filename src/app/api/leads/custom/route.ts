@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { createCustomLead } from "@/controllers/leadController";
 import { getDataFromToken } from "@/utils/get_token_data";
-
-// Connect to database
-connectDB().catch(console.error);
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {

@@ -3,9 +3,7 @@ import connectToDatabase from "@/lib/db";
 import { getDataFromToken } from "@/utils/get_token_data";
 import { uploadCSVData, getTimezoneBasedLead } from "@/controllers/companyLeadController";
 import CompanyLead from "@/models/companyLead";
-
-// Note: For App Router, body size limits are handled differently
-// The middleware and server configuration handle large file uploads
+export const dynamic = 'force-dynamic';
 
 // Route segment config for App Router
 export const runtime = 'nodejs';
@@ -70,7 +68,7 @@ export async function GET(request: NextRequest) {
     await connectToDatabase();
 
     const result = await getTimezoneBasedLead();
-    console.log("Result: ", result);
+    // console.log("Result: ", result);
     if (result.success) {
       // Assign to current user when fetched
       try {

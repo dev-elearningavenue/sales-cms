@@ -189,7 +189,7 @@ export default function StatusUpdateModal({
                                 </div>
 
                                 {formData.emailData?.send && (
-                                    <div className="space-y-4">
+                                    <div className="space-y-4 mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -237,10 +237,12 @@ export default function StatusUpdateModal({
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                                 Email Body
                                             </label>
-                                            <CKEditorWrapper
-                                                value={formData.emailData.body}
-                                                onChange={(data) => handleEmailDataChange("body", data)}
-                                            />
+                                            <div className="text-black">
+                                                <CKEditorWrapper
+                                                    value={formData.emailData.body}
+                                                    onChange={(data) => handleEmailDataChange("body", data)}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 )}

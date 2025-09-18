@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
     // Process each website with 1-second delay
     for (let i = 0; i < WEBSITES.length; i++) {
       const website = WEBSITES[i];
-      console.log(`🌐 Processing ${website.name}...`);
+      console.log(`Processing ${website.name}...`);
       
       try {
         // 1. Get latest order_id and createdAt from local DB for this domain

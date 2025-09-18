@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db";
 import { getDataFromToken } from "@/utils/get_token_data";
 import { updateCompanyLeadStatus } from "@/controllers/companyLeadController";
+export const dynamic = 'force-dynamic';
 
 // Route segment config for App Router
 export const runtime = 'nodejs';

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDataFromToken } from "@/utils/get_token_data";
 import connectToDatabase from "@/lib/db";
 import CompanyLead from "@/models/companyLead";
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,12 +28,28 @@ export async function GET(request: NextRequest) {
       query.status = status;
     }
 
-    // Search filter (company name, email)
+    const statusCategory = searchParams.get("statusCategory");
+    if (statusCategory) {
+      query.statusCategory = statusCategory;
+    }
+
+    const resolveStatus = searchParams.get("resolveStatus");
+    if (resolveStatus) {
+      query.resolveStatus = resolveStatus;
+    }
+
+    // Enhanced search filter (company name, email, state, city, phone, contact person)
     const search = searchParams.get("search");
     if (search) {
       query.$or = [
         { companyName: { $regex: search, $options: "i" } },
-        { companyEmail: { $regex: search, $options: "i" } }
+        { companyEmail: { $regex: search, $options: "i" } },
+        { state: { $regex: search, $options: "i" } },
+        { city: { $regex: search, $options: "i" } },
+        { contactNo: { $regex: search, $options: "i" } },
+        { contactPerson: { $regex: search, $options: "i" } },
+        { contactPersonEmail: { $regex: search, $options: "i" } },
+        { contactPersonPhone: { $regex: search, $options: "i" } }
       ];
     }
 

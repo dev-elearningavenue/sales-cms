@@ -121,9 +121,8 @@ const DashboardSkeleton = ({ darkMode }: { darkMode: boolean }) => {
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className={`rounded-xl h-32 animate-pulse ${
-              darkMode ? "bg-gray-800" : "bg-gray-200"
-            }`}
+            className={`rounded-xl h-32 animate-pulse ${darkMode ? "bg-gray-800" : "bg-gray-200"
+              }`}
           />
         ))}
       </div>
@@ -131,18 +130,16 @@ const DashboardSkeleton = ({ darkMode }: { darkMode: boolean }) => {
       {/* Team Performance Skeleton */}
       <div className="space-y-4">
         <div
-          className={`h-8 w-64 rounded animate-pulse ${
-            darkMode ? "bg-gray-800" : "bg-gray-200"
-          }`}
+          className={`h-8 w-64 rounded animate-pulse ${darkMode ? "bg-gray-800" : "bg-gray-200"
+            }`}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className={`rounded-xl h-64 animate-pulse ${
-                darkMode ? "bg-gray-800" : "bg-gray-200"
-              }`}
+              className={`rounded-xl h-64 animate-pulse ${darkMode ? "bg-gray-800" : "bg-gray-200"
+                }`}
             />
           ))}
         </div>
@@ -211,7 +208,7 @@ export default function DashboardPage() {
         <div className="p-6 space-y-8 max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
             <div>
-              <h1 className="text-2xl font-semibold">
+              <h1 className="text-2xl font-semibold text-black">
                 Welcome, {session.full_name}
               </h1>
               <p className={darkMode ? "text-gray-300" : "text-gray-500"}>
@@ -229,11 +226,10 @@ export default function DashboardPage() {
 
               <button
                 onClick={refreshData}
-                className={`px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors ${
-                  darkMode
-                    ? "bg-gray-700 hover:bg-gray-600 text-white"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                }`}
+                className={`px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors ${darkMode
+                  ? "bg-gray-700 hover:bg-gray-600 text-white"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  }`}
               >
                 <RefreshCcw className="h-4 w-4" />
                 <span className="text-sm">Refresh</span>
@@ -244,9 +240,8 @@ export default function DashboardPage() {
                 className="px-4 py-2 flex items-center space-x-2"
               >
                 <span
-                  className={`text-sm font-medium ${
-                    darkMode ? "text-white" : "text-blue-700"
-                  }`}
+                  className={`text-sm font-medium ${darkMode ? "text-white" : "text-blue-700"
+                    }`}
                 >
                   Today: {new Date().toLocaleDateString()}
                 </span>
@@ -268,9 +263,8 @@ export default function DashboardPage() {
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className={`rounded-xl h-32 animate-pulse ${
-                    darkMode ? "bg-gray-800" : "bg-gray-200"
-                  }`}
+                  className={`rounded-xl h-32 animate-pulse ${darkMode ? "bg-gray-800" : "bg-gray-200"
+                    }`}
                 />
               ))}
             </div>
@@ -348,9 +342,8 @@ export default function DashboardPage() {
           {/* Last Updated Info */}
           <div className="text-center">
             <p
-              className={`text-xs ${
-                darkMode ? "text-gray-400" : "text-gray-500"
-              }`}
+              className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
+                }`}
             >
               Last updated:{" "}
               {data?.lastUpdated
@@ -380,7 +373,7 @@ export default function DashboardPage() {
         {/* Header with dark mode toggle */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
           <div>
-            <h1 className="text-2xl font-semibold">
+            <h1 className="text-2xl font-semibold text-black">
               Welcome, {session.full_name || "Admin"}
             </h1>
             <p className={darkMode ? "text-gray-300" : "text-gray-500"}>
@@ -398,11 +391,10 @@ export default function DashboardPage() {
 
             <button
               onClick={refreshData}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors ${
-                darkMode
-                  ? "bg-gray-700 hover:bg-gray-600 text-white"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-              }`}
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors ${darkMode
+                ? "bg-gray-700 hover:bg-gray-600 text-white"
+                : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
             >
               <RefreshCcw className="h-4 w-4" />
               <span className="text-sm">Refresh</span>
@@ -413,9 +405,8 @@ export default function DashboardPage() {
               className="px-4 py-2 flex items-center space-x-2"
             >
               <span
-                className={`text-sm font-medium ${
-                  darkMode ? "text-blue-300" : "text-blue-700"
-                }`}
+                className={`text-sm font-medium ${darkMode ? "text-blue-300" : "text-blue-700"
+                  }`}
               >
                 Today: {new Date().toLocaleDateString()}
               </span>
@@ -447,9 +438,8 @@ export default function DashboardPage() {
         {/* Last Updated Info */}
         <div className="text-center">
           <p
-            className={`text-xs ${
-              darkMode ? "text-gray-400" : "text-gray-500"
-            }`}
+            className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
+              }`}
           >
             Last updated:{" "}
             {data?.lastUpdated

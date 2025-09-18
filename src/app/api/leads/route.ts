@@ -10,11 +10,7 @@ import connectDB from "@/lib/db";
 import "@/models/customer";
 import { getDataFromToken } from "@/utils/get_token_data";
 import Lead from "@/models/lead";
-
-async function connectDatabase() {
-  await connectDB();
-}
-connectDatabase();
+export const dynamic = 'force-dynamic';
 
 // GET method for fetching all leads
 export async function GET(req: Request) {

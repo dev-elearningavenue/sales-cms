@@ -7,7 +7,7 @@ export async function middleware(req: NextRequest) {
   if (req.nextUrl.pathname === '/api/company-leads' && req.method === 'POST') {
     // Increase timeout and body size limit for this specific route
     const response = NextResponse.next();
-    response.headers.set('X-Request-Timeout', '300000'); // 5 minutes
+    response.headers.set('X-Request-Timeout', '30000'); // 5 minutes
     response.headers.set('X-Body-Size-Limit', '52428800'); // 50MB
     return response;
   }
@@ -26,12 +26,39 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
   if (token) {
-    const result = await verifyToken(token);
-    if (!result.success) {
-      console.log("Invalid token, redirecting to login");
-      return NextResponse.redirect(new URL("/login", req.url));
+    try {
+      const result = await verifyToken(token);
+      
+      if (!result.success) {
+        console.log("Invalid token, redirecting to login");
+        // Clear the invalid cookie
+        const response = NextResponse.redirect(new URL("/login", req.url));
+        response.cookies.set({
+          name: "token",
+          value: "",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          path: "/",
+          maxAge: 0,
+        });
+        return response;
+      }
+      return NextResponse.next();
+    } catch (error) {
+      console.error("Token verification error:", error);
+      const response = NextResponse.redirect(new URL("/login", req.url));
+      response.cookies.set({
+        name: "token",
+        value: "",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+        maxAge: 0,
+      });
+      return response;
     }
-    return NextResponse.next();
   }
   return NextResponse.next();
 }

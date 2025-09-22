@@ -9,10 +9,14 @@ export async function POST(req: NextRequest) {
       message: "Logged out successfully",
     });
 
-    // Clear the token cookie
-    response.cookies.delete({
+    response.cookies.set({
       name: "token",
+      value: "",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
       path: "/",
+      maxAge: 0,
     });
 
     return response;

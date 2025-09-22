@@ -70,6 +70,8 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     category: [] as string[],
     type: "",
     domain: "",
+    status: "",
+    assignedTo: "",
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
@@ -122,15 +124,23 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     // return () => clearInterval(pollInterval);
   }, [session, leads]);
 
-  // Additional effect to refresh users when batch modal opens
+  // Additional effect to refresh users when batch modal opens or component mounts
   useEffect(() => {
     if (
-      showBatchAssignModal &&
-      (session?.user_type === 1 || session?.user_type === 2)
+      (showBatchAssignModal || availableUsers.length === 0) &&
+      (session?.user_type === 1 || session?.user_type === 2) &&
+      !loadingUsers &&
+      session
     ) {
       fetchAvailableUsers();
     }
-  }, [showBatchAssignModal]);
+  }, [showBatchAssignModal, session]);
+
+  useEffect(() => {
+    if (session && (session.user_type === 1 || session.user_type === 2) && availableUsers.length === 0) {
+      fetchAvailableUsers();
+    }
+  }, [session]);
 
   // Function to fetch users with lower type than current user
   const fetchAvailableUsers = async () => {
@@ -217,79 +227,43 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
 
   // Filter leads based on search query and other filters
   const filteredLeads = leads.filter((lead) => {
+
     if (searchQuery) {
-      // Search in customer name
-      const nameMatch = (() => {
-        const populatedKey = [
-          "contact_us",
-          "free_signup",
-          "order_creation",
-          "custom_lead",
-          "abandoned_cart",
-          "scholarship",
-        ].find((key) => lead[key as keyof ILead]);
 
-        if (!populatedKey) return false;
+      const nameMatch = lead.fullname
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
-        const leadData = lead[populatedKey as keyof ILead];
+      const emailMatch = lead.email
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
-        // Handle name formatting based on the populated key
-        if (populatedKey === "contact_us") {
-          return ((leadData as any)?.name || "")
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase());
-        }
+      const contactMatch = lead.contactNo
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
-        if (
-          populatedKey === "order_creation" ||
-          populatedKey === "abandoned_cart" ||
-          populatedKey === "free_signup" ||
-          populatedKey === "scholarship" ||
-          populatedKey === "custom_lead"
-        ) {
-          const fullName = `${(leadData as any)?.firstName || ""} ${(leadData as any)?.lastName || ""
-            }`
-            .trim()
-            .toLowerCase();
-          return fullName.includes(searchQuery.toLowerCase());
-        }
-
-        return false;
-      })();
-
-      // Search in email
-      const emailMatch = (() => {
-        const populatedKey = [
-          "contact_us",
-          "free_signup",
-          "order_creation",
-          "custom_lead",
-          "abandoned_cart",
-          "scholarship",
-        ].find((key) => lead[key as keyof ILead]);
-
-        if (!populatedKey) return false;
-
-        const leadData = lead[populatedKey as keyof ILead];
-
-        if (leadData && typeof leadData === "object") {
-          const email =
-            (leadData as any).email || (leadData as any).customerEmail || "";
-          return email.toLowerCase().includes(searchQuery.toLowerCase());
-        }
-
-        return false;
-      })();
-
-      // Search in category or domain
       const categoryMatch = lead.category
         ?.toLowerCase()
         .includes(searchQuery.toLowerCase());
+
       const domainMatch = lead.domain
         ?.toLowerCase()
         .includes(searchQuery.toLowerCase());
 
-      if (!(nameMatch || emailMatch || categoryMatch || domainMatch)) {
+      // Search in status
+      const statusMatch = lead.status
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase());
+
+      // Search in assigned user name
+      const assignedUserMatch = (() => {
+        if (!lead.assigned_to || typeof lead.assigned_to !== 'object') return false;
+        const assignedUser = lead.assigned_to as any;
+        const userName = (assignedUser.full_name || assignedUser.user_name || '').toLowerCase();
+        return userName.includes(searchQuery.toLowerCase());
+      })();
+
+      if (!(nameMatch || emailMatch || contactMatch || categoryMatch || domainMatch || statusMatch || assignedUserMatch)) {
         return false;
       }
     }
@@ -297,7 +271,23 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     // Apply other filters
     if (filters.type && lead.category !== filters.type) return false;
     if (filters.domain && lead.domain !== filters.domain) return false;
-    // Check more filters if needed
+
+    // Status filter
+    if (filters.status && lead.status !== filters.status) return false;
+
+    // Assignment filter
+    if (filters.assignedTo) {
+      if (filters.assignedTo === "unassigned") {
+        if (lead.assigned_to) return false;
+      } else if (filters.assignedTo === "assigned") {
+        if (!lead.assigned_to) return false;
+      } else {
+        if (!lead.assigned_to || typeof lead.assigned_to !== 'object') return false;
+        const assignedUserId = (lead.assigned_to as any)._id || (lead.assigned_to as any).id;
+        if (assignedUserId !== filters.assignedTo) return false;
+      }
+    }
+
     return true;
   });
 
@@ -502,116 +492,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     });
   };
 
-  // Handle status change for leads
-  const isStatusDisabled = (lead: ILead, option: string) => {
-    // Disable status options when a lead is resolved
-    if (
-      lead.resolve_status &&
-      isResolvedStatus(lead.resolve_status) &&
-      lead.resolve_status !== "Pending"
-    ) {
-      return true;
-    }
-
-    // Disable previous follow-up options based on current status
-    if (lead.status && lead.status.startsWith("Follow Up")) {
-      const currentLevel = parseInt(lead.status.split(" ")[2] || "0", 10) || 0;
-      const optionLevel = parseInt(option.split(" ")[2] || "0", 10) || 0;
-
-      if (optionLevel < currentLevel) {
-        return true;
-      }
-    }
-
-    return false;
-  };
-
-  // Within the function, add logic to handle resolved statuses
-  // const getStatusOptionsForCategory = (
-  //   category: string,
-  //   lead?: ILead
-  // ): string[] => {
-  //   // Basic options by category
-  //   let options: string[];
-
-  //   switch (category) {
-  //     case "Order Creation":
-  //       options = ["Pending", "Order Assigned"];
-  //       break;
-  //     case "Contact Us":
-  //       options = ["Pending", "Resolved"];
-  //       break;
-  //     case "Scholarship":
-  //     case "Free SignUp":
-  //     case "Free Study Guide":
-  //       options = ["Pending", "Converted", "Resolved"];
-  //       break;
-  //     default:
-  //       options = [
-  //         "Pending",
-  //         "Follow Up 1",
-  //         "Follow Up 2",
-  //         "Follow Up 3",
-  //         "Converted",
-  //         "Resolved",
-  //       ];
-  //       break;
-  //   }
-
-  //   // If lead exists and we need to modify options based on status
-  //   if (lead) {
-  //     const currentStatus = lead.status;
-  //     const currentResolveStatus = lead.resolve_status;
-
-  //     // If lead is resolved, only show the current status
-  //     if (
-  //       currentResolveStatus &&
-  //       isResolvedStatus(currentResolveStatus) &&
-  //       currentResolveStatus !== "Pending"
-  //     ) {
-  //       return [currentStatus || "Pending"];
-  //     }
-
-  //     // If status is not pending, remove pending option
-  //     if (currentStatus !== "Pending") {
-  //       options = options.filter((opt) => opt !== "Pending");
-  //     }
-
-  //     // Handle follow-up status progression
-  //     if (currentStatus === "Follow Up 1") {
-  //       // In Follow Up 1, remove Follow Up 1 option (since we're already here)
-  //       options = options.filter((opt) => opt !== "Follow Up 1");
-  //     } else if (currentStatus === "Follow Up 2") {
-  //       // In Follow Up 2, remove both Follow Up 1 and 2 options
-  //       options = options.filter(
-  //         (opt) => opt !== "Follow Up 1" && opt !== "Follow Up 2"
-  //       );
-  //     } else if (currentStatus === "Follow Up 3") {
-  //       // In Follow Up 3, remove all Follow Up options
-  //       options = options.filter((opt) => !opt.startsWith("Follow Up"));
-  //     } else if (
-  //       currentStatus === "Follow Up" &&
-  //       lead.next_follow_up &&
-  //       Array.isArray(lead.next_follow_up)
-  //     ) {
-  //       // Legacy "Follow Up" status with next_follow_up array
-  //       const count = lead.next_follow_up.length;
-
-  //       // Remove previous follow-up options
-  //       if (count >= 1)
-  //         options = options.filter((opt) => opt !== "Follow Up 1");
-  //       if (count >= 2)
-  //         options = options.filter((opt) => opt !== "Follow Up 2");
-  //       if (count >= 3)
-  //         options = options.filter((opt) => !opt.startsWith("Follow Up"));
-  //     }
-  //   }
-
-  //   return options;
-  // };
-
   // Reusable Modal Component
-
   const ConfirmationModal = ({
     title,
     message,
@@ -751,18 +632,43 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
 
         {/* Search, Filters and Pagination Row*/}
         <div className="filter-section flex flex-col text-xs md:flex-row md:items-center md:justify-between mb-4 gap-3">
-          <div className="relative flex-grow">
-            <input
-              type="text"
-              placeholder="Search Lead"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+          <div className="flex gap-3 flex-grow">
+            <div className="relative flex-grow">
+              <input
+                type="text"
+                placeholder="Search by name, email, status, domain, or assigned user"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+              <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            </div>
+
+            {/* Assignment Dropdown */}
+            {session && (session.user_type === 1 || session.user_type === 2) && (
+              <div className="relative">
+                <select
+                  value={filters.assignedTo}
+                  onChange={(e) => {
+                    handleFilterChange("assignedTo", e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white min-w-[150px]"
+                >
+                  <option value="">All Leads</option>
+                  <option value="unassigned">Unassigned</option>
+                  <option value="assigned">Assigned</option>
+                  {availableUsers.map((user) => (
+                    <option key={user._id} value={user._id}>
+                      {user.full_name || user.user_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <button
@@ -964,6 +870,41 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   </label>
                 </div>
               </div>
+
+              <div>
+                <h4 className="font-medium mb-3">Status</h4>
+                <div className="space-y-2">
+                  {[
+                    "Pending",
+                    "LVM",
+                    "Follow Up",
+                    "Follow Up 1",
+                    "Follow Up 2",
+                    "Follow Up 3",
+                    "Closed"
+                  ].map((status) => (
+                    <label key={status} className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        checked={filters.status === status}
+                        onChange={() => handleFilterChange("status", status)}
+                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>{status}</span>
+                    </label>
+                  ))}
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      checked={filters.status === ""}
+                      onChange={() => handleFilterChange("status", "")}
+                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>All Statuses</span>
+                  </label>
+                </div>
+              </div>
+
             </div>
           </div>
         )}

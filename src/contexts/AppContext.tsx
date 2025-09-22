@@ -365,8 +365,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 401) {
+          console.log("Session expired or invalid, clearing session");
           setSession(null);
           setError(null);
+          // Clear any stale cookies
+          document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         } else if (err.code === "ECONNABORTED") {
           // Timeout error
           console.warn("Session fetch timeout - continuing without session");
@@ -452,13 +455,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       {/* Toast notification */}
       {toast && (
         <div
-          className={`fixed bottom-4 right-4 p-4 rounded-md shadow-lg max-w-sm z-[1000] border ${
-            toast.type === "success"
-              ? "bg-green-500 border-green-600"
-              : toast.type === "error"
+          className={`fixed bottom-4 right-4 p-4 rounded-md shadow-lg max-w-sm z-[1000] border ${toast.type === "success"
+            ? "bg-green-500 border-green-600"
+            : toast.type === "error"
               ? "bg-red-500 border-red-600"
               : "bg-blue-500 border-blue-600"
-          } text-white font-medium animate-fade-in-right`}
+            } text-white font-medium animate-fade-in-right`}
         >
           {toast.message}
         </div>

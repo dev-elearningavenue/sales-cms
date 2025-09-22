@@ -3,6 +3,7 @@ import { verifyToken } from "@/utils/auth";
 import nodemailer from "nodemailer";
 import { getDomainSMTPConfig } from "@/utils/helper";
 import EmailLog from "@/models/email";
+import CompanyLead from "@/models/companyLead";
 import mongoose from "mongoose";
 
 export async function POST(req: NextRequest) {
@@ -16,11 +17,11 @@ export async function POST(req: NextRequest) {
     if (!decoded.data._id) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
-    const { to, subject, body, domain } = await req.json();
+    const { to, subject, body, domain, leadId } = await req.json();
     // Validate required fields
     if (!to || !subject || !body || !domain) {
       return NextResponse.json(
-        { error: "Missing required fields: to, subject, body, domain" },
+        { error: "Missing required email fields: to, subject, body, domain" },
         { status: 400 }
       );
     }
@@ -99,13 +100,22 @@ export async function POST(req: NextRequest) {
 
     // Save email log to DB
     try {
-      await EmailLog.create({
+      const emailLog = await EmailLog.create({
         to,
         subject,
         body,
         agentId: new mongoose.Types.ObjectId(decoded.data._id),
         sentAt: new Date(),
       });
+      console.log("Email log saved successfully:", emailLog._id);
+
+      if (leadId) {
+        await CompanyLead.findByIdAndUpdate(leadId, {
+          $push: {
+            emails: emailLog._id
+          }
+        });
+      }
     } catch (err) {
       console.error("Failed to log sent email:", err);
     }
@@ -119,7 +129,6 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("Error sending email:", error);
 
-    // More detailed error handling
     let errorMessage = "Failed to send email";
     if (error.code === "EAUTH") {
       errorMessage =

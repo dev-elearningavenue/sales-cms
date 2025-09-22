@@ -8,7 +8,7 @@ import CSVUploadModal from "@/app/components/CSVUploadModal";
 import FollowUpModal from "@/app/components/FollowUpModal";
 import StatusDropdown from "@/app/components/StatusDropdown";
 import StatusUpdateModal from "@/app/components/StatusUpdateModal";
-import ResolveHistory from "@/app/components/ResolveHistory";
+import EmailHistory from "@/app/components/EmailHistory";
 import { StatusCategory, StatusUpdateData } from "@/types/companyLead";
 import { domainShortCodes, getDomainEmail } from "@/utils/helper";
 import dynamic from "next/dynamic";
@@ -249,10 +249,9 @@ export default function CompanyLeadsPage() {
                 return;
             }
 
-            // Then, send the email if email fields are filled
             if (data.emailTo && data.emailSubject && data.emailBody) {
                 const domain = domainShortCodes[(session as any)?.assignedDomain];
-                console.log("Sending email with domain: ", domain);
+                // console.log("Sending email with domain: ", domain);
 
                 const emailResponse = await fetch("/api/send-email", {
                     method: "POST",
@@ -790,14 +789,6 @@ export default function CompanyLeadsPage() {
                             </button>
                         </div>
 
-                        {/* Resolve History */}
-                        <div className="mb-6">
-                            <ResolveHistory
-                                history={currentLead.resolveHistory || []}
-                                loading={dataLoading}
-                            />
-                        </div>
-
                         {/* Follow-up History */}
                         {Array.isArray((currentLead as any).next_follow_up) && (currentLead as any).next_follow_up.length > 0 && (
                             <div className="mt-6 border-t pt-6">
@@ -822,29 +813,6 @@ export default function CompanyLeadsPage() {
                             </div>
                         )}
 
-                        {/* Contact History summary */}
-                        {Array.isArray((currentLead as any).contactHistory) && (currentLead as any).contactHistory.length > 0 && (
-                            <div className="mt-6 border-t pt-6">
-                                <h3 className="font-medium mb-3 text-gray-900">Contact History</h3>
-                                <div className="bg-gray-50 rounded-lg p-4 max-h-60 overflow-auto">
-                                    <ul className="space-y-3">
-                                        {(currentLead as any).contactHistory.slice(-10).reverse().map((h: any, idx: number) => (
-                                            <li key={idx} className="bg-white rounded p-3 border-l-4 border-blue-500">
-                                                <div className="flex justify-between items-start mb-1">
-                                                    <span className="text-sm font-medium text-gray-900">
-                                                        [{(h.type || []).join(", ")}] - {h.status}
-                                                    </span>
-                                                    <span className="text-xs text-gray-500">
-                                                        {new Date(h.date).toLocaleString()}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-gray-700">{h.notes}</p>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 )}
 

@@ -17,7 +17,8 @@ export async function GET(
     }
 
     const lead = await CompanyLead.findById(params.id)
-      .populate("assignedTo", "firstName lastName email");
+      .populate("assignedTo", "firstName lastName email")
+      .populate("emails");
 
     if (!lead) {
       return NextResponse.json(

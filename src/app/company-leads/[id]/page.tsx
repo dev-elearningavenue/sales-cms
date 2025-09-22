@@ -9,8 +9,9 @@ import FollowUpModal from "@/app/components/FollowUpModal";
 import StatusDropdown from "@/app/components/StatusDropdown";
 import StatusUpdateModal from "@/app/components/StatusUpdateModal";
 import ResolveHistory from "@/app/components/ResolveHistory";
+import EmailHistory from "@/app/components/EmailHistory";
 import { StatusCategory, StatusUpdateData } from "@/types/companyLead";
-import { ArrowLeft, Save, Calendar, MessageSquare } from "lucide-react";
+import { ArrowLeft, Save, Calendar, MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
 
 export default function CompanyLeadDetailsPage() {
     const params = useParams();
@@ -30,6 +31,7 @@ export default function CompanyLeadDetailsPage() {
     const [statusUpdateModalOpen, setStatusUpdateModalOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<StatusCategory | null>(null);
     const [selectedResolveStatus, setSelectedResolveStatus] = useState<string>("");
+    const [showAllFollowUps, setShowAllFollowUps] = useState(false);
 
     const leadId = params.id as string;
 
@@ -571,41 +573,73 @@ export default function CompanyLeadDetailsPage() {
                     </div>
 
                     {/* Sidebar */}
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         {/* Resolve History */}
-                        <div className="bg-white rounded-lg shadow-sm border p-6">
-                            <ResolveHistory
-                                history={lead.resolveHistory || []}
-                                loading={saving}
-                            />
-                        </div>
+                        <ResolveHistory
+                            history={lead.resolveHistory || []}
+                            loading={saving}
+                        />
 
                         {/* Follow-up History */}
-                        <div className="bg-white rounded-lg shadow-sm border p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                <Calendar className="h-5 w-5 mr-2" />
-                                Follow-up History
-                            </h3>
+                        <div className="bg-white rounded-lg shadow-sm border p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                                    <Calendar className="h-5 w-5 mr-2" />
+                                    Follow-up History
+                                    {lead.next_follow_up && lead.next_follow_up.length > 0 && (
+                                        <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded-full">
+                                            {lead.next_follow_up.length}
+                                        </span>
+                                    )}
+                                </h3>
+                                {lead.next_follow_up && lead.next_follow_up.length > 1 && (
+                                    <button
+                                        onClick={() => setShowAllFollowUps(!showAllFollowUps)}
+                                        className="flex items-center text-sm text-gray-500 hover:text-gray-700"
+                                    >
+                                        {showAllFollowUps ? (
+                                            <>
+                                                <ChevronUp className="h-4 w-4 mr-1" />
+                                                Show Less
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ChevronDown className="h-4 w-4 mr-1" />
+                                                Show All ({lead.next_follow_up.length})
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
                             {lead.next_follow_up && lead.next_follow_up.length > 0 ? (
-                                <div className="space-y-3">
-                                    {lead.next_follow_up.map((followUp: any, index: number) => (
-                                        <div key={index} className="border-l-4 border-yellow-500 pl-4 py-2">
-                                            <div className="flex items-center justify-between">
+                                <div className="space-y-2">
+                                    {(showAllFollowUps ? lead.next_follow_up : lead.next_follow_up.slice(-2)).reverse().map((followUp: any, index: number) => (
+                                        <div key={index} className="border-l-4 border-yellow-500 pl-3 py-2 bg-yellow-50 rounded-r-lg">
+                                            <div className="flex items-center justify-between mb-1">
                                                 <span className="text-sm font-medium text-gray-900">
                                                     Follow-up
                                                 </span>
                                                 <span className="text-xs text-gray-500">
-                                                    {new Date(followUp.date).toLocaleString()}
+                                                    {new Date(followUp.date).toLocaleDateString()}
                                                 </span>
                                             </div>
-                                            <p className="text-sm text-gray-700">{followUp.notes}</p>
+                                            <p className="text-xs text-gray-700">{followUp.notes}</p>
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-gray-500 text-sm">No follow-up history available.</p>
+                                <div className="text-center py-6">
+                                    <Calendar className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                                    <p className="text-gray-500 text-sm">No follow-up history available.</p>
+                                </div>
                             )}
                         </div>
+
+                        {/* Email History */}
+                        <EmailHistory
+                            emails={lead.emails || []}
+                            loading={saving}
+                        />
                     </div>
                 </div>
             </div>

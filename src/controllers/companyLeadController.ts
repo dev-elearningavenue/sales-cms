@@ -1,4 +1,5 @@
 import CompanyLead from "@/models/companyLead";
+import EmailLog from "@/models/email";
 import { getStateName } from "@/utils/stateMapping";
 import { getDomainSMTPConfig } from "@/utils/helper";
 import * as XLSX from 'xlsx';
@@ -383,7 +384,7 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
               { lastContacted: { $exists: false } },
               { lastContacted: { $lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } } // Not contacted in last 24 hours
             ]
-          }).sort({ createdAt: 1 });
+          }).populate('emails').sort({ createdAt: 1 });
           
           if (lead) {
             console.log(`🎯 Found lead in ${stateName}: ${lead.companyName}`);
@@ -404,7 +405,9 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
               }
             }
             
-            const updatedLead = await CompanyLead.findByIdAndUpdate(lead._id, updateData, { new: true });
+            const updatedLead = await CompanyLead.findByIdAndUpdate(lead._id, updateData, { new: true }).populate({
+              path: "emails",
+            });
             
             return {
               success: true,
@@ -444,8 +447,6 @@ export async function updateLeadWithFollowUp(leadId: string, updates: any, userI
     if (!lead) {
       return { success: false, message: "Lead not found" };
     }
-
-    console.log("Updates: ", updates)
     
     const updateData: any = {
       ...updates,
@@ -572,13 +573,6 @@ export async function updateLeadWithFollowUp(leadId: string, updates: any, userI
 // Update company lead with merge logic
 export async function updateCompanyLead(id: string, newData: any, userId?: string) {
   try {
-    console.log("=== updateCompanyLead ===");
-    console.log("Lead ID:", id);
-    console.log("New Data:", JSON.stringify(newData, null, 2));
-    console.log("Contact Person Fields:");
-    console.log("- contactPerson:", newData.contactPerson);
-    console.log("- contactEmail:", newData.contactEmail);
-    console.log("- contactPhone:", newData.contactPhone);
     
     const oldLead = await CompanyLead.findById(id);
     if (!oldLead) {
@@ -630,10 +624,6 @@ export async function updateCompanyLead(id: string, newData: any, userId?: strin
     let pushOperations = null;
     if (newData.nextFollowUp && newData.contactTypes && Array.isArray(newData.contactTypes) && newData.contactTypes.length > 0) {
       console.log("=== FOLLOW-UP PROCESSING ===");
-      console.log("nextFollowUp:", newData.nextFollowUp);
-      console.log("contactTypes:", newData.contactTypes);
-      console.log("notes:", newData.notes);
-      console.log("status:", newData.status);
       
       const followUp = {
         date: new Date(newData.nextFollowUp),
@@ -655,9 +645,6 @@ export async function updateCompanyLead(id: string, newData: any, userId?: strin
       
       mergedData.lastContacted = new Date();
       
-      console.log("Created followUp in updateCompanyLead:", followUp);
-      console.log("Created contactHistory:", pushOperations.contactHistory);
-      
       // Don't include these in direct field update
       delete mergedData.nextFollowUp;
       delete mergedData.contactTypes;
@@ -670,19 +657,20 @@ export async function updateCompanyLead(id: string, newData: any, userId?: strin
       // If we have follow-up data, do a separate $push operation first
       console.log("Performing $push operation for follow-up");
       await CompanyLead.findByIdAndUpdate(id, { $push: pushOperations });
-      
-      // Then do the regular field update
-      console.log("Performing regular field update");
+    
       updated = await CompanyLead.findByIdAndUpdate(id, mergedData, {
         new: true,
         runValidators: true
+      }).populate({
+        path: "emails",
       });
     } else {
       // No push operations, just regular update
-      console.log("Performing regular update only");
       updated = await CompanyLead.findByIdAndUpdate(id, mergedData, {
         new: true,
         runValidators: true
+      }).populate({
+        path: "emails",
       });
     }
 
@@ -722,7 +710,6 @@ export async function updateCompanyLeadStatus(
 ) {
   try {
     // console.log("Status Data:", JSON.stringify(statusData, null, 2));
-
     const lead = await CompanyLead.findById(leadId);
     if (!lead) {
       return { success: false, message: "Lead not found" };
@@ -789,7 +776,7 @@ export async function updateCompanyLeadStatus(
     const updatedLead = await CompanyLead.findByIdAndUpdate(leadId, updateData, {
       new: true,
       runValidators: true
-    });
+    }).populate("emails");
 
     // Handle email sending if requested
     let emailResult = null;
@@ -806,7 +793,7 @@ export async function updateCompanyLeadStatus(
           "oshaonlinecenter.com": "OOC"
         };
         
-        domain = domainMapping[emailDomain] || "OOR"; // Default fallback
+        domain = domainMapping[emailDomain] || "OOR";
         
         // console.log("Sending email with domain:", domain);
         // console.log("Email data:", {
@@ -839,6 +826,23 @@ export async function updateCompanyLeadStatus(
 
           const info = await transporter.sendMail(mailOptions);
           console.log("Email sent successfully:", info.messageId);
+          
+          // Log email in EmailLog collection
+          const emailLog = new EmailLog({
+            to: statusData.emailData.to,
+            subject: statusData.emailData.subject,
+            body: statusData.emailData.body,
+            agentId: userId,
+            sentAt: new Date()
+          });
+          const savedEmailLog = await emailLog.save();
+          
+          // Add email reference to company lead
+          await CompanyLead.findByIdAndUpdate(leadId, {
+            $push: {
+              emails: savedEmailLog._id
+            }
+          });
           
           emailResult = { 
             success: true, 

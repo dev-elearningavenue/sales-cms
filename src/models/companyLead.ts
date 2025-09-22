@@ -62,6 +62,7 @@ export interface ICompanyLead extends Document {
     emailSent?: boolean;
     by?: mongoose.Types.ObjectId;
   }>;
+  emails?: mongoose.Types.ObjectId[];
   lastContacted?: Date;
   lastStatusChange?: Date;
   createdAt?: Date;
@@ -101,6 +102,7 @@ const resolveHistorySchema = new Schema({
   emailSent: { type: Boolean, default: false },
   by: { type: Schema.Types.ObjectId, ref: "User" }
 }, { _id: false });
+
 
 const companyLeadSchema = new Schema<ICompanyLead>(
   {
@@ -241,6 +243,10 @@ const companyLeadSchema = new Schema<ICompanyLead>(
       type: [resolveHistorySchema],
       default: [],
     },
+    emails: [{
+      type: Schema.Types.ObjectId,
+      ref: "EmailLog"
+    }],
     lastContacted: {
       type: Date,
     },

@@ -11,9 +11,6 @@ interface ResolveHistoryProps {
 
 export default function ResolveHistory({ history, loading = false }: ResolveHistoryProps) {
     const [isExpanded, setIsExpanded] = useState(false);
-
-    // Debug logging
-    console.log("ResolveHistory - history:", history, "length:", history?.length);
     if (loading) {
         return (
             <div className="bg-white rounded-lg shadow-sm border p-4">

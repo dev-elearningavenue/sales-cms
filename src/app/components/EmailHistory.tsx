@@ -10,9 +10,6 @@ interface EmailHistoryProps {
 
 export default function EmailHistory({ emails, loading = false }: EmailHistoryProps) {
     const [isExpanded, setIsExpanded] = useState(false);
-
-    // Debug logging
-    console.log("EmailHistory - emails:", emails, "length:", emails?.length);
     if (loading) {
         return (
             <div className="bg-white rounded-lg shadow-sm border p-4">

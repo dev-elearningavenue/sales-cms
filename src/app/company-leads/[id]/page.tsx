@@ -100,38 +100,6 @@ export default function CompanyLeadDetailsPage() {
         }
     };
 
-    const handleResolveLead = async () => {
-        if (!lead) return;
-
-        try {
-            setSaving(true);
-            const response = await fetch(`/api/company-leads/${leadId}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    status: "converted",
-                    notes: "Lead resolved successfully"
-                }),
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                setLead(data.lead);
-                showToast("Lead resolved successfully", "success");
-            } else {
-                showToast(data.message || "Failed to resolve lead", "error");
-            }
-        } catch (error) {
-            console.error("Error resolving lead:", error);
-            showToast("Error resolving lead", "error");
-        } finally {
-            setSaving(false);
-        }
-    };
-
     const handleFollowUpSubmit = async (data: any) => {
         if (!lead) return;
         try {
@@ -494,9 +462,67 @@ export default function CompanyLeadDetailsPage() {
                                         disabled={!isEditing}
                                     />
                                 </div>
+                            </div>
 
-                                {/* Status */}
-                                {/* <div>
+                            {/* Contact Person Section */}
+                            <div className="mt-6">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
+                                    Contact Person Details
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Contact Person */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Contact Person
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            value={formData.contactPerson || ""}
+                                            onChange={(e) => handleInputChange("contactPerson", e.target.value)}
+                                            disabled={!isEditing}
+                                        />
+                                    </div>
+
+                                    {/* Contact Person Email */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Contact Person Email
+                                        </label>
+                                        <input
+                                            type="email"
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            value={formData.contactPersonEmail || ""}
+                                            onChange={(e) => handleInputChange("contactPersonEmail", e.target.value)}
+                                            disabled={!isEditing}
+                                        />
+                                    </div>
+
+                                    {/* Contact Person Phone */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Contact Person Phone
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            value={formData.contactPersonPhone || ""}
+                                            onChange={(e) => handleInputChange("contactPersonPhone", e.target.value)}
+                                            disabled={!isEditing}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Notes Section */}
+                            <div className="mt-6">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
+                                    Additional Information
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                                    {/* Status */}
+                                    {/* <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Status
                                     </label>
@@ -514,18 +540,19 @@ export default function CompanyLeadDetailsPage() {
                                     </select>
                                 </div> */}
 
-                                {/* Notes */}
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Notes
-                                    </label>
-                                    <textarea
-                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        rows={3}
-                                        value={formData.notes || ""}
-                                        onChange={(e) => handleInputChange("notes", e.target.value)}
-                                        disabled={!isEditing}
-                                    />
+                                    {/* Notes */}
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Notes
+                                        </label>
+                                        <textarea
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            rows={3}
+                                            value={formData.notes || ""}
+                                            onChange={(e) => handleInputChange("notes", e.target.value)}
+                                            disabled={!isEditing}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 

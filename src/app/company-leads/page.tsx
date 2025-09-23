@@ -8,9 +8,9 @@ import CSVUploadModal from "@/app/components/CSVUploadModal";
 import FollowUpModal from "@/app/components/FollowUpModal";
 import StatusDropdown from "@/app/components/StatusDropdown";
 import StatusUpdateModal from "@/app/components/StatusUpdateModal";
-import EmailHistory from "@/app/components/EmailHistory";
 import { StatusCategory, StatusUpdateData } from "@/types/companyLead";
 import { domainShortCodes, getDomainEmail } from "@/utils/helper";
+import { getStateCurrentTime } from "@/utils/stateMapping";
 import dynamic from "next/dynamic";
 import { Eye } from "lucide-react";
 
@@ -60,7 +60,6 @@ export default function CompanyLeadsPage() {
 
     const [fieldsLoading, setFieldsLoading] = useState(false);
 
-    // Simple editable fields state
     const [leadFields, setLeadFields] = useState({
         companyEmail: "",
         contactNo: "",
@@ -358,60 +357,6 @@ export default function CompanyLeadsPage() {
         }
     };
 
-    // Handle lead resolution
-    const handleResolveLead = async (leadId: string, status: string) => {
-        try {
-            const response = await fetch(`/api/company-leads/${leadId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status }),
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                if (status === "converted" || status === "lost") {
-                    // Clear lead when resolved
-                    setCurrentLead(null);
-                    router.replace('/company-leads');
-                    showToast("Lead resolved successfully!", "success");
-                } else {
-                    setCurrentLead(result.lead);
-                    showToast("Lead status updated successfully!", "success");
-                }
-            } else {
-                showToast("Failed to update lead status.", "error");
-            }
-        } catch (error) {
-            console.error("Update error:", error);
-            showToast("Failed to update lead.", "error");
-        }
-    };
-
-    // Handle contact info update
-    const handleContactInfoUpdate = async (leadId: string, contactInfo: any) => {
-        try {
-            const response = await fetch(`/api/company-leads/${leadId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(contactInfo),
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                setCurrentLead(result.lead);
-                setContactInfoModalOpen(false);
-                showToast("Contact information updated successfully!", "success");
-            } else {
-                showToast("Failed to update contact information.", "error");
-            }
-        } catch (error) {
-            console.error("Contact info error:", error);
-            showToast("Failed to update contact information.", "error");
-        }
-    };
-
     // New status system handlers
     const handleStatusSelect = (category: StatusCategory, resolveStatus: string) => {
         setSelectedCategory(category);
@@ -559,6 +504,10 @@ export default function CompanyLeadsPage() {
                                 <p className="text-sm text-gray-500">
                                     <span className="font-medium">📧 {currentLead.companyEmail || "No email"}</span> |
                                     <span className="font-medium ml-2">📞 {currentLead.contactNo || "No phone"}</span>
+                                    <span className="font-medium ml-2">📍 {currentLead.state || "No state"}</span>
+                                    {currentLead.state && (
+                                        <span className="font-medium ml-2">🕐 {getStateCurrentTime(currentLead.state)}</span>
+                                    )}
                                 </p>
                                 <p className="text-sm text-gray-500">Status: <span className="font-medium">{currentLead.status}</span></p>
                                 {currentLead.assignedAt && (

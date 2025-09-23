@@ -1,6 +1,6 @@
 import CompanyLead from "@/models/companyLead";
 import EmailLog from "@/models/email";
-import { getStateName } from "@/utils/stateMapping";
+import { getStateName, stateTimezones } from "@/utils/stateMapping";
 import { getDomainSMTPConfig } from "@/utils/helper";
 import * as XLSX from 'xlsx';
 import nodemailer from 'nodemailer';
@@ -338,36 +338,16 @@ export async function uploadCSVData(file: File, state?: string, userId?: string,
 // Get timezone-based lead with improved logic
 export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?: string) {
   try {
-    // Get all US states with their timezones
-    const stateTimezones: { [key: string]: string } = {
-      'Alabama': 'America/Chicago', 'Alaska': 'America/Anchorage', 'Arizona': 'America/Phoenix',
-      'Arkansas': 'America/Chicago', 'California': 'America/Los_Angeles', 'Colorado': 'America/Denver',
-      'Connecticut': 'America/New_York', 'Delaware': 'America/New_York', 'Florida': 'America/New_York',
-      'Georgia': 'America/New_York', 'Hawaii': 'Pacific/Honolulu', 'Idaho': 'America/Boise',
-      'Illinois': 'America/Chicago', 'Indiana': 'America/Indiana/Indianapolis', 'Iowa': 'America/Chicago',
-      'Kansas': 'America/Chicago', 'Kentucky': 'America/New_York', 'Louisiana': 'America/Chicago',
-      'Maine': 'America/New_York', 'Maryland': 'America/New_York', 'Massachusetts': 'America/New_York',
-      'Michigan': 'America/New_York', 'Minnesota': 'America/Chicago', 'Mississippi': 'America/Chicago',
-      'Missouri': 'America/Chicago', 'Montana': 'America/Denver', 'Nebraska': 'America/Chicago',
-      'Nevada': 'America/Los_Angeles', 'New Hampshire': 'America/New_York', 'New Jersey': 'America/New_York',
-      'New Mexico': 'America/Denver', 'New York': 'America/New_York', 'North Carolina': 'America/New_York',
-      'North Dakota': 'America/Chicago', 'Ohio': 'America/New_York', 'Oklahoma': 'America/Chicago',
-      'Oregon': 'America/Los_Angeles', 'Pennsylvania': 'America/New_York', 'Rhode Island': 'America/New_York',
-      'South Carolina': 'America/New_York', 'South Dakota': 'America/Chicago', 'Tennessee': 'America/Chicago',
-      'Texas': 'America/Chicago', 'Utah': 'America/Denver', 'Vermont': 'America/New_York',
-      'Virginia': 'America/New_York', 'Washington': 'America/Los_Angeles', 'West Virginia': 'America/New_York',
-      'Wisconsin': 'America/Chicago', 'Wyoming': 'America/Denver'
-    };
     
     const now = new Date();
     const businessHoursStart = 0;
     const businessHoursEnd = 19; // 7:00 PM
+
+    const stateEntries = Object.entries(stateTimezones);
+    const shuffledStates = stateEntries.sort(() => Math.random() - 0.5);
     
-    // console.log(`🕐 Current server time: ${now.toISOString()}`);
-    // console.log(`📅 Business hours: ${businessHoursStart} to ${businessHoursEnd}`);
-    
-    // Check each state systematically
-    for (const [stateName, timezone] of Object.entries(stateTimezones)) {
+    // Check each state randomly
+    for (const [stateName, timezone] of shuffledStates) {
       try {
         const stateTime = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
         const stateHour = stateTime.getHours() + stateTime.getMinutes() / 60;
@@ -380,6 +360,8 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
             state: stateName,
             status: { $in: ["pending"] },
             assigned: { $ne: true },
+            assignedAt: {$exists: true},
+            domain: "", //empty domain means non assigned.
             $or: [
               { lastContacted: { $exists: false } },
               { lastContacted: { $lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } } // Not contacted in last 24 hours

@@ -341,7 +341,7 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
     
     const now = new Date();
     const businessHoursStart = 0;
-    const businessHoursEnd = 19; // 7:00 PM
+    const businessHoursEnd = 20; // 7:00 PM
 
     const stateEntries = Object.entries(stateTimezones);
     const shuffledStates = stateEntries.sort(() => Math.random() - 0.5);
@@ -354,13 +354,13 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
         
         // Check if state is in business hours
         if (stateHour >= businessHoursStart && stateHour <= businessHoursEnd) {
-          console.log(`✅ ${stateName} (${timezone}) - Current time: ${stateHour.toFixed(2)} - IN BUSINESS HOURS`);
+          console.log(`✅ ${stateName} - Current time: ${stateHour.toFixed(2)} - IN BUSINESS HOURS`);
           
           const lead = await CompanyLead.findOne({
             state: stateName,
             status: { $in: ["pending"] },
             assigned: { $ne: true },
-            assignedAt: {$exists: true},
+            assignedAt: {$exists: false},
             domain: "", //empty domain means non assigned.
             $or: [
               { lastContacted: { $exists: false } },

@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { ICompanyLead } from "@/types/companyLead";
 import { useApp } from "@/contexts/AppContext";
 import { MAIN_STATUSES, STATUS_CATEGORIES, RESOLVE_STATUSES, getResolveStatusesForCategory } from "@/constants/statusHierarchy";
-import { Eye, MessageSquare } from "lucide-react";
+import { Eye, MessageSquare, RefreshCcw } from "lucide-react";
 import NotesModal from "@/app/components/NotesModal";
+import CompanyLeadModal from "@/app/components/CompanyLeadModal";
 
 // Interface for pagination data
 interface PaginationData {
@@ -43,10 +44,98 @@ export default function MyAssignedLeadsPage() {
     const [showNotesModal, setShowNotesModal] = useState(false);
     const [selectedLeadForNotes, setSelectedLeadForNotes] = useState<ICompanyLead | null>(null);
 
+    // Company lead modal state
+    const [showCompanyLeadModal, setShowCompanyLeadModal] = useState(false);
+    const [selectedLeadForModal, setSelectedLeadForModal] = useState<ICompanyLead | null>(null);
+
+    // Cache state
+    const [cacheTimestamp, setCacheTimestamp] = useState<number | null>(null);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+    const CACHE_KEY = 'my-assigned-leads-cache';
+    const UI_STATE_KEY = 'my-assigned-leads-ui-state';
+
     // Available resolve statuses based on selected category
     const availableResolveStatuses = filters.statusCategory
         ? getResolveStatusesForCategory(filters.statusCategory as any)
         : [];
+
+    // Cache management functions
+    const saveCacheToStorage = (leads: ICompanyLead[], timestamp: number) => {
+        try {
+            const cacheData = {
+                leads,
+                timestamp,
+                userId: session?._id // Include user ID to prevent cross-user cache
+            };
+            localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+        } catch (error) {
+            console.warn('Failed to save cache to localStorage:', error);
+        }
+    };
+
+    const loadCacheFromStorage = () => {
+        try {
+            const cachedData = localStorage.getItem(CACHE_KEY);
+            if (cachedData) {
+                const parsed = JSON.parse(cachedData);
+                // Check if cache is for the same user and still valid
+                if (parsed.userId === session?._id && (Date.now() - parsed.timestamp) < CACHE_DURATION) {
+                    return parsed;
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to load cache from localStorage:', error);
+        }
+        return null;
+    };
+
+    const clearCacheFromStorage = () => {
+        try {
+            localStorage.removeItem(CACHE_KEY);
+        } catch (error) {
+            console.warn('Failed to clear cache from localStorage:', error);
+        }
+    };
+
+    // UI state management functions
+    const saveUIStateToStorage = (filters: any, pagination: any) => {
+        try {
+            const uiState = {
+                filters,
+                pagination,
+                userId: session?._id,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(UI_STATE_KEY, JSON.stringify(uiState));
+        } catch (error) {
+            console.warn('Failed to save UI state to localStorage:', error);
+        }
+    };
+
+    const loadUIStateFromStorage = () => {
+        try {
+            const uiStateData = localStorage.getItem(UI_STATE_KEY);
+            if (uiStateData) {
+                const parsed = JSON.parse(uiStateData);
+                // Check if UI state is for the same user and not too old (1 hour)
+                if (parsed.userId === session?._id && (Date.now() - parsed.timestamp) < 60 * 60 * 1000) {
+                    return parsed;
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to load UI state from localStorage:', error);
+        }
+        return null;
+    };
+
+    const clearUIStateFromStorage = () => {
+        try {
+            localStorage.removeItem(UI_STATE_KEY);
+        } catch (error) {
+            console.warn('Failed to clear UI state from localStorage:', error);
+        }
+    };
 
     // Redirect if not authenticated
     if (!loading && !session) {
@@ -54,15 +143,51 @@ export default function MyAssignedLeadsPage() {
         return null;
     }
 
-    const fetchAllLeads = async () => {
+    const fetchAllLeads = async (forceRefresh = false) => {
+        // First check localStorage cache
+        const cachedData = loadCacheFromStorage();
+
+        if (!forceRefresh && cachedData) {
+            console.log("Using persistent cached leads data");
+            setAllLeads(cachedData.leads);
+            setCacheTimestamp(cachedData.timestamp);
+            setIsInitialLoad(false);
+
+            // Restore UI state (filters and pagination)
+            const uiState = loadUIStateFromStorage();
+            if (uiState) {
+                console.log("Restoring UI state from localStorage");
+                setFilters(uiState.filters);
+                setPagination(uiState.pagination);
+                applyFilters(cachedData.leads, uiState.filters);
+            } else {
+                applyFilters(cachedData.leads);
+            }
+            return;
+        }
+
+        // Fallback to in-memory cache
+        const now = Date.now();
+        const isCacheValid = cacheTimestamp && (now - cacheTimestamp) < CACHE_DURATION;
+
+        if (!forceRefresh && isCacheValid && allLeads.length > 0) {
+            console.log("Using in-memory cached leads data");
+            setIsInitialLoad(false);
+            return;
+        }
+
         try {
             setDataLoading(true);
+            console.log("Fetching fresh leads data...");
+
             const response = await fetch(`/api/company-leads/my-assigned?limit=1000`);
             const result = await response.json();
 
             if (result.success) {
                 showToast(result.message || "Successfully fetched leads", "success")
                 setAllLeads(result.leads || []);
+                setCacheTimestamp(now);
+                saveCacheToStorage(result.leads || [], now);
                 applyFilters(result.leads || []);
             } else {
                 showToast(result.message || "Failed to fetch leads", "error");
@@ -72,31 +197,32 @@ export default function MyAssignedLeadsPage() {
             showToast("Failed to fetch leads. Please try again.", "error");
         } finally {
             setDataLoading(false);
+            setIsInitialLoad(false);
         }
     };
 
     // Frontend filtering function
-    const applyFilters = (leadsToFilter = allLeads) => {
+    const applyFilters = (leadsToFilter = allLeads, customFilters = filters) => {
         let filtered = [...leadsToFilter];
 
         // Status filter
-        if (filters.status) {
-            filtered = filtered.filter(lead => lead.status === filters.status);
+        if (customFilters.status) {
+            filtered = filtered.filter(lead => lead.status === customFilters.status);
         }
 
         // Status category filter
-        if (filters.statusCategory) {
-            filtered = filtered.filter(lead => lead.statusCategory === filters.statusCategory);
+        if (customFilters.statusCategory) {
+            filtered = filtered.filter(lead => lead.statusCategory === customFilters.statusCategory);
         }
 
         // Resolve status filter
-        if (filters.resolveStatus) {
-            filtered = filtered.filter(lead => lead.resolveStatus === filters.resolveStatus);
+        if (customFilters.resolveStatus) {
+            filtered = filtered.filter(lead => lead.resolveStatus === customFilters.resolveStatus);
         }
 
         // Search filter (frontend search across multiple fields)
-        if (filters.search) {
-            const searchTerm = filters.search.toLowerCase();
+        if (customFilters.search) {
+            const searchTerm = customFilters.search.toLowerCase();
             filtered = filtered.filter(lead =>
                 (lead.companyName?.toLowerCase().includes(searchTerm)) ||
                 (lead.companyEmail?.toLowerCase().includes(searchTerm)) ||
@@ -110,18 +236,18 @@ export default function MyAssignedLeadsPage() {
         }
 
         // Date range filter
-        if (filters.dateFrom || filters.dateTo) {
+        if (customFilters.dateFrom || customFilters.dateTo) {
             filtered = filtered.filter(lead => {
                 if (!lead.assignedAt) return false;
                 const assignedDate = new Date(lead.assignedAt);
 
-                if (filters.dateFrom) {
-                    const fromDate = new Date(filters.dateFrom);
+                if (customFilters.dateFrom) {
+                    const fromDate = new Date(customFilters.dateFrom);
                     if (assignedDate < fromDate) return false;
                 }
 
-                if (filters.dateTo) {
-                    const toDate = new Date(filters.dateTo);
+                if (customFilters.dateTo) {
+                    const toDate = new Date(customFilters.dateTo);
                     toDate.setHours(23, 59, 59, 999);
                     if (assignedDate > toDate) return false;
                 }
@@ -157,6 +283,13 @@ export default function MyAssignedLeadsPage() {
         }
     }, [session]);
 
+    // Set initial load to false if we have cached data
+    useEffect(() => {
+        if (allLeads.length > 0) {
+            setIsInitialLoad(false);
+        }
+    }, [allLeads]);
+
     // Apply filters when filters change
     useEffect(() => {
         if (allLeads.length > 0) {
@@ -167,7 +300,9 @@ export default function MyAssignedLeadsPage() {
 
     // Handle pagination changes (frontend pagination)
     const handlePageChange = (newPage: number) => {
-        setPagination(prev => ({ ...prev, page: newPage }));
+        const newPagination = { ...pagination, page: newPage };
+        setPagination(newPagination);
+        saveUIStateToStorage(filters, newPagination);
 
         // Update displayed leads for new page
         const startIndex = (newPage - 1) * pagination.limit;
@@ -179,14 +314,20 @@ export default function MyAssignedLeadsPage() {
     const handleFilterChange = (field: string, value: string) => {
         if (field === "statusCategory") {
             // Reset resolve status when category changes
-            setFilters(prev => ({ ...prev, [field]: value, resolveStatus: "" }));
+            const newFilters = { ...filters, [field]: value, resolveStatus: "" };
+            setFilters(newFilters);
+            saveUIStateToStorage(newFilters, pagination);
         } else {
-            setFilters(prev => ({ ...prev, [field]: value }));
+            const newFilters = { ...filters, [field]: value };
+            setFilters(newFilters);
+            saveUIStateToStorage(newFilters, pagination);
         }
     };
 
     const handleLeadClick = (lead: ICompanyLead) => {
         router.push(`/company-leads/${lead._id}`);
+        // setSelectedLeadForModal(lead);
+        // setShowCompanyLeadModal(true);
     };
 
     // Handle viewing notes modal
@@ -228,6 +369,10 @@ export default function MyAssignedLeadsPage() {
                 allLeads[leadIndex].notes = updatedNotes;
                 applyFilters(); // Refresh displayed data
             }
+
+            // Invalidate cache since data has been updated
+            setCacheTimestamp(null);
+            clearCacheFromStorage();
 
             showToast("Note added successfully", "success");
         } catch (error) {
@@ -326,14 +471,38 @@ export default function MyAssignedLeadsPage() {
                             <h1 className="text-3xl font-bold text-gray-900 mb-2">My Assigned Leads</h1>
                             <p className="text-gray-600">
                                 Manage all your assigned company leads in one place
+                                {cacheTimestamp && (
+                                    <span className="ml-2 text-sm text-green-600">
+                                        • Cached ({Math.round((Date.now() - cacheTimestamp) / 1000)}s ago)
+                                    </span>
+                                )}
                             </p>
                         </div>
-                        <button
-                            onClick={() => router.push('/company-leads')}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                        >
-                            ← Back to OutBound
-                        </button>
+                        <div className="flex space-x-2">
+                            <button
+                                onClick={() => fetchAllLeads(true)}
+                                disabled={dataLoading}
+                                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center"
+                            >
+                                {dataLoading ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                        Loading...
+                                    </>
+                                ) : (
+                                    <>
+                                        <RefreshCcw className="h-4 w-4 mr-2" />
+                                        Refresh
+                                    </>
+                                )}
+                            </button>
+                            <button
+                                onClick={() => router.push('/company-leads')}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                            >
+                                ← Back to OutBound
+                            </button>
+                        </div>
                     </div>
 
 
@@ -433,7 +602,7 @@ export default function MyAssignedLeadsPage() {
                         </div>
                         {pagination.pages > 1 && <PaginationComponent />}
 
-                        {dataLoading ? (
+                        {dataLoading && isInitialLoad ? (
                             <div className="flex justify-center items-center py-12">
                                 <div className="text-gray-500">Loading leads...</div>
                             </div>
@@ -474,7 +643,12 @@ export default function MyAssignedLeadsPage() {
                                                     <td className="px-4 py-4">
                                                         <div className="max-w-xs">
                                                             <div className="text-md font-medium text-gray-900 truncate">
-                                                                {lead.companyName}
+                                                                <button
+                                                                    className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                                                                    onClick={() => window.open(`/company-leads/${lead._id}`, '_blank')}
+                                                                >
+                                                                    {lead.companyName}
+                                                                </button>
                                                             </div>
                                                             <div className="text-xs text-gray-500 truncate">
                                                                 {lead.companyWebsite ? (
@@ -585,6 +759,34 @@ export default function MyAssignedLeadsPage() {
                         lead={selectedLeadForNotes}
                         leadType="company"
                         onNoteAdded={handleNoteAdded}
+                    />
+
+                    {/* Company Lead Modal */}
+                    <CompanyLeadModal
+                        isOpen={showCompanyLeadModal}
+                        onClose={() => setShowCompanyLeadModal(false)}
+                        lead={selectedLeadForModal}
+                        onLeadUpdate={(updatedLead) => {
+                            // Update the lead in the list
+                            setAllLeads(prev =>
+                                prev.map(lead =>
+                                    lead._id === updatedLead._id ? updatedLead : lead
+                                )
+                            );
+                            setFilteredLeads(prev =>
+                                prev.map(lead =>
+                                    lead._id === updatedLead._id ? updatedLead : lead
+                                )
+                            );
+                            setDisplayedLeads(prev =>
+                                prev.map(lead =>
+                                    lead._id === updatedLead._id ? updatedLead : lead
+                                )
+                            );
+                            // Invalidate cache since data has been updated
+                            setCacheTimestamp(null);
+                            clearCacheFromStorage();
+                        }}
                     />
                 </div>
             </div>

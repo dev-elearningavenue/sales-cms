@@ -208,7 +208,7 @@ export default function DashboardPage() {
         <div className="p-6 space-y-8 max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
             <div>
-              <h1 className="text-2xl font-semibold text-black">
+              <h1 className="text-2xl font-semibold text-gray-800 dark:text-white">
                 Welcome, {session.full_name}
               </h1>
               <p className={darkMode ? "text-gray-300" : "text-gray-500"}>
@@ -371,12 +371,12 @@ export default function DashboardPage() {
     <div className={`min-h-screen ${bgClass} transition-colors duration-300`}>
       <div className="p-6 space-y-8 max-w-7xl mx-auto">
         {/* Header with dark mode toggle */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+        <div className="welcome-h1 flex flex-col sm:flex-row sm:justify-between sm:items-center">
           <div>
-            <h1 className="text-2xl font-semibold text-black">
+            <h1 className="text-2xl font-semibold text-gray-800 dark:text-white">
               Welcome, {session.full_name || "Admin"}
             </h1>
-            <p className={darkMode ? "text-gray-300" : "text-gray-500"}>
+            <p className="text-gray-800 dark:text-white">
               Leads Management Dashboard
             </p>
           </div>

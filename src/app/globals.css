@@ -29,43 +29,47 @@ input {
   color: black;
 }
 
-.company-lead-wrapper input{
+select {
   color: black;
 }
 
-.company-lead-wrapper select{
+.company-lead-wrapper input {
   color: black;
 }
 
-.select-status-dropdown button{
+.company-lead-wrapper select {
   color: black;
 }
 
-.filter-section select{
+.select-status-dropdown button {
   color: black;
 }
 
-.filter-section input{
+.filter-section select {
   color: black;
 }
 
-.filter-section button{
+.filter-section input {
   color: black;
 }
 
-.filter-options-wrapper div{
+.filter-section button {
   color: black;
 }
 
-.leads-table-body div{
+.filter-options-wrapper div {
   color: black;
 }
 
-.lead-filter-panel select{
+.leads-table-body div {
   color: black;
 }
 
-.lead-filter-panel select{
+.lead-filter-panel select {
+  color: black;
+}
+
+.lead-filter-panel select {
   color: black;
 }
 
@@ -73,15 +77,15 @@ input {
   color: black;
 } */
 
-.company-information-wrapper select{
+.company-information-wrapper select {
   color: black;
 }
 
-.company-information-wrapper input{
+.company-information-wrapper input {
   color: black;
 }
 
-.company-information-wrapper button{
+.company-information-wrapper button {
   color: black;
 }
 
@@ -161,7 +165,7 @@ input {
   .ck.ck-toolbar .ck-toolbar__items {
     flex-wrap: wrap !important;
   }
-  
+
   .ck.ck-toolbar .ck-toolbar__items > * {
     margin: 2px !important;
   }
@@ -217,7 +221,6 @@ input {
   /* margin: 1em 0 0.5em 0 !important; */
 }
 /* ... aur agar zarurat ho toh h4, h5, h6 bhi add kar sakte hain */
-
 
 .ck.ck-toolbar + .ck-editor__main {
   margin-top: 0 !important;

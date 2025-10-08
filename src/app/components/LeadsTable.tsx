@@ -999,8 +999,8 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                       >
                         {lead?.category}
                       </p>
-                      {/* Show status for users other than usertype 3 */}
-                      {session?.user_type !== 3 && (
+                      {/* Show status for users other than usertype 3, but not for Invoice leads */}
+                      {session?.user_type !== 3 && lead?.category !== "Invoice" && (
                         <div className="text-xs text-gray-500 font-medium">
                           Status: {lead.status || "Pending"}
                         </div>

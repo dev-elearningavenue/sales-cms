@@ -1734,7 +1734,7 @@ const Invoice = () => {
                     <button
                       type="button"
                       onClick={addProduct}
-                      className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-xs"
+                      className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-xs text-gray-800 dark:text-gray-100"
                     >
                       <Plus size={14} />
                       <span>Add Another Product</span>

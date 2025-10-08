@@ -13,6 +13,7 @@ import {
   PinOff,
   Receipt,
   Building,
+  MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useApp } from "@/contexts/AppContext";
@@ -208,6 +209,12 @@ const Sidebar = () => {
           href="/my-assigned-leads"
           isExpanded={isExpanded}
         />
+        {/* <NavItem
+          icon={<MessageCircle size={20} />}
+          text="AI Chat"
+          href="/chat"
+          isExpanded={isExpanded}
+        /> */}
         {/* <NavItem
           icon={<Settings size={20} />}
           text="Settings"

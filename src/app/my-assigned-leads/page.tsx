@@ -471,11 +471,11 @@ export default function MyAssignedLeadsPage() {
                             <h1 className="text-3xl font-bold text-gray-900 mb-2">My Assigned Leads</h1>
                             <p className="text-gray-600">
                                 Manage all your assigned company leads in one place
-                                {cacheTimestamp && (
+                                {/* {cacheTimestamp && (
                                     <span className="ml-2 text-sm text-green-600">
                                         • Cached ({Math.round((Date.now() - cacheTimestamp) / 1000)}s ago)
                                     </span>
-                                )}
+                                )} */}
                             </p>
                         </div>
                         <div className="flex space-x-2">

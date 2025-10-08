@@ -11,17 +11,15 @@ export const TeamPerformance = ({ data, darkMode }: TeamPerformanceProps) => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Team Performance</h2>
+        <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Team Performance</h2>
         <div className="flex items-center space-x-2">
           <PieChart
-            className={`h-5 w-5 ${
-              darkMode ? "text-gray-300" : "text-gray-500"
-            }`}
+            className={`h-5 w-5 ${darkMode ? "text-gray-300" : "text-gray-500"
+              }`}
           />
           <span
-            className={`text-sm ${
-              darkMode ? "text-gray-300" : "text-gray-500"
-            }`}
+            className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-500"
+              }`}
           >
             Sales Performance
           </span>

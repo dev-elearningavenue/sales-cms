@@ -554,7 +554,7 @@ const YourInvoicesPage = () => {
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
                     {(session &&
-                    (session.user_type === 1 || session.user_type === 2)
+                      (session.user_type === 1 || session.user_type === 2)
                       ? filteredInvoices
                       : sortedInvoices
                     ).map((inv, idx) => (
@@ -596,7 +596,7 @@ const YourInvoicesPage = () => {
                         </td>
                         {/* CREATED AT | AGENT NAME */}
                         {session && session.user_type === 3 ? (
-                          <td className="px-3 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                          <td className="px-3 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider whitespace-nowrap">
                             {new Date(inv.createdAt).toLocaleString()}
                             <div
                               className="max-w-full text-sm truncate"
@@ -610,11 +610,11 @@ const YourInvoicesPage = () => {
                             <div className="text-sm font-bold uppercase text-lime-600 dark:text-lime-300">
                               {inv.agentName}
                             </div>
-                            <div>
+                            <div className="text-gray-800 dark:text-gray-100">
                               {new Date(inv.createdAt).toLocaleString()}
                             </div>
                             <div
-                              className="max-w-full text-sm truncate"
+                              className="max-w-full text-sm truncate text-gray-800 dark:text-gray-100"
                               title={inv.invoiceNumber}
                             >
                               ID: {inv.invoiceNumber}
@@ -643,13 +643,12 @@ const YourInvoicesPage = () => {
                         {/* STATUS */}
                         <td className="px-3 py-4">
                           <span
-                            className={`px-3 py-1 rounded-full text-sm font-bold ${
-                              inv.status === "paid"
-                                ? "bg-green-100 text-green-700"
-                                : inv.status === "unpaid"
+                            className={`px-3 py-1 rounded-full text-sm font-bold ${inv.status === "paid"
+                              ? "bg-green-100 text-green-700"
+                              : inv.status === "unpaid"
                                 ? "bg-red-100 text-red-700"
                                 : "bg-yellow-100 text-yellow-700"
-                            }`}
+                              }`}
                           >
                             {inv.status.charAt(0).toUpperCase() +
                               inv.status.slice(1)}

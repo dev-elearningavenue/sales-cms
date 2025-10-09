@@ -22,6 +22,8 @@ export async function POST(req: NextRequest) {
     }
     const token = await generateToken(user);
     // console.log("token generated?: ", token);
+    // console.log("user: ", user);
+    
     const response = NextResponse.json({
       success: true,
       message: "Login successful",
@@ -30,7 +32,8 @@ export async function POST(req: NextRequest) {
         email: user.email,
         full_name: user.full_name,
         user_name: user.user_name,
-        user_type: user.user_type
+        user_type: user.user_type,
+        agentEmail: user.agentEmail
       }
     });
 

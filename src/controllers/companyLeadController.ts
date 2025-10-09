@@ -1,7 +1,8 @@
 import CompanyLead from "@/models/companyLead";
 import EmailLog from "@/models/email";
+import User from "@/models/user";
 import { getStateName, stateTimezones } from "@/utils/stateMapping";
-import { getDomainSMTPConfig } from "@/utils/helper";
+import { getDomainSMTPConfig, getUserSMTPConfig } from "@/utils/helper";
 import * as XLSX from 'xlsx';
 import nodemailer from 'nodemailer';
 
@@ -338,26 +339,81 @@ export async function uploadCSVData(file: File, state?: string, userId?: string,
   }
 }
 
-// Get timezone-based lead with improved logic
-export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?: string) {
+// Get available states for timezone-based lead selection
+export async function getAvailableStates() {
   try {
-    
     const now = new Date();
     const businessHoursStart = 0;
     const businessHoursEnd = 20; // 7:00 PM
 
     const stateEntries = Object.entries(stateTimezones);
-    const shuffledStates = stateEntries.sort(() => Math.random() - 0.5);
-    
-    // Check each state randomly
-    for (const [stateName, timezone] of shuffledStates) {
+    const availableStates = [];
+
+    for (const [stateName, timezone] of stateEntries) {
       try {
         const stateTime = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
         const stateHour = stateTime.getHours() + stateTime.getMinutes() / 60;
         
         // Check if state is in business hours
         if (stateHour >= businessHoursStart && stateHour <= businessHoursEnd) {
-          console.log(`✅ ${stateName} - Current time: ${stateHour.toFixed(2)} - IN BUSINESS HOURS`);
+          // Add all states in business hours, don't check for leads count
+          availableStates.push({
+            state: stateName,
+            timezone: timezone,
+            currentTime: stateTime.toLocaleTimeString()
+          });
+        }
+      } catch (error) {
+        console.error(`Error checking state ${stateName}:`, error);
+      }
+    }
+
+    return {
+      success: true,
+      states: availableStates
+    };
+  } catch (error) {
+    console.error("Error getting available states:", error);
+    return {
+      success: false,
+      message: "Failed to get available states"
+    };
+  }
+}
+
+// Get timezone-based lead with improved logic
+export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?: string, selectedState?: string) {
+  try {
+    
+    const now = new Date();
+    const businessHoursStart = 0;
+    const businessHoursEnd = 20; // 7:00 PM
+
+    let stateEntries = Object.entries(stateTimezones);
+    
+    // If specific state is selected, prioritize it
+    if (selectedState) {
+      const selectedStateEntry = stateEntries.find(([stateName]) => stateName === selectedState);
+      if (selectedStateEntry) {
+        stateEntries = [selectedStateEntry, ...stateEntries.filter(([stateName]) => stateName !== selectedState)];
+      }
+    } else {
+      // Randomize if no specific state selected
+      stateEntries = stateEntries.sort(() => Math.random() - 0.5);
+    }
+    
+    // Check each state (prioritizing selected state if provided)
+    for (const [stateName, timezone] of stateEntries) {
+      try {
+        const stateTime = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
+        const stateHour = stateTime.getHours() + stateTime.getMinutes() / 60;
+        
+        // Check if state is in business hours OR if it's the selected state
+        const isSelectedState = selectedState && stateName === selectedState;
+        const isInBusinessHours = stateHour >= businessHoursStart && stateHour <= businessHoursEnd;
+        
+        if (isInBusinessHours || isSelectedState) {
+          console.log(`✅ ${stateName} - Current time: ${stateHour.toFixed(2)} - ${isSelectedState ? 'SELECTED STATE' : 'IN BUSINESS HOURS'}`);
           
           const lead = await CompanyLead.findOne({
             state: stateName,
@@ -400,7 +456,16 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
               message: `Found lead in ${stateName}`
             };
           } else {
-            console.log(`❌ No available leads in ${stateName} (in business hours but no leads found)`);
+            console.log(`❌ No available leads in ${stateName} (${isSelectedState ? 'selected state but no leads found' : 'in business hours but no leads found'})`);
+            
+            // If this was the selected state and no leads found, don't continue to other states
+            if (isSelectedState) {
+              return {
+                success: false,
+                message: `No leads available in selected state: ${selectedState}`,
+                lead: null
+              };
+            }
           }
         }
       } catch (error) {
@@ -767,6 +832,7 @@ export async function updateCompanyLeadStatus(
     let emailResult = null;
     if (statusData.emailData?.send && statusData.emailData.from && statusData.emailData.to) {
       try {
+        // console.log("Sending email with domain:", statusData);
         // Extract domain from email to get SMTP config
         const emailDomain = statusData.emailData.from.split('@')[1];
         let domain = "";
@@ -788,57 +854,69 @@ export async function updateCompanyLeadStatus(
         //   domain: domain
         // });
         
-        // Send email using imported modules
-        const smtpConfig = getDomainSMTPConfig(domain);
+        // Send email using user-specific SMTP config
+        console.log("Sending email from companyLeadController");
+
         
-        if (smtpConfig && smtpConfig.user && smtpConfig.password) {
-          const transporter = nodemailer.createTransport({
-            host: smtpConfig.host,
-            port: smtpConfig.port,
-            secure: false,
-            auth: {
-              user: smtpConfig.user,
-              pass: smtpConfig.password,
-            },
-          });
-
-          const mailOptions = {
-            from: statusData.emailData.from,
-            to: statusData.emailData.to,
-            subject: statusData.emailData.subject,
-            html: statusData.emailData.body,
-          };
-
-          const info = await transporter.sendMail(mailOptions);
-          console.log("Email sent successfully:", info.messageId);
-          
-          // Log email in EmailLog collection
-          const emailLog = new EmailLog({
-            to: statusData.emailData.to,
-            subject: statusData.emailData.subject,
-            body: statusData.emailData.body,
-            agentId: userId,
-            sentAt: new Date()
-          });
-          const savedEmailLog = await emailLog.save();
-          
-          // Add email reference to company lead
-          await CompanyLead.findByIdAndUpdate(leadId, {
-            $push: {
-              emails: savedEmailLog._id
-            }
-          });
-          
-          emailResult = { 
-            success: true, 
-            messageId: info.messageId,
-            message: "Email sent successfully"
-          };
+        // Get user-specific SMTP config instead of domain config
+        // Fetch real user data from database using userId
+        const userData = await User.findById(userId);
+        if (!userData) {
+          console.error("User not found for userId:", userId);
+          emailResult = { success: false, message: "User not found" };
         } else {
-          emailResult = { 
-            success: false, 
-            message: `Email service not configured for ${domain} domain`
-          };
+          const smtpConfig = getUserSMTPConfig(userData, domain);
+          
+          if (smtpConfig && smtpConfig.user && smtpConfig.password) {
+            const transporter = nodemailer.createTransport({
+              host: smtpConfig.host,
+              port: smtpConfig.port,
+              secure: false,
+              auth: {
+                user: smtpConfig.user,
+                pass: smtpConfig.password,
+              },
+            });
+
+            const mailOptions = {
+              from: `${smtpConfig.name} <${smtpConfig.from}>`,
+              to: statusData.emailData.to,
+              cc: smtpConfig.cc || undefined,
+              subject: statusData.emailData.subject,
+              html: statusData.emailData.body,
+            };
+
+            const info = await transporter.sendMail(mailOptions);
+            console.log("Email sent successfully:", info.messageId);
+            
+            // Log email in EmailLog collection
+            const emailLog = new EmailLog({
+              to: statusData.emailData.to,
+              subject: statusData.emailData.subject,
+              body: statusData.emailData.body,
+              agentId: userId,
+              sentAt: new Date()
+            });
+            const savedEmailLog = await emailLog.save();
+            
+            // Add email reference to company lead
+            await CompanyLead.findByIdAndUpdate(leadId, {
+              $push: {
+                emails: savedEmailLog._id
+              }
+            });
+            
+            emailResult = { 
+              success: true, 
+              messageId: info.messageId,
+              message: "Email sent successfully"
+            };
+          } else {
+            emailResult = { 
+              success: false, 
+              message: `Email service not configured for ${domain} domain`
+            };
+          }
         }
         
       } catch (emailError) {

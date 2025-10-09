@@ -140,7 +140,8 @@ export default function CompanyLeadDetailsPage() {
                         to: data.emailTo,
                         subject: data.emailSubject,
                         body: data.emailBody,
-                        domain
+                        domain,
+                        leadType: "outbound"
                     })
                 });
 

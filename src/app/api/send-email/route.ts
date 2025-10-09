@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/utils/auth";
 import nodemailer from "nodemailer";
-import { getDomainSMTPConfig } from "@/utils/helper";
+import { getDomainSMTPConfig, getUserSMTPConfig } from "@/utils/helper";
 import EmailLog from "@/models/email";
 import CompanyLead from "@/models/companyLead";
 import mongoose from "mongoose";
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     if (!decoded.data._id) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
-    const { to, subject, body, domain, leadId } = await req.json();
+    const { to, subject, body, domain, leadId, leadType } = await req.json();
     // Validate required fields
     if (!to || !subject || !body || !domain) {
       return NextResponse.json(
@@ -25,7 +25,15 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const smtpConfig = getDomainSMTPConfig(domain);
+
+    console.log("leadType: ", leadType);
+    let smtpConfig;
+    if (leadType === 'outbound' || leadType === 'company-lead') {
+      console.log("Using user-specific SMTP config");
+      smtpConfig = getUserSMTPConfig(decoded.data, domain);
+    } else {
+      smtpConfig = getDomainSMTPConfig(domain);
+    }
 
     // Validate domain-specific environment variables
     if (!smtpConfig || !smtpConfig.user || !smtpConfig.password) {
@@ -77,7 +85,7 @@ export async function POST(req: NextRequest) {
     const mailOptions = {
       from: `${smtpConfig.name} <${smtpConfig.from}>`,
       to: to,
-      cc: smtpConfig.cc,
+      cc: smtpConfig.cc || undefined,
       subject: subject,
       html: `
         <div style="font-family: Arial, sans-serif; color: #333;">
@@ -95,6 +103,7 @@ export async function POST(req: NextRequest) {
       text: body,
     };
 
+    console.log("mailOptions: ", mailOptions);
     const emailResult = await transporter.sendMail(mailOptions);
     console.log("Email sent successfully:", emailResult.messageId);
 

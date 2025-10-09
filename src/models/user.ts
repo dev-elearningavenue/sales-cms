@@ -8,6 +8,7 @@ export interface IUser extends Document {
   user_type?: number;
   is_blocked?: boolean;
   assignedDomain?: string;
+  agentEmail?: string;
 }
 // Define User Schema
 const userSchema = new Schema<IUser>(
@@ -43,6 +44,11 @@ const userSchema = new Schema<IUser>(
       type: Boolean,
     },
     assignedDomain: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    agentEmail: {
       type: String,
       trim: true,
       default: "",

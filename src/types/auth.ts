@@ -5,4 +5,5 @@ export interface TokenPayload {
   user_name: string;
   user_type: number;
   assignedDomain: string;
+  agentEmail: string;
 }

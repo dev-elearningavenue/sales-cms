@@ -27,6 +27,9 @@ export default function CompanyLeadsPage() {
     // State management
     const [currentLead, setCurrentLead] = useState<ICompanyLead | null>(null);
     const [dataLoading, setDataLoading] = useState(false);
+    const [availableStates, setAvailableStates] = useState<any[]>([]);
+    const [selectedState, setSelectedState] = useState<string>("");
+    const [statesLoading, setStatesLoading] = useState(false);
     const [assignedLeadsCount, setAssignedLeadsCount] = useState({
         total: 0,
         today: 0,
@@ -99,8 +102,29 @@ export default function CompanyLeadsPage() {
     useEffect(() => {
         if (session) {
             fetchAssignedLeadsCount();
+            fetchAvailableStates();
         }
     }, [session]);
+
+    // Fetch available states
+    const fetchAvailableStates = async () => {
+        try {
+            setStatesLoading(true);
+            const response = await fetch('/api/company-leads?action=states');
+            const result = await response.json();
+
+            if (result.success) {
+                setAvailableStates(result.states);
+            } else {
+                showToast("Failed to load available states", "error");
+            }
+        } catch (error) {
+            console.error("Error fetching available states:", error);
+            showToast("Error loading available states", "error");
+        } finally {
+            setStatesLoading(false);
+        }
+    };
 
     // Load lead from URL parameter if present
     useEffect(() => {
@@ -259,7 +283,8 @@ export default function CompanyLeadsPage() {
                         to: data.emailTo,
                         subject: data.emailSubject,
                         body: data.emailBody,
-                        domain
+                        domain,
+                        leadType: "outbound"
                     })
                 });
 
@@ -295,7 +320,8 @@ export default function CompanyLeadsPage() {
 
         try {
             setDataLoading(true);
-            const response = await fetch("/api/company-leads");
+            const url = selectedState ? `/api/company-leads?state=${selectedState}` : "/api/company-leads";
+            const response = await fetch(url);
             const result = await response.json();
 
             if (result.success) {
@@ -469,6 +495,35 @@ export default function CompanyLeadsPage() {
                                 </div>
                             </div>
                         </div>
+                        {/* State Selection */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Select State (Optional)
+                            </label>
+                            <div className="flex space-x-2">
+                                <select
+                                    value={selectedState}
+                                    onChange={(e) => setSelectedState(e.target.value)}
+                                    disabled={statesLoading}
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                >
+                                    <option value="">Random State (All Available)</option>
+                                    {availableStates.map((state) => (
+                                        <option key={state.state} value={state.state}>
+                                            {state.state} - {state.currentTime}
+                                        </option>
+                                    ))}
+                                </select>
+                                <button
+                                    onClick={fetchAvailableStates}
+                                    disabled={statesLoading}
+                                    className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                                >
+                                    {statesLoading ? "⏳" : "🔄"}
+                                </button>
+                            </div>
+                        </div>
+
                         <div className="flex space-x-4">
                             {session?.user_type !== 3 && (
                                 <button
@@ -488,7 +543,7 @@ export default function CompanyLeadsPage() {
                             >
                                 {dataLoading ? "⏳ Loading..." :
                                     currentLead?.status === "pending" ?
-                                        "⚠️ Update Status First" : "📞 Get Lead"}
+                                        "⚠️ Update Status First" : selectedState ? `📞 Get ${selectedState} Lead` : "📞 Get Lead"}
                             </button>
                         </div>
                     </div>

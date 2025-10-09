@@ -303,6 +303,7 @@ const MyLeads = () => {
           body: lvmEmailData.body,
           leadId: currentLeadId,
           domain: lead.domain,
+          leadType: "inbound"
         }),
       });
 
@@ -375,6 +376,7 @@ const MyLeads = () => {
             body: lvmEmailData.body,
             leadId: currentLeadId,
             domain: lead.domain,
+            leadType: "inbound"
           }),
         });
 

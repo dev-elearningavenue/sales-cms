@@ -218,7 +218,7 @@ export const getInvoicesByAgent = async (agentId: string) => {
         const isNotPastDue = dueDateString >= currentDate;
         
         if (!isNotPastDue) {
-          console.log(`Excluding unpaid invoice ${invoice._id} - Due date: ${dueDateString}, Current: ${currentDate}`);
+          // console.log(`Excluding unpaid invoice ${invoice._id} - Due date: ${dueDateString}, Current: ${currentDate}`);
         }
         
         return isNotPastDue;

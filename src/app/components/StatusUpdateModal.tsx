@@ -58,6 +58,7 @@ export default function StatusUpdateModal({
             // Get domain email from user's assignedDomain
             const domain = domainShortCodes[session?.assignedDomain];
             const domainEmail = domain ? getDomainEmail(domain) : "";
+            const userEmail = session?.agentEmail;
 
             setFormData({
                 statusCategory: category,
@@ -66,7 +67,7 @@ export default function StatusUpdateModal({
                 followUp: false,
                 followUpDate: undefined,
                 emailData: {
-                    from: domainEmail || "",
+                    from: userEmail || "",
                     to: currentLead.companyEmail || currentLead.contactPersonEmail || "",
                     subject: `Regarding ${currentLead.companyName} - ${resolveStatus}`,
                     body: "",

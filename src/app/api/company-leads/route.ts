@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db";
 import { getDataFromToken } from "@/utils/get_token_data";
-import { uploadCSVData, getTimezoneBasedLead } from "@/controllers/companyLeadController";
+import { uploadCSVData, getTimezoneBasedLead, getAvailableStates } from "@/controllers/companyLeadController";
 import CompanyLead from "@/models/companyLead";
 export const dynamic = 'force-dynamic';
 
@@ -67,8 +67,24 @@ export async function GET(request: NextRequest) {
 
     await connectToDatabase();
 
-    const result = await getTimezoneBasedLead();
-    // console.log("Result: ", result);
+    // Check if request is for available states
+    const url = new URL(request.url);
+    const action = url.searchParams.get('action');
+    
+    if (action === 'states') {
+      const result = await getAvailableStates();
+      return NextResponse.json(result);
+    }
+
+    // Get selected state from query params
+    const selectedState = url.searchParams.get('state');
+
+    const result = await getTimezoneBasedLead(
+      tokenData._id as string, 
+      (tokenData as any)?.assignedDomain || "", 
+      selectedState || undefined
+    );
+    
     if (result.success) {
       // Assign to current user when fetched
       try {

@@ -14,7 +14,9 @@ export const generateToken = async (user: IUser): Promise<string> => {
     user_name: user.user_name || "",
     user_type: user.user_type || 3,
     assignedDomain: user.assignedDomain || "",
+    agentEmail: user.agentEmail || "",
   };
+  
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET is not defined in environment variables");
   }
@@ -42,6 +44,7 @@ export const verifyToken = async (token: string) => {
       };
     }
 
+    // console.log("Token payload:", payload);
     return {
       success: true,
       data: payload,

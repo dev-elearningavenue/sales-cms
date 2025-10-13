@@ -488,7 +488,7 @@ export const createCustomLead = async (
       contactNo: customLeadData.contactNo,
       domain: customLeadData.domain,
       supportType: customLeadData.supportType,
-      customerQuery: customLeadData.customerQuery,
+      customerQuery: customLeadData.customerQuery || "",
       coursesInterested: customLeadData.coursesInterested || [],
     });
 

@@ -62,7 +62,7 @@ async function ensureConnection(
     }
     return client;
   } catch (error: any) {
-    console.error(`Error ensuring ${name} connection:`, error.message);
+    console.error(`Error ensuring ${name} connection at ${Date.now()}: `, error.message);
     throw error;
   }
 }
@@ -247,10 +247,10 @@ function setupScholarshipCollectionWatch(
     }
   });
 
-  changeStream.on("error", (err: any) => {
+  changeStream.on("error", (error: any) => {
     console.error(
       `Change Stream Error in ${domain} scholarship watch, triggering restart:`,
-      err.message
+      error.message
     );
     restartWatchers().catch((restartErr) => {
       console.error("Failed to trigger watcher restart:", restartErr);
@@ -728,7 +728,7 @@ function setupConnectionMonitoring() {
     try {
       if (!master_client || !outreach_client) {
         console.warn(
-          "One or both clients are null, initiating reconnection..."
+          "One or both clients are null, initiating reconnection...", Date.now()
         );
         await restartWatchers();
         return;
@@ -781,8 +781,8 @@ async function restartWatchers() {
   console.log(`Restarting watchers in ${backoffTime / 1000} seconds...`);
 
   setTimeout(() => {
-    watchCollections().catch((err) => {
-      console.error("Error during watcher restart:", err);
+    watchCollections().catch((error: any) => {
+      console.error("Error during watcher restart:", error.message);
     });
   }, backoffTime);
 }

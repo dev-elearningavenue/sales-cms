@@ -92,16 +92,24 @@ export const getAllLeads = async (options?: {
       select: "full_name user_name",
     });
 
-    const leads = await Lead.find()
-      .sort({ createdAt: -1 })
-      .limit(300)
-      .populate(populations);
+    const query = Lead.find()
+      .sort(options?.latest === false ? { createdAt: 1 } : { createdAt: -1 })
+      .skip(options?.skip ?? 0)
+      .limit(options?.limit ?? 500)
+      // send only the fields needed by UI to reduce payload size
+      .select(
+        "category email fullname contactNo status resolve_status assigned assigned_to invoice createdAt domain next_follow_up notes free_signup contact_us abandoned_cart scholarship order_creation custom_lead shortcourse_discount"
+      )
+      .populate(populations)
+      .lean();
+
+    const leads = await query;
 
     if (!leads || leads.length === 0) {
       return { message: "No leads found", leads: [] };
     }
     // console.log("Leads: ", leads);
-    return { message: "All leads fetched successfully", leads };
+    return { message: "All leads fetched successfully", total: leads.length, leads };
   } catch (error: any) {
     console.error("Error caught: ", error);
     return {

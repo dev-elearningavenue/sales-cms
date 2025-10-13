@@ -28,10 +28,10 @@ export async function GET(req: Request) {
       limit: limit ? parseInt(limit, 10) : undefined,
       skip: skip ? parseInt(skip, 10) : undefined,
       latest: latest === "true",
-    };
+    } as const;
 
     // Get all leads from controller
-    const leadsResult = await getAllLeads();
+    const leadsResult = await getAllLeads(options);
     
     if (leadsResult.error) {
       return NextResponse.json(leadsResult, { status: 500 });

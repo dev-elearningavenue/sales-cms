@@ -280,7 +280,6 @@ export async function createInvoicePaymentNotification(invoice: any) {
     });
     
     if (toUsers.length === 0) {
-      console.log("No users to notify for invoice payment");
       return true;
     }
     

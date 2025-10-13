@@ -52,7 +52,7 @@ export async function PUT(
     const body = await request.json();
     const userId = tokenData._id.toString();
 
-    console.log("Body Json: ", body);
+    // console.log("Body Json: ", body);
 
     // Use controller method instead of direct mongoose
     const result = await updateCompanyLead(params.id, body, userId);

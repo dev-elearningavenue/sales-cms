@@ -6,7 +6,6 @@ import axios from "axios";
 // Function to hit RAC API
 async function syncRacData() {
   try {
-    console.log("🔄 Starting RAC data sync...");
     
     // Use environment-based URL (with fallback)
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
@@ -26,7 +25,7 @@ async function syncRacData() {
     });
     
     const result = response.data;
-    console.log("✅ RAC sync completed:", result.message, `(${result.totalInserted} total new records)`);
+    // console.log("✅ RAC sync completed:", result.message, `(${result.totalInserted} total new records)`);
     
     // Log individual website results
     if (result.results && Array.isArray(result.results)) {
@@ -48,13 +47,11 @@ async function syncRacData() {
 
   // Invoice status updater - runs every minute
   cron.schedule("* * * * *", async () => {
-    console.log("Running invoice status updater cron job...");
     await updateInvoiceStatus();
   });
   
   // RAC data sync - runs every 15 minutes
   cron.schedule("*/15 * * * *", async () => {
-    console.log("🚀 Running RAC data sync cron job...");
     await syncRacData();
   });
   

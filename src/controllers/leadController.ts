@@ -641,17 +641,14 @@ export const deleteLead = async (
 
     if (lead.contact_us) {
       deletionPromises.push(Contact.findByIdAndDelete(lead.contact_us));
-      console.log(`Deleting contact record: ${lead.contact_us}`);
     }
 
     if (lead.free_signup) {
       deletionPromises.push(Customer.findByIdAndDelete(lead.free_signup));
-      console.log(`Deleting customer record: ${lead.free_signup}`);
     }
 
     if (lead.abandoned_cart) {
       deletionPromises.push(AbandonedCart.findByIdAndDelete(lead.abandoned_cart));
-      console.log(`Deleting abandoned cart record: ${lead.abandoned_cart}`);
     }
 
     if (lead.order_creation) {
@@ -661,12 +658,11 @@ export const deleteLead = async (
 
     if (lead.custom_lead) {
       deletionPromises.push(CustomLead.findByIdAndDelete(lead.custom_lead));
-      console.log(`Deleting custom lead record: ${lead.custom_lead}`);
+      // console.log(`Deleting custom lead record: ${lead.custom_lead}`);
     }
 
     if (lead.scholarship) {
       deletionPromises.push(Scholarship.findByIdAndDelete(lead.scholarship));
-      console.log(`Deleting scholarship record: ${lead.scholarship}`);
     }
 
     if (lead.invoice) {
@@ -765,17 +761,14 @@ export const batchDeleteLeads = async (
 
     if (contactIds.length > 0) {
       deletionPromises.push(Contact.deleteMany({ _id: { $in: contactIds } }));
-      console.log(`Deleting ${contactIds.length} contact records`);
     }
 
     if (customerIds.length > 0) {
       deletionPromises.push(Customer.deleteMany({ _id: { $in: customerIds } }));
-      console.log(`Deleting ${customerIds.length} customer records`);
     }
 
     if (abandonedCartIds.length > 0) {
       deletionPromises.push(AbandonedCart.deleteMany({ _id: { $in: abandonedCartIds } }));
-      console.log(`Deleting ${abandonedCartIds.length} abandoned cart records`);
     }
 
     if (orderIds.length > 0) {
@@ -785,12 +778,10 @@ export const batchDeleteLeads = async (
 
     if (customLeadIds.length > 0) {
       deletionPromises.push(CustomLead.deleteMany({ _id: { $in: customLeadIds } }));
-      console.log(`Deleting ${customLeadIds.length} custom lead records`);
     }
 
     if (scholarshipIds.length > 0) {
       deletionPromises.push(Scholarship.deleteMany({ _id: { $in: scholarshipIds } }));
-      console.log(`Deleting ${scholarshipIds.length} scholarship records`);
     }
 
     // Execute all associated record deletions

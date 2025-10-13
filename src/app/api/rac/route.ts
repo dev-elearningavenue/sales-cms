@@ -112,7 +112,6 @@ export async function GET(req: NextRequest) {
         const url = `${website.apiUrl}${
           params.length ? "?" + params.join("&") : ""
         }`;
-        console.log(`${website.name} URL:`, url);
 
         // 3. Fetch from external API
         const extRes = await axios.get(url, { timeout: 20000 });

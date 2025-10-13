@@ -19,7 +19,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
 }) => {
   if (!isOpen || !lead) return null;
 
-  console.log("Lead Data", lead);
+  // console.log("Lead Data", lead);
 
   // Helper function to get lead name
   const getLeadName = (lead: ILead): string => {

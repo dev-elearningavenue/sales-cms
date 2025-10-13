@@ -39,9 +39,7 @@ export const createInvoice = async (
   try {
     await connectDB();
     // console.log("Invoice data received:", invoiceData);
-    console.log("firstName:", invoiceData.firstName);
 
-    // Validate required fields
     if (
       !invoiceData.customerId ||
       !invoiceData.customerEmail ||
@@ -206,7 +204,6 @@ export const getInvoicesByAgent = async (agentId: string) => {
         
         // If parsing failed, skip this invoice
         if (isNaN(parsedDueDate.getTime())) {
-          console.log(`Invalid due date format for invoice ${invoice._id}: ${dueDate}`);
           return false;
         }
         
@@ -318,9 +315,7 @@ export const deleteInvoice = async (
         // Use the existing deleteLead function to properly clean up all associated records
         // We need to pass userType 1 (admin) to allow deletion
         const result = await deleteLead(lead._id.toString(), userId, userType);
-        if (result.success) {
-          console.log(`Associated lead ${lead._id} deleted for invoice ${invoiceId}`);
-        } else {
+        if (!result.success) {
           console.warn("Failed to delete associated lead:", result.message);
         }
       }

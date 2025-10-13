@@ -66,7 +66,6 @@ const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
   }
 
   if (!products || products.length === 0) {
-    console.log("CourseInfo - No valid product data found");
     return <h1 className="text-gray-500">No course information available.</h1>;
   }
 

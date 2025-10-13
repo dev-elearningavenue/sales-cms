@@ -173,7 +173,7 @@ export default function DashboardPage() {
   useEffect(() => {
     // Check session status when component mounts
     if (!session && !isLoading) {
-      console.log("No session available in dashboard, fetching session");
+      // console.log("No session available in dashboard, fetching session");
       fetchSession();
     }
   }, [session, isLoading]);

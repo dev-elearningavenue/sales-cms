@@ -65,11 +65,8 @@ export const getUserEmail = (userData: any): string => {
   const username = userData.user_name || userData.full_name || userData._id;
   const userSuffix = username.charAt(0).toUpperCase();
   
-  console.log("userSuffix: ", userSuffix);
   // Get user-specific email from environment variables
   const userEmail = process.env[`NEXT_PUBLIC_EMAIL_${userSuffix}`];
-  
-  console.log("userEmail: ", userEmail);
   if (userEmail) {
     console.log(`Using user-specific email for ${username}: ${userEmail}`);
     return userEmail;

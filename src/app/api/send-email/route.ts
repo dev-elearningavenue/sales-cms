@@ -26,10 +26,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log("leadType: ", leadType);
     let smtpConfig;
     if (leadType === 'outbound' || leadType === 'company-lead') {
-      console.log("Using user-specific SMTP config");
       smtpConfig = getUserSMTPConfig(decoded.data, domain);
     } else {
       smtpConfig = getDomainSMTPConfig(domain);
@@ -103,7 +101,6 @@ export async function POST(req: NextRequest) {
       text: body,
     };
 
-    console.log("mailOptions: ", mailOptions);
     const emailResult = await transporter.sendMail(mailOptions);
     console.log("Email sent successfully:", emailResult.messageId);
 
@@ -116,7 +113,6 @@ export async function POST(req: NextRequest) {
         agentId: new mongoose.Types.ObjectId(decoded.data._id),
         sentAt: new Date(),
       });
-      console.log("Email log saved successfully:", emailLog._id);
 
       if (leadId) {
         await CompanyLead.findByIdAndUpdate(leadId, {

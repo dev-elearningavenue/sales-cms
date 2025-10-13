@@ -190,9 +190,6 @@ export const createCustomer = async (
         console.error("External API failed:", stripeApiResponse.error);
         throw new Error(`External API error: ${stripeApiResponse.error}`);
       }
-
-      console.log("Stripe API success, customerId:", stripeApiResponse);
-
       // Get database configuration for the site
       const siteConfig =
         SITE_DATABASE_CONFIG[

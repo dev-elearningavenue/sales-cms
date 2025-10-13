@@ -107,7 +107,6 @@ function findHeaderRow(data: string[][]): number {
     
     // If we find at least 2 header patterns, this is likely the header row
     if (matchCount >= 2) {
-      console.log(`Found header row at index ${i}:`, row);
       return i;
     }
   }
@@ -116,7 +115,6 @@ function findHeaderRow(data: string[][]): number {
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
     if (row && row.length > 0 && row.some(cell => cell && cell.trim())) {
-      console.log(`Using first non-empty row as header at index ${i}:`, row);
       return i;
     }
   }
@@ -132,9 +130,6 @@ async function processLeadsBatch(leads: any[], batchSize: number = 100) {
     results.push(...batchResults);
     
     // Log progress for large files
-    if (leads.length > 1000) {
-      console.log(`Processed ${Math.min(i + batchSize, leads.length)} of ${leads.length} leads`);
-    }
   }
   return results;
 }
@@ -311,11 +306,8 @@ export async function uploadCSVData(file: File, state?: string, userId?: string,
       }
     }
     
-    // Insert leads in batches for better performance
-    console.log(`Attempting to insert ${leads.length} leads into database`);
     const batchSize = leads.length > 1000 ? 500 : 100;
     const importedLeads = await processLeadsBatch(leads, batchSize);
-    console.log(`Successfully inserted ${importedLeads.length} leads`);
     
     return {
       success: true,
@@ -413,7 +405,7 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
         const isInBusinessHours = stateHour >= businessHoursStart && stateHour <= businessHoursEnd;
         
         if (isInBusinessHours || isSelectedState) {
-          console.log(`✅ ${stateName} - Current time: ${stateHour.toFixed(2)} - ${isSelectedState ? 'SELECTED STATE' : 'IN BUSINESS HOURS'}`);
+          // console.log(`✅ ${stateName} - Current time: ${stateHour.toFixed(2)} - ${isSelectedState ? 'SELECTED STATE' : 'IN BUSINESS HOURS'}`);
           
           const lead = await CompanyLead.findOne({
             state: stateName,
@@ -456,8 +448,6 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
               message: `Found lead in ${stateName}`
             };
           } else {
-            console.log(`❌ No available leads in ${stateName} (${isSelectedState ? 'selected state but no leads found' : 'in business hours but no leads found'})`);
-            
             // If this was the selected state and no leads found, don't continue to other states
             if (isSelectedState) {
               return {
@@ -538,9 +528,7 @@ export async function updateLeadWithFollowUp(leadId: string, updates: any, userI
       updateData.lastContacted = new Date();
       delete updateData.newFollowUp;
       
-      console.log("Created newFollowUp:", followUp);
     } else if (updates.nextFollowUp && updates.contactTypes && Array.isArray(updates.contactTypes) && updates.contactTypes.length > 0) {
-      console.log("Using old format from frontend modal");
       const followUp = {
         date: new Date(updates.nextFollowUp),
         contact_type: updates.contactTypes,
@@ -565,10 +553,6 @@ export async function updateLeadWithFollowUp(leadId: string, updates: any, userI
       delete updateData.nextFollowUp;
       delete updateData.contactTypes;
       
-      console.log("Created followUp:", followUp);
-      console.log("UpdateData.$push:", updateData.$push);
-    } else {
-      console.log("No follow-up conditions met");
     }
     
     // Handle contact info update
@@ -596,8 +580,6 @@ export async function updateLeadWithFollowUp(leadId: string, updates: any, userI
       updateData.lastContacted = new Date();
       delete updateData.contactInfo; // Remove from direct update
     }
-    
-    console.log("Updating lead with data:", updateData);
     
     const updatedLead = await CompanyLead.findByIdAndUpdate(
       leadId,
@@ -649,7 +631,7 @@ export async function updateCompanyLead(id: string, newData: any, userId?: strin
           };
         }
       } else if (newData[key] !== undefined && newData[key] !== "") {
-        console.log(`Updating field ${key}: ${newData[key]}`);
+        // console.log(`Updating field ${key}: ${newData[key]}`);
         mergedData[key] = newData[key];
       }
     });
@@ -673,7 +655,6 @@ export async function updateCompanyLead(id: string, newData: any, userId?: strin
     // Handle follow-up separately with $push operation
     let pushOperations = null;
     if (newData.nextFollowUp && newData.contactTypes && Array.isArray(newData.contactTypes) && newData.contactTypes.length > 0) {
-      console.log("=== FOLLOW-UP PROCESSING ===");
       
       const followUp = {
         date: new Date(newData.nextFollowUp),
@@ -705,7 +686,6 @@ export async function updateCompanyLead(id: string, newData: any, userId?: strin
     
     if (pushOperations) {
       // If we have follow-up data, do a separate $push operation first
-      console.log("Performing $push operation for follow-up");
       await CompanyLead.findByIdAndUpdate(id, { $push: pushOperations });
     
       updated = await CompanyLead.findByIdAndUpdate(id, mergedData, {
@@ -853,10 +833,6 @@ export async function updateCompanyLeadStatus(
         //   body: statusData.emailData.body,
         //   domain: domain
         // });
-        
-        // Send email using user-specific SMTP config
-        console.log("Sending email from companyLeadController");
-
         
         // Get user-specific SMTP config instead of domain config
         // Fetch real user data from database using userId

@@ -47,7 +47,6 @@ async function ensureConnection(
       await client.connect();
       console.log(`${name} connection established successfully`);
     } else {
-      // Test if the connection is alive
       try {
         await client.db("admin").command({ ping: 1 });
       } catch (err) {
@@ -722,8 +721,8 @@ export function getLeadDetails(
 
 // Improve connection monitoring
 function setupConnectionMonitoring() {
-  const CHECK_INTERVAL = 20 * 60 * 1000; // Check every 20 minutes
-  const HEALTH_CHECK_TIMEOUT = 20 * 60000; // 20 min timeout for health checks
+  const CHECK_INTERVAL = 10 * 60 * 1000; // Check every 10 minutes
+  const HEALTH_CHECK_TIMEOUT = 10 * 60000; // 10 min timeout for health checks
 
   setInterval(async () => {
     try {

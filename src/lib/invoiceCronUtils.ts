@@ -17,10 +17,6 @@ const fetchInvoiceStatus = async (
     const data = await res.json();
 
     if (data.status && data.data && data.data.status) {
-      console.log(
-        `Fetched status for invoice ${invoice.invoiceNumber}: `,
-        data.data.status
-      );
       return { status: data.data.status, paidAt: data.data.paidAt };
     }
     return { status: "unpaid", paidAt: null };
@@ -50,9 +46,9 @@ export const updateInvoiceStatus = async () => {
         // Create notification for invoice payment
         try {
           await createInvoicePaymentNotification(inv);
-          console.log(
-            `Notification created for invoice ${inv.invoiceNumber} for ${inv.totalPrice} payment`
-          );
+          // console.log(
+          //   `Notification created for invoice ${inv.invoiceNumber} for ${inv.totalPrice} payment`
+          // );
         } catch (error) {
           console.error(
             `Error creating notification for invoice ${inv.invoiceNumber}:`,
@@ -71,10 +67,6 @@ export const updateInvoiceStatus = async () => {
           } catch (err) {
             console.error("Error playing notification sound:", err);
           }
-        } else {
-          console.log(
-            "Play notification sound for invoice update (client should handle)"
-          );
         }
       }
     }

@@ -474,7 +474,6 @@ const Leads = () => {
         Array.isArray(data.data) &&
         data.data.length > 0
       ) {
-        console.log("Setting course results and showing dropdown");
         setCourseSearchResults(data.data);
         setShowCourseDropdown(true);
       } else {

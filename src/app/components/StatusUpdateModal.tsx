@@ -68,7 +68,7 @@ export default function StatusUpdateModal({
                 followUpDate: undefined,
                 emailData: {
                     from: userEmail || "",
-                    to: currentLead.companyEmail || currentLead.contactPersonEmail || "",
+                    to: currentLead.contactPersonEmail || currentLead.companyEmail || "",
                     subject: `Regarding ${currentLead.companyName} - ${resolveStatus}`,
                     body: "",
                     send: false

@@ -5,7 +5,6 @@ import {
   Home,
   ClipboardList,
   LayoutDashboard,
-  Settings,
   User,
   Sun,
   Moon,
@@ -13,12 +12,10 @@ import {
   PinOff,
   Receipt,
   Building,
-  MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useApp } from "@/contexts/AppContext";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -132,7 +129,7 @@ const Sidebar = () => {
     <div
       ref={sidebarRef}
       className={`${isExpanded ? "w-64" : "w-16"
-        } h-full dark:bg-gray-800 bg-white text-black dark:text-white p-4 transition-all duration-300 ease-in-out relative group left-0 top-0 shadow-md z-10 overflow-hidden`}
+        } h-screen dark:bg-gray-800 bg-white text-black dark:text-white p-4 transition-all duration-300 ease-in-out relative group left-0 top-0 shadow-md z-10 overflow-y-auto overscroll-contain`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >

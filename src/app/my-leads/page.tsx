@@ -766,7 +766,7 @@ const MyLeads = () => {
   const currentLeads = searchedLeads.slice(startIndex, endIndex);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-50 p-4">
       {loading ? (
         <LoadingSkeleton component="my leads" />
       ) : (

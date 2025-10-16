@@ -28,7 +28,8 @@ export default function CompanyLeadsPage() {
     const [currentLead, setCurrentLead] = useState<ICompanyLead | null>(null);
     const [dataLoading, setDataLoading] = useState(false);
     const [availableStates, setAvailableStates] = useState<any[]>([]);
-    const [selectedState, setSelectedState] = useState<string>("");
+    const [selectedStates, setSelectedStates] = useState<string[]>([]);
+    const [multiOpen, setMultiOpen] = useState(false);
     const [statesLoading, setStatesLoading] = useState(false);
     const [assignedLeadsCount, setAssignedLeadsCount] = useState({
         total: 0,
@@ -320,7 +321,9 @@ export default function CompanyLeadsPage() {
 
         try {
             setDataLoading(true);
-            const url = selectedState ? `/api/company-leads?state=${selectedState}` : "/api/company-leads";
+            const url = selectedStates.length > 0
+                ? `/api/company-leads?states=${encodeURIComponent(selectedStates.join(','))}`
+                : "/api/company-leads";
             const response = await fetch(url);
             const result = await response.json();
 
@@ -434,10 +437,10 @@ export default function CompanyLeadsPage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="max-w-6xl xl:max-w-7xl px-3 sm:px-4 lg:px-4 py-6">
                 {/* Header Section */}
-                <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
-                    <div className="flex justify-between items-start">
+                <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+                    <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
                         <div>
                             <h1 className="text-4xl font-bold text-gray-900 mb-2">OutBound Leads</h1>
                             <p className="text-gray-600 text-lg mb-4">
@@ -496,16 +499,16 @@ export default function CompanyLeadsPage() {
                             </div>
                         </div>
                         {/* State Selection */}
-                        <div className="mb-4">
+                        <div className="mb-4 w-full lg:w-full lg:max-w-xl lg:flex-shrink-0 relative">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Select State (Optional)
                             </label>
-                            <div className="flex space-x-2">
+                            <div className="flex items-center gap-2 min-w-0">
                                 <select
-                                    value={selectedState}
-                                    onChange={(e) => setSelectedState(e.target.value)}
+                                    value={selectedStates[0] || ""}
+                                    onChange={(e) => setSelectedStates(e.target.value ? [e.target.value] : [])}
                                     disabled={statesLoading}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                    className="flex-1 min-w-[260px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                                 >
                                     <option value="">Random State (All Available)</option>
                                     {availableStates.map((state) => (
@@ -515,6 +518,14 @@ export default function CompanyLeadsPage() {
                                     ))}
                                 </select>
                                 <button
+                                    type="button"
+                                    onClick={() => setMultiOpen(!multiOpen)}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50"
+                                    title="Select multiple states"
+                                >
+                                    {multiOpen ? "Done" : "Multi"}
+                                </button>
+                                <button
                                     onClick={fetchAvailableStates}
                                     disabled={statesLoading}
                                     className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
@@ -522,13 +533,67 @@ export default function CompanyLeadsPage() {
                                     {statesLoading ? "⏳" : "🔄"}
                                 </button>
                             </div>
+                            <p className="mt-2 text-sm text-blue-600">
+                                Selected State(s): {selectedStates.length > 0 ? selectedStates.join(", ") : "None"}
+                            </p>
+                            <div className="flex flex-wrap gap-3 mt-4 lg:space-x-4">
+                                {session?.user_type !== 3 && (
+                                    <button
+                                        onClick={() => setUploadModalOpen(true)}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 md:px-8 py-3 rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap min-w-[140px]"
+                                    >
+                                        📁 Upload CSV
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleGetLead}
+                                    disabled={dataLoading || (currentLead?.status === "pending")}
+                                    className={`px-4 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 shadow-sm whitespace-nowrap min-w-[140px] ${currentLead?.status === "pending"
+                                        ? "bg-gray-400 cursor-not-allowed"
+                                        : "bg-green-600 hover:bg-green-700 text-white"
+                                        }`}
+                                    style={{ margin: 0 }}
+                                >
+                                    {dataLoading ? "⏳ Loading..." :
+                                        currentLead?.status === "pending" ?
+                                            "⚠️ Update Status First" : "📞 Get Lead"}
+                                </button>
+                            </div>
+                            {multiOpen && (
+                                <div className="absolute z-20 mt-2 w-full max-h-64 overflow-auto rounded-md border border-gray-200 bg-white shadow">
+                                    <div className="p-2 text-xs text-gray-500">Select one or more states</div>
+                                    <ul className="max-h-52 overflow-auto">
+                                        {availableStates.map((s) => {
+                                            const checked = selectedStates.includes(s.state);
+                                            return (
+                                                <li key={s.state} className="px-3 py-2 hover:bg-gray-50 flex items-center gap-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="h-4 w-4"
+                                                        checked={checked}
+                                                        onChange={(e) => {
+                                                            setSelectedStates((prev) => {
+                                                                if (e.target.checked) return Array.from(new Set([...prev, s.state]));
+                                                                return prev.filter((st) => st !== s.state);
+                                                            });
+                                                        }}
+                                                    />
+                                                    <span className="text-sm">
+                                                        {s.state} <span className="text-gray-400">- {s.currentTime}</span>
+                                                    </span>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="flex space-x-4">
+                        {/* <div className="flex flex-wrap gap-3 lg:space-x-4">
                             {session?.user_type !== 3 && (
                                 <button
                                     onClick={() => setUploadModalOpen(true)}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-3 rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap min-w-[160px]"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 md:px-8 py-3 rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap min-w-[140px]"
                                 >
                                     📁 Upload CSV
                                 </button>
@@ -536,16 +601,16 @@ export default function CompanyLeadsPage() {
                             <button
                                 onClick={handleGetLead}
                                 disabled={dataLoading || (currentLead?.status === "pending")}
-                                className={`px-12 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 shadow-sm whitespace-nowrap min-w-[160px] ${currentLead?.status === "pending"
+                                className={`px-6 md:px-8 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 shadow-sm whitespace-nowrap min-w-[140px] ${currentLead?.status === "pending"
                                     ? "bg-gray-400 cursor-not-allowed"
                                     : "bg-green-600 hover:bg-green-700 text-white"
                                     }`}
                             >
                                 {dataLoading ? "⏳ Loading..." :
                                     currentLead?.status === "pending" ?
-                                        "⚠️ Update Status First" : selectedState ? `📞 Get ${selectedState} Lead` : "📞 Get Lead"}
+                                        "⚠️ Update Status First" : "📞 Get Lead"}
                             </button>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
 
@@ -553,7 +618,7 @@ export default function CompanyLeadsPage() {
                 {currentLead && (
                     <div className="company-lead-wrapper bg-white rounded-lg shadow p-6 mb-6">
                         {/* Header with action buttons */}
-                        <div className="flex justify-between items-start mb-6">
+                        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
                             <div>
                                 <h2 className="text-2xl font-bold text-gray-900">{currentLead.companyName}</h2>
                                 <p className="text-sm text-gray-500">
@@ -569,7 +634,7 @@ export default function CompanyLeadsPage() {
                                     <p className="text-sm text-gray-500">Assigned: {new Date(currentLead.assignedAt).toLocaleDateString()}</p>
                                 )}
                             </div>
-                            <div className="flex flex-wrap gap-2 items-center">
+                            <div className="flex flex-wrap gap-2 items-center md:justify-end">
                                 <div className="min-w-[200px]">
                                     <StatusDropdown
                                         onStatusSelect={handleStatusSelect}

@@ -27,7 +27,7 @@ export async function GET(req: Request) {
     const options = {
       limit: limit ? parseInt(limit, 10) : undefined,
       skip: skip ? parseInt(skip, 10) : undefined,
-      latest: latest === "true",
+      latest: true,
     } as const;
 
     // Get all leads from controller

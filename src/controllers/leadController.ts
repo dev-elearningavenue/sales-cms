@@ -92,6 +92,7 @@ export const getAllLeads = async (options?: {
       select: "full_name user_name",
     });
 
+    // console.log("Populations: ", options);
     const query = Lead.find()
       .sort(options?.latest === false ? { createdAt: 1 } : { createdAt: -1 })
       .skip(options?.skip ?? 0)

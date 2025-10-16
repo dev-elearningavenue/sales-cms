@@ -13,12 +13,12 @@ async function syncRacData() {
         // Use environment-based URL (with fallback)
         const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
             (process.env.NODE_ENV === 'production'
-                ? 'https://presale.oshanewsletter.com'
-                : 'http://localhost:3000');
+                ? `${process.env.PRODUCTION_URL}`
+                : `${process.env.LOCAL_URL}`);
         const apiUrl = `${baseUrl}/api/rac`;
         console.log(`📡 Hitting API: ${apiUrl}`);
         const response = await axios_1.default.get(apiUrl, {
-            timeout: 30000, // 30 second timeout
+            timeout: 30000,
             headers: {
                 'User-Agent': 'RAC-Cron-Job',
                 'Content-Type': 'application/json'

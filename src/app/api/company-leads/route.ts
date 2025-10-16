@@ -76,13 +76,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(result);
     }
 
-    // Get selected state from query params
+    // Get selected state(s) from query params
+    // Accept single param ?state=CA and multi param ?states=CA,HI or repeated ?state=CA&state=HI
     const selectedState = url.searchParams.get('state');
+    const statesCsv = url.searchParams.get('states');
+    const stateList = url.searchParams.getAll('state');
+
+    let selected: string | string[] | undefined = undefined;
+    if (stateList && stateList.length > 1) selected = stateList;
+    else if (statesCsv) selected = statesCsv.split(',').map(s => s.trim()).filter(Boolean);
+    else if (selectedState) selected = selectedState;
 
     const result = await getTimezoneBasedLead(
       tokenData._id as string, 
       (tokenData as any)?.assignedDomain || "", 
-      selectedState || undefined
+      selected
     );
     
     if (result.success) {

@@ -374,7 +374,11 @@ export async function getAvailableStates() {
 }
 
 // Get timezone-based lead with improved logic
-export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?: string, selectedState?: string) {
+export async function getTimezoneBasedLead(
+  userId?: string,
+  userAssignedDomain?: string,
+  selectedStateOrStates?: string | string[]
+) {
   try {
     
     const now = new Date();
@@ -382,82 +386,96 @@ export async function getTimezoneBasedLead(userId?: string, userAssignedDomain?:
     const businessHoursEnd = 20; // 7:00 PM
 
     let stateEntries = Object.entries(stateTimezones);
+
+    // Normalize selected states input
+    const selectedStates: string[] = Array.isArray(selectedStateOrStates)
+      ? selectedStateOrStates
+      : selectedStateOrStates
+      ? [selectedStateOrStates]
+      : [];
     
-    // If specific state is selected, prioritize it
-    if (selectedState) {
-      const selectedStateEntry = stateEntries.find(([stateName]) => stateName === selectedState);
-      if (selectedStateEntry) {
-        stateEntries = [selectedStateEntry, ...stateEntries.filter(([stateName]) => stateName !== selectedState)];
+    // If specific states are selected, prioritize them (in random order)
+    if (selectedStates.length > 0) {
+      const selectedSet = new Set(selectedStates);
+      const prioritized: [string, string][] = [];
+      const others: [string, string][] = [];
+      for (const e of stateEntries) {
+        if (selectedSet.has(e[0])) prioritized.push(e);
+        else others.push(e);
       }
+      // shuffle prioritized states so the first hit is random among user choices
+      prioritized.sort(() => Math.random() - 0.5);
+      stateEntries = [...prioritized, ...others];
     } else {
       // Randomize if no specific state selected
       stateEntries = stateEntries.sort(() => Math.random() - 0.5);
     }
     
-    // Check each state (prioritizing selected state if provided)
+    // Helper to fetch a lead from a specific state
+    async function tryFetchFromState(stateName: string, timezone: string) {
+      const stateTime = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
+      const stateHour = stateTime.getHours() + stateTime.getMinutes() / 60;
+      const isInBusinessHours = stateHour >= businessHoursStart && stateHour <= businessHoursEnd;
+      const isOneOfSelected = selectedStates.includes(stateName);
+
+      if (isInBusinessHours || isOneOfSelected) {
+        const lead = await CompanyLead.findOne({
+          state: stateName,
+          status: { $in: ["pending"] },
+          assigned: { $ne: true },
+          assignedAt: { $exists: false },
+          domain: "",
+          $or: [
+            { lastContacted: { $exists: false } },
+            { lastContacted: { $lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } }
+          ]
+        })
+          .populate('emails')
+          .sort({ createdAt: 1 });
+
+        if (lead) {
+          const updateData: any = {
+            lastContacted: new Date(),
+            updatedAt: new Date()
+          };
+          if (!lead.assigned && userId) {
+            updateData.assigned = true;
+            updateData.assignedTo = userId;
+            updateData.assignedAt = new Date();
+            if (userAssignedDomain) updateData.domain = userAssignedDomain;
+          }
+          const updatedLead = await CompanyLead.findByIdAndUpdate(lead._id, updateData, { new: true }).populate({ path: 'emails' });
+          return { success: true as const, lead: updatedLead, stateName };
+        }
+      }
+      return { success: false as const };
+    }
+
+    // 1) If user provided selected states, try them first. Do NOT fall back to other states if any selected states were provided.
+    if (selectedStates.length > 0) {
+      for (const [sName, tz] of stateEntries) {
+        if (!selectedStates.includes(sName)) continue;
+        try {
+          const res = await tryFetchFromState(sName, tz);
+          if (res.success) {
+            return { success: true, lead: res.lead, message: `Found lead in ${res.stateName}` };
+          }
+        } catch (err) {
+          continue;
+        }
+      }
+      return {
+        success: false,
+        message: `No leads available in selected states: ${selectedStates.join(', ')}`,
+        lead: null
+      };
+    }
+
+    // 2) Fall back to any state in business hours
     for (const [stateName, timezone] of stateEntries) {
       try {
-        const stateTime = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
-        const stateHour = stateTime.getHours() + stateTime.getMinutes() / 60;
-        
-        // Check if state is in business hours OR if it's the selected state
-        const isSelectedState = selectedState && stateName === selectedState;
-        const isInBusinessHours = stateHour >= businessHoursStart && stateHour <= businessHoursEnd;
-        
-        if (isInBusinessHours || isSelectedState) {
-          // console.log(`✅ ${stateName} - Current time: ${stateHour.toFixed(2)} - ${isSelectedState ? 'SELECTED STATE' : 'IN BUSINESS HOURS'}`);
-          
-          const lead = await CompanyLead.findOne({
-            state: stateName,
-            status: { $in: ["pending"] },
-            assigned: { $ne: true },
-            assignedAt: {$exists: false},
-            domain: "", //empty domain means non assigned.
-            $or: [
-              { lastContacted: { $exists: false } },
-              { lastContacted: { $lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } } // Not contacted in last 24 hours
-            ]
-          }).populate('emails').sort({ createdAt: 1 });
-          
-          if (lead) {
-            console.log(`🎯 Found lead in ${stateName}: ${lead.companyName}`);
-            
-            // Update lead with assignment and last contacted timestamp
-            const updateData: any = {
-              lastContacted: new Date(),
-              updatedAt: new Date()
-            };
-            
-            // Auto-assign if not already assigned
-            if (!lead.assigned && userId) {
-              updateData.assigned = true;
-              updateData.assignedTo = userId;
-              updateData.assignedAt = new Date();
-              if (userAssignedDomain) {
-                updateData.domain = userAssignedDomain;
-              }
-            }
-            
-            const updatedLead = await CompanyLead.findByIdAndUpdate(lead._id, updateData, { new: true }).populate({
-              path: "emails",
-            });
-            
-            return {
-              success: true,
-              lead: updatedLead,
-              message: `Found lead in ${stateName}`
-            };
-          } else {
-            // If this was the selected state and no leads found, don't continue to other states
-            if (isSelectedState) {
-              return {
-                success: false,
-                message: `No leads available in selected state: ${selectedState}`,
-                lead: null
-              };
-            }
-          }
-        }
+        const res = await tryFetchFromState(stateName, timezone);
+        if (res.success) return { success: true, lead: res.lead, message: `Found lead in ${stateName}` };
       } catch (error) {
         console.error(`Error checking ${stateName}:`, error);
         continue; // Continue with next state

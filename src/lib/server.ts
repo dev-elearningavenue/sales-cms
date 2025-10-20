@@ -1,6 +1,6 @@
 // src/lib/server.ts
 import dbConnect from "./db";
-import { watchCollections } from "./mongoListener";
+import { watchCollections } from "@/lib/mongoListener";
 
 let isInitialized = false;
 async function initServer() {

@@ -1,11 +1,12 @@
+import "@/lib/server";
+import "./globals.css";
+import Script from "next/script";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "./globals.css";
-import { Navbar } from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
-import { AppProvider } from "@/contexts/AppContext";
-import "@/lib/server";
+import { Navbar } from "./components/Navbar";
 import BackToTop from "./components/BackToTop";
+import { AppProvider } from "@/contexts/AppContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -53,6 +54,9 @@ export default function RootLayout({
               </main>
             </div>
           </div>
+          <Script id="chatbase-bootstrap" strategy="afterInteractive">
+            {`(function(){if(!window.chatbase||window.chatbase("getState")!=="initialized"){window.chatbase=(...arguments)=>{if(!window.chatbase.q){window.chatbase.q=[]}window.chatbase.q.push(arguments)};window.chatbase=new Proxy(window.chatbase,{get(target,prop){if(prop==="q"){return target.q}return(...args)=>target(prop,...args)}})}const onLoad=function(){const script=document.createElement("script");script.src="https://www.chatbase.co/embed.min.js";script.id="CK9lHcyXbyupaWGa5-wtb";script.domain="www.chatbase.co";document.body.appendChild(script)};if(document.readyState==="complete"){onLoad()}else{window.addEventListener("load",onLoad)}})();`}
+          </Script>
           <BackToTop />
         </AppProvider>
       </body>

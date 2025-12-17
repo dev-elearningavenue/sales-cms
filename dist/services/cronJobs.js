@@ -16,7 +16,7 @@ async function syncRacData() {
                 ? `${process.env.PRODUCTION_URL}`
                 : `${process.env.LOCAL_URL}`);
         const apiUrl = `${baseUrl}/api/rac`;
-        console.log(`📡 Hitting API: ${apiUrl}`);
+        console.log(`📡 Hitting API: ${apiUrl}`,new Date().toLocaleString('en-US'));
         const response = await axios_1.default.get(apiUrl, {
             timeout: 30000,
             headers: {
@@ -25,13 +25,6 @@ async function syncRacData() {
             }
         });
         const result = response.data;
-        // console.log("✅ RAC sync completed:", result.message, `(${result.totalInserted} total new records)`);
-        // Log individual website results
-        if (result.results && Array.isArray(result.results)) {
-            result.results.forEach((websiteResult) => {
-                console.log(`  📊 ${websiteResult.website}: ${websiteResult.inserted} carts`);
-            });
-        }
     }
     catch (error) {
         console.error("❌ RAC sync failed:", error.message || error);

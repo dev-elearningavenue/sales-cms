@@ -300,7 +300,6 @@ const Invoice = () => {
   // Load agent name from session using useApp hook
   const loadAgentName = () => {
     if (session?.full_name) {
-      // console.log("Agent Name: ", session.full_name);
       setInvoiceData((prev) => ({ ...prev, agentName: session.full_name }));
     }
   };
@@ -379,7 +378,6 @@ const Invoice = () => {
       if (response.ok) {
         if (result.exists) {
           setCustomerExists(true);
-          // console.log("User Found:", result);
           setFormData((prev) => ({
             ...prev,
             fullName: result.customer?.fullName || "",
@@ -430,7 +428,6 @@ const Invoice = () => {
           company: formData.company,
         };
 
-        // console.log("Creating new customer in db:", customerData);
       } else {
         // Existing customer data
         customerData = {
@@ -460,7 +457,6 @@ const Invoice = () => {
           ...prev,
           customerId: result.customerId,
         }));
-        // console.log("Customer processed successfully:", result);
       } else {
         throw new Error(
           result.error || result.message || "Failed to process customer"
@@ -889,7 +885,6 @@ const Invoice = () => {
           domain: getDomainFromSiteName(formData.siteName),
           conversion_value: finalTotal,
         };
-        // console.log("Creating invoice lead with data:", leadData);
         try {
           const leadResponse = await fetch("/api/leads", {
             method: "POST",
@@ -900,7 +895,6 @@ const Invoice = () => {
           });
 
           const leadResult = await leadResponse.json();
-          // console.log("Lead creation response:", leadResult);
 
           if (!leadResponse.ok) {
             console.error("Failed to create lead... ", leadResult);

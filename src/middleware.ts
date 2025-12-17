@@ -30,7 +30,7 @@ export async function middleware(req: NextRequest) {
       const result = await verifyToken(token);
       
       if (!result.success) {
-        console.log("Invalid token, redirecting to login");
+        console.log("Invalid token, redirecting to login at ", new Date().toLocaleString('en-US'));
         // Clear the invalid cookie
         const response = NextResponse.redirect(new URL("/login", req.url));
         response.cookies.set({

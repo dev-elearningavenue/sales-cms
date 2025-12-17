@@ -206,8 +206,6 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     // Verify authentication
-
-    
     const tokenData = await getDataFromToken();
     if (!tokenData || typeof tokenData !== "object" || !tokenData._id) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

@@ -516,7 +516,6 @@ const Leads = () => {
 
   // Handle course selection from dropdown
   const selectCourse = (course: any) => {
-    console.log(course);
     setCurrentCourse((prev) => ({
       ...prev,
       courseName: course.product_name,

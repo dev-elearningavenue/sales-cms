@@ -57,12 +57,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log(
-      `Sending email from (${smtpConfig.from}) to:`,
-      to,
-      "Subject:",
-      subject
-    );
+    // console.log(`Sending email from (${smtpConfig.from}) to:`,to,"Subject:",subject);
     // Use CKEditor HTML as-is to preserve list/quote structure.
     // Only convert newlines when the body is plain text.
     const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(body || "");
@@ -102,7 +97,7 @@ export async function POST(req: NextRequest) {
     };
 
     const emailResult = await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully:", emailResult.messageId);
+    // console.log("Email sent successfully:", emailResult.messageId);
 
     // Save email log to DB
     try {

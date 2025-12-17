@@ -137,8 +137,6 @@ async function processLeadsBatch(leads: any[], batchSize: number = 100) {
 // Upload CSV/XLSX data with parallel processing
 export async function uploadCSVData(file: File, state?: string, userId?: string, userAssignedDomain?: string) {
   try {
-    console.log(`Starting file upload: ${file.name}, size: ${file.size} bytes`);
-    
     // Check file size (50MB limit)
     if (file.size > 50 * 1024 * 1024) {
       return {
@@ -187,8 +185,7 @@ export async function uploadCSVData(file: File, state?: string, userId?: string,
     // Find the actual header row
     const headerRowIndex = findHeaderRow(data);
     const header = data[headerRowIndex].map(h => h.trim().toLowerCase());
-    console.log("Total rows to process:", data.length - headerRowIndex - 1);
-    
+   
     // Process data rows (skip header row and any empty rows before it)
     const leads: any[] = [];
     const errors: string[] = [];
@@ -295,10 +292,6 @@ export async function uploadCSVData(file: File, state?: string, userId?: string,
         }
         
         leads.push(lead);
-        
-        if (rowNumber % 1000 === 0) {
-          console.log(`Processed ${rowNumber} rows, created ${leads.length} leads`);
-        }
         
       } catch (error) {
         console.error(`Row ${rowNumber}: Error processing row:`, error);
@@ -649,7 +642,6 @@ export async function updateCompanyLead(id: string, newData: any, userId?: strin
           };
         }
       } else if (newData[key] !== undefined && newData[key] !== "") {
-        // console.log(`Updating field ${key}: ${newData[key]}`);
         mergedData[key] = newData[key];
       }
     });
@@ -757,7 +749,6 @@ export async function updateCompanyLeadStatus(
   userId?: string
 ) {
   try {
-    // console.log("Status Data:", JSON.stringify(statusData, null, 2));
     const lead = await CompanyLead.findById(leadId);
     if (!lead) {
       return { success: false, message: "Lead not found" };
@@ -830,7 +821,6 @@ export async function updateCompanyLeadStatus(
     let emailResult = null;
     if (statusData.emailData?.send && statusData.emailData.from && statusData.emailData.to) {
       try {
-        // console.log("Sending email with domain:", statusData);
         // Extract domain from email to get SMTP config
         const emailDomain = statusData.emailData.from.split('@')[1];
         let domain = "";
@@ -843,14 +833,6 @@ export async function updateCompanyLeadStatus(
         };
         
         domain = domainMapping[emailDomain] || "OOR";
-        
-        // console.log("Sending email with domain:", domain);
-        // console.log("Email data:", {
-        //   to: statusData.emailData.to,
-        //   subject: statusData.emailData.subject,
-        //   body: statusData.emailData.body,
-        //   domain: domain
-        // });
         
         // Get user-specific SMTP config instead of domain config
         // Fetch real user data from database using userId

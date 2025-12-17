@@ -294,16 +294,14 @@ export const processExistingCustomer = async (
       send_invoice: customerData.send_invoice || 0,
     };
 
-    console.log("Calling stripe API for existing customer:", externalApiData);
+    console.log("Calling stripe API for existing customer:", externalApiData, "at ", new Date().toLocaleString('en-US'));
     const externalResult = await stripeCustomerAPI(externalApiData);
 
     if (!externalResult.success) {
       console.error("Stripe API failed:", externalResult.error);
       throw new Error(`Stripe API error: ${externalResult.error}`);
     }
-
-    console.log("Stripe API success, customerId:", externalResult.customerId);
-
+    
     return {
       success: true,
       customerId: externalResult.customerId, // Return external API customerId

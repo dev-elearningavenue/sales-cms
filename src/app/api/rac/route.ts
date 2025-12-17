@@ -91,12 +91,10 @@ export async function GET(req: NextRequest) {
     // Process each website with 1-second delay
     for (let i = 0; i < WEBSITES.length; i++) {
       const website = WEBSITES[i];
-      console.log(`Processing ${website.name}...`);
       
       try {
         // 1. Get latest order_id and createdAt from local DB for this domain
         const latestCartInfo = await getLatestCartInfo(website.domain);
-        console.log(`${website.name} latestCartInfo:`, latestCartInfo);
         
         const lastorderid = (latestCartInfo as any)?.order_id ?? undefined;
         const lastdate = (latestCartInfo as any)?.createdAt ?? undefined;
@@ -116,7 +114,6 @@ export async function GET(req: NextRequest) {
         // 3. Fetch from external API
         const extRes = await axios.get(url, { timeout: 20000 });
         const rac_data = extRes.data?.rac_data || [];
-        console.log(`${website.name} found ${rac_data.length} carts`);
 
         if (!Array.isArray(rac_data) || rac_data.length === 0) {
           results.push({
@@ -149,7 +146,7 @@ export async function GET(req: NextRequest) {
           message: `Inserted ${inserted} new carts`
         });
         
-        console.log(`✅ ${website.name}: ${inserted} carts inserted`);
+        console.log(`✅ ${website.name}: ${inserted} carts inserted at `, new Date().toLocaleString('en-US'));
         
       } catch (error: any) {
         console.error(`❌ Error processing ${website.name}:`, error.message);
@@ -162,7 +159,6 @@ export async function GET(req: NextRequest) {
       
       // Wait 1 second before processing next website (except for the last one)
       if (i < WEBSITES.length - 1) {
-        console.log(`⏳ Waiting 1 second before next website...`);
         await sleep(1000);
       }
     }

@@ -14,7 +14,6 @@ async function syncRacData() {
         : 'http://localhost:3000');
     
     const apiUrl = `${baseUrl}/api/rac`;
-    console.log(`📡 Hitting API: ${apiUrl}`);
     
     const response = await axios.get(apiUrl, {
       timeout: 30000, // 30 second timeout
@@ -24,15 +23,6 @@ async function syncRacData() {
       }
     });
     
-    const result = response.data;
-    // console.log("✅ RAC sync completed:", result.message, `(${result.totalInserted} total new records)`);
-    
-    // Log individual website results
-    if (result.results && Array.isArray(result.results)) {
-      result.results.forEach((websiteResult: any) => {
-        console.log(`  📊 ${websiteResult.website}: ${websiteResult.inserted} carts`);
-      });
-    }
   } catch (error: any) {
     console.error("❌ RAC sync failed:", error.message || error);
     if (error.response) {
@@ -55,7 +45,4 @@ async function syncRacData() {
     await syncRacData();
   });
   
-  console.log("📅 Cron jobs started:");
-  // console.log("  - Invoice status updater: Every minute");
-  // console.log("  - RAC data sync: Every 15 minutes");
 })();

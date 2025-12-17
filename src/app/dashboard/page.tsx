@@ -192,7 +192,7 @@ export default function DashboardPage() {
 
   // If no session & not loading, redirect to login
   if (!session) {
-    console.log("Session unavailable in dashboard.");
+    // console.log("Session unavailable in dashboard.");
     router.replace("/login");
     return null;
   }

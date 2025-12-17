@@ -131,7 +131,7 @@ export default function CompanyLeadDetailsPage() {
             // Then, send the email if email fields are filled
             if (data.emailTo && data.emailSubject && data.emailBody) {
                 const domain = domainShortCodes[(session as any)?.assignedDomain];
-                console.log("Sending email with domain: ", domain);
+                // console.log("Sending email with domain: ", domain);
 
                 const emailResponse = await fetch("/api/send-email", {
                     method: "POST",

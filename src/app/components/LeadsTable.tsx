@@ -30,6 +30,20 @@ interface User {
   user_type: number;
 }
 
+// Server-side pagination interface
+interface ServerPaginationProps {
+  currentPage: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  assignedToFilter?: string;
+  searchQuery?: string;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+  onAssignedToChange?: (assignedTo: string) => void;
+  onSearchChange?: (search: string) => void;
+}
+
 interface LeadsTableProps {
   leads: ILead[];
   onAssign?: (
@@ -45,6 +59,7 @@ interface LeadsTableProps {
   onBatchDelete?: (leadIds: string[]) => Promise<boolean>;
   onRefresh?: () => Promise<void>;
   onViewDetails?: (lead: ILead) => void;
+  serverPagination?: ServerPaginationProps;
 }
 
 const LeadsTable: React.FC<LeadsTableProps> = ({
@@ -58,10 +73,35 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   onBatchDelete,
   onRefresh,
   onViewDetails,
+  serverPagination,
 }) => {
   const { session, addNotification } = useApp();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(50);
+
+  // Use server pagination if provided, otherwise use local state
+  const [localCurrentPage, setLocalCurrentPage] = useState(1);
+  const [localItemsPerPage, setLocalItemsPerPage] = useState(50);
+
+  // Determine which pagination to use
+  const isServerPaginated = !!serverPagination;
+  const currentPage = isServerPaginated ? serverPagination.currentPage : localCurrentPage;
+  const itemsPerPage = isServerPaginated ? serverPagination.pageSize : localItemsPerPage;
+
+  const setCurrentPage = (page: number) => {
+    if (isServerPaginated) {
+      serverPagination.onPageChange(page);
+    } else {
+      setLocalCurrentPage(page);
+    }
+  };
+
+  const setItemsPerPage = (size: number) => {
+    if (isServerPaginated) {
+      serverPagination.onPageSizeChange(size);
+    } else {
+      setLocalItemsPerPage(size);
+      setLocalCurrentPage(1); // Reset to page 1
+    }
+  };
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     paymentStatus: ["Unpaid"],
@@ -74,6 +114,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     assignedTo: "",
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [isDbSearchActive, setIsDbSearchActive] = useState(false); // Track if showing DB search results
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [showBatchAssignModal, setShowBatchAssignModal] = useState(false);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
@@ -110,37 +151,27 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     }
   };
 
-  // Fetch available users for assignment
-  useEffect(() => {
-    if (session?.user_type === 1 || session?.user_type === 2) {
-      fetchAvailableUsers();
-    }
+  // Fetch available users for assignment - ONLY ONCE when session is available
+  const [usersFetched, setUsersFetched] = useState(false);
 
-    // Comment out polling for lead assignment status updates
-    // const pollInterval = setInterval(() => {
-    //   checkAssignmentUpdates();
-    // }, 10000); // Poll every 10 seconds
-
-    // return () => clearInterval(pollInterval);
-  }, [session, leads]);
-
-  // Additional effect to refresh users when batch modal opens or component mounts
   useEffect(() => {
     if (
-      (showBatchAssignModal || availableUsers.length === 0) &&
-      (session?.user_type === 1 || session?.user_type === 2) &&
-      !loadingUsers &&
-      session
+      session &&
+      (session.user_type === 1 || session.user_type === 2) &&
+      !usersFetched &&
+      !loadingUsers
     ) {
       fetchAvailableUsers();
+      setUsersFetched(true);
     }
-  }, [showBatchAssignModal, session]);
+  }, [session, usersFetched, loadingUsers]);
 
+  // Refresh users only when batch modal opens (if needed)
   useEffect(() => {
-    if (session && (session.user_type === 1 || session.user_type === 2) && availableUsers.length === 0) {
+    if (showBatchAssignModal && availableUsers.length === 0 && !loadingUsers) {
       fetchAvailableUsers();
     }
-  }, [session]);
+  }, [showBatchAssignModal]);
 
   // Function to fetch users with lower type than current user
   const fetchAvailableUsers = async () => {
@@ -228,7 +259,9 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   // Filter leads based on search query and other filters
   const filteredLeads = leads.filter((lead) => {
 
-    if (searchQuery) {
+    // Search filter - only run on frontend if NOT showing DB search results
+    // When isDbSearchActive, server already filtered the results
+    if (searchQuery && !isDbSearchActive) {
 
       const nameMatch = lead.fullname
         ?.toLowerCase()
@@ -275,8 +308,8 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     // Status filter
     if (filters.status && lead.status !== filters.status) return false;
 
-    // Assignment filter
-    if (filters.assignedTo) {
+    // Assignment filter (only for client-side pagination, server handles it otherwise)
+    if (!isServerPaginated && filters.assignedTo) {
       if (filters.assignedTo === "unassigned") {
         if (lead.assigned_to) return false;
       } else if (filters.assignedTo === "assigned") {
@@ -291,11 +324,32 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     return true;
   });
 
-  // Pagination calculation
-  const totalPages = Math.ceil(filteredLeads.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, filteredLeads.length);
-  const currentLeads = filteredLeads.slice(startIndex, endIndex);
+  // Pagination calculation - different logic for server vs client pagination
+  const totalPages = isServerPaginated
+    ? serverPagination.totalPages
+    : Math.ceil(filteredLeads.length / itemsPerPage);
+
+  const totalCount = isServerPaginated
+    ? serverPagination.totalCount
+    : filteredLeads.length;
+
+  // For server pagination, leads are already paginated - no slicing needed
+  // For client pagination, slice the filtered leads
+  const startIndex = isServerPaginated ? 0 : (currentPage - 1) * itemsPerPage;
+  const endIndex = isServerPaginated
+    ? filteredLeads.length
+    : Math.min(startIndex + itemsPerPage, filteredLeads.length);
+  const currentLeads = isServerPaginated
+    ? filteredLeads
+    : filteredLeads.slice(startIndex, endIndex);
+
+  // Calculate display values for "Showing X-Y of Z"
+  const displayStart = isServerPaginated
+    ? (currentPage - 1) * itemsPerPage + 1
+    : startIndex + 1;
+  const displayEnd = isServerPaginated
+    ? Math.min(currentPage * itemsPerPage, totalCount)
+    : endIndex;
 
   const handleFilterChange = (category: string, value: string) => {
     setFilters((prev) => {
@@ -633,33 +687,72 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
         {/* Search, Filters and Pagination Row*/}
         <div className="filter-section flex flex-col text-xs md:flex-row md:items-center md:justify-between mb-4 gap-3">
           <div className="flex gap-3 flex-grow">
-            <div className="relative flex-grow">
+            <form
+              className="relative flex-grow"
+              onSubmit={(e) => {
+                e.preventDefault();
+                // Search in DB on form submit
+                if (isServerPaginated && serverPagination.onSearchChange && searchQuery.trim()) {
+                  serverPagination.onSearchChange(searchQuery.trim());
+                  setIsDbSearchActive(true);
+                }
+              }}
+            >
               <input
                 type="text"
                 placeholder="Search by name, email, status, domain, or assigned user"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-12 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={searchQuery}
                 onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
+                  const newValue = e.target.value;
+                  setSearchQuery(newValue);
+
+                  // If DB search was active and user starts typing/clearing
+                  if (isDbSearchActive) {
+                    // Reset to original data (clear server search)
+                    if (isServerPaginated && serverPagination.onSearchChange) {
+                      serverPagination.onSearchChange("");
+                    }
+                    setIsDbSearchActive(false);
+                  }
+
+                  // Reset to page 1 locally for frontend filtering
+                  setLocalCurrentPage(1);
                 }}
               />
               <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-            </div>
+              {/* DB Search Button - searches entire database */}
+              {isServerPaginated && serverPagination.onSearchChange && (
+                <button
+                  type="submit"
+                  className={`absolute right-2 top-1.5 p-1 ${isDbSearchActive ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'} text-white rounded transition-colors`}
+                  title={isDbSearchActive ? "DB search active - type to reset" : "Search in entire database (or press Enter)"}
+                >
+                  <Search className="h-4 w-4" />
+                </button>
+              )}
+            </form>
 
             {/* Assignment Dropdown */}
             {session && (session.user_type === 1 || session.user_type === 2) && (
               <div className="relative">
                 <select
-                  value={filters.assignedTo}
+                  value={isServerPaginated ? (serverPagination.assignedToFilter || "") : filters.assignedTo}
                   onChange={(e) => {
-                    handleFilterChange("assignedTo", e.target.value);
-                    setCurrentPage(1);
+                    const value = e.target.value;
+                    if (isServerPaginated && serverPagination.onAssignedToChange) {
+                      // Server-side filtering - call API with filter
+                      serverPagination.onAssignedToChange(value);
+                    } else {
+                      // Client-side filtering
+                      handleFilterChange("assignedTo", value);
+                      setCurrentPage(1);
+                    }
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white min-w-[150px]"
                 >
                   <option value="">All Leads</option>
-                  <option value="unassigned">Unassigned</option>
+                  <option value="Unassigned">Unassigned</option>
                   <option value="assigned">Assigned</option>
                   {availableUsers.map((user) => (
                     <option key={user._id} value={user._id}>
@@ -681,7 +774,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
 
           {/* Pagination Summary */}
           <div className="text-xs text-gray-600">
-            Showing {startIndex + 1}-{endIndex} of {filteredLeads.length} leads
+            Showing {displayStart}-{displayEnd} of {totalCount} leads
           </div>
 
           <div className="flex text-xs items-center gap-2">
@@ -695,7 +788,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
             <button
               className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
               disabled={currentPage === 1}
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -738,9 +831,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
             <button
               className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
               disabled={currentPage === totalPages || totalPages === 0}
-              onClick={() =>
-                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-              }
+              onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
             >
               <ChevronRight className="h-5 w-5" />
             </button>

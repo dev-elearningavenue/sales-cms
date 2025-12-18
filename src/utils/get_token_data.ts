@@ -1,14 +1,31 @@
 // utils/get_token_data.ts
 
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { verifyToken } from './auth';
 
 export async function getDataFromToken() {
+  let token: string | undefined;
+
+  // Method 1: Try to get token from cookies (browser requests)
   const cookieStore = cookies();
-  const token = cookieStore.get('token')?.value;
-  
+  token = cookieStore.get('token')?.value;
+
+  // Method 2: If no cookie, try Authorization header (Postman/API requests)
   if (!token) {
-    // throw new Error('No token found');
+    const headersList = headers();
+    const authHeader = headersList.get('authorization');
+    
+    if (authHeader) {
+      // Support both "Bearer <token>" and raw token
+      if (authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      } else {
+        token = authHeader;
+      }
+    }
+  }
+
+  if (!token) {
     return null;
   }
 

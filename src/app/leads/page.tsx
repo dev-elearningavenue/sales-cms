@@ -1,6 +1,6 @@
 // src/app/leads/page.tsx
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { LoadingSkeleton } from "../components/LoadingSkeleton";
 import LeadsTable from "@/components/LeadsTable";
 import Head from "next/head";
@@ -25,6 +25,31 @@ const Leads = () => {
   const [backgroundLoading, setBackgroundLoading] = useState(false);
   const { session, addNotification } = useApp();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  // ============ PAGINATION STATE ============
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  // ============ LEADS CACHE (using refs for immediate access) ============
+  const cacheRef = useRef<{
+    leads: ILead[];
+    highestPage: number;
+    pageSize: number;
+    filter: string;
+    search: string;
+  }>({
+    leads: [],
+    highestPage: 0,
+    pageSize: 50,
+    filter: "",
+    search: "",
+  });
+
+  // ============ SERVER FILTER STATE ============
+  const [assignedToFilter, setAssignedToFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Add state for View Details modal (only for user types 1 and 2)
   const [selectedLead, setSelectedLead] = useState<ILead | null>(null);
@@ -65,6 +90,9 @@ const Leads = () => {
       // Check if this lead already exists in our list
       if (!leads.some((lead) => lead._id === newLead._id)) {
         setLeads((prevLeads) => [newLead, ...prevLeads]);
+        // Also update cache ref
+        cacheRef.current.leads = [newLead, ...cacheRef.current.leads];
+        setTotalCount((prev) => prev + 1);
         addNotification({
           message: `New lead added: ${getLeadName(newLead)}`,
           read: false,
@@ -76,19 +104,20 @@ const Leads = () => {
     onLeadAssigned: (data) => {
       const updatedLead = data.lead;
       // Update lead assignment status
-      setLeads((prevLeads) =>
-        prevLeads.map((lead) => {
-          if (lead._id === updatedLead._id) {
-            return {
-              ...lead,
-              assigned: true,
-              assigned_to: updatedLead.assigned_to,
-              assignedAt: updatedLead.assignedAt,
-            };
-          }
-          return lead;
-        })
-      );
+      const updateLead = (lead: ILead) => {
+        if (lead._id === updatedLead._id) {
+          return {
+            ...lead,
+            assigned: true,
+            assigned_to: updatedLead.assigned_to,
+            assignedAt: updatedLead.assignedAt,
+          };
+        }
+        return lead;
+      };
+      setLeads((prevLeads) => prevLeads.map(updateLead));
+      // Update cache ref
+      cacheRef.current.leads = cacheRef.current.leads.map(updateLead);
     },
     onLeadDeleted: (data) => {
       const deletedLeadId = data.leadId;
@@ -96,6 +125,11 @@ const Leads = () => {
       setLeads((prevLeads) =>
         prevLeads.filter((lead) => lead._id !== deletedLeadId)
       );
+      // Update cache ref
+      cacheRef.current.leads = cacheRef.current.leads.filter(
+        (lead) => lead._id !== deletedLeadId
+      );
+      setTotalCount((prev) => Math.max(0, prev - 1));
     },
   });
 
@@ -132,35 +166,115 @@ const Leads = () => {
     }
   };
 
-  const fetchLeads = async (isRefresh: boolean = false) => {
+  // Helper: Filter out Contact Us with form=2
+  const filterLeads = (leadsToFilter: ILead[]) => {
+    return leadsToFilter.filter((lead: ILead) => {
+      if (
+        lead.category === "Contact Us" &&
+        lead.contact_us &&
+        typeof lead.contact_us === "object" &&
+        (lead.contact_us as any).form === 2
+      ) {
+        return false;
+      }
+      return true;
+    });
+  };
+
+  const fetchLeads = async (
+    isRefresh: boolean = false,
+    page: number = currentPage,
+    size: number = pageSize,
+    assignedTo: string = assignedToFilter,
+    search: string = searchQuery,
+    forceRefresh: boolean = false
+  ) => {
+    const cache = cacheRef.current;
+
+    // ============ CACHE INVALIDATION CONDITIONS ============
+    const filterChanged = assignedTo !== cache.filter;
+    const searchChanged = search !== cache.search;
+    const pageSizeChanged = size !== cache.pageSize;
+    const shouldClearCache = forceRefresh || filterChanged || searchChanged || pageSizeChanged;
+
+    if (shouldClearCache) {
+      // Clear cache
+      cache.leads = [];
+      cache.highestPage = 0;
+      cache.pageSize = size;
+      cache.filter = assignedTo;
+      cache.search = search;
+    }
+
+    // ============ CHECK IF WE CAN SERVE FROM CACHE ============
+    const startIndex = (page - 1) * size;
+    const endIndex = startIndex + size;
+    const cachedLeadsForPage = cache.leads.slice(startIndex, endIndex);
+
+    // Can serve from cache if:
+    // 1. We have leads for this page range
+    // 2. OR it's the last page and we have some leads (partial page)
+    const hasFullPage = cachedLeadsForPage.length === size;
+    const isLastPageWithData = cache.leads.length > startIndex && cache.leads.length <= endIndex;
+
+    if (!shouldClearCache && (hasFullPage || isLastPageWithData) && page <= cache.highestPage) {
+      setLeads(cachedLeadsForPage);
+      setCurrentPage(page);
+      setPageSize(size);
+      return;
+    }
+
     try {
       if (isRefresh) {
         setBackgroundLoading(true);
       } else {
         setLoading(true);
       }
-      const res = await fetch("/api/leads");
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: size.toString(),
+      });
+      if (assignedTo) {
+        params.set("assignedTo", assignedTo);
+      }
+      if (search) {
+        params.set("search", search);
+      }
+
+      const res = await fetch(`/api/leads?${params.toString()}`);
       const data = await res.json();
+
       if (!Array.isArray(data.leads)) {
         console.error(data);
         setLeads([]);
         return;
       }
 
-      const filteredLeads = data.leads.filter((lead: ILead) => {
-        // Exclude leads that are Contact Us category with form=2
-        if (
-          lead.category === "Contact Us" &&
-          lead.contact_us &&
-          typeof lead.contact_us === "object" &&
-          (lead.contact_us as any).form === 2
-        ) {
-          return false;
-        }
-        return true;
-      });
+      const filteredLeads = filterLeads(data.leads);
+
+      // ============ UPDATE CACHE ============
+      if (shouldClearCache || page === 1) {
+        // Fresh cache
+        cache.leads = filteredLeads;
+        cache.highestPage = 1;
+      } else if (page > cache.highestPage) {
+        // Append to cache (forward navigation)
+        cache.leads = [...cache.leads, ...filteredLeads];
+        cache.highestPage = page;
+      }
+
+      // Update cache metadata
+      cache.pageSize = size;
+      cache.filter = assignedTo;
+      cache.search = search;
 
       setLeads(filteredLeads);
+      setTotalCount(data.total || 0);
+      setTotalPages(data.totalPages || 1);
+      setCurrentPage(page);
+      setPageSize(size);
+      setAssignedToFilter(assignedTo);
+      setSearchQuery(search);
       setLastFetchTime(new Date());
     } catch (error) {
       console.error("Error fetching leads:", error);
@@ -713,10 +827,33 @@ const Leads = () => {
             onCreateClick={() => setIsCreateModalOpen(true)}
             onDelete={handleDelete}
             onBatchDelete={handleBatchDelete}
-            onRefresh={() => fetchLeads(true)}
+            onRefresh={() => fetchLeads(true, 1, pageSize, assignedToFilter, searchQuery, true)}
             onViewDetails={(lead) => {
               setSelectedLead(lead);
               setIsModalOpen(true);
+            }}
+            // Server-side pagination props
+            serverPagination={{
+              currentPage,
+              pageSize,
+              totalCount,
+              totalPages,
+              assignedToFilter,
+              searchQuery,
+              onPageChange: (page) => fetchLeads(true, page, pageSize, assignedToFilter, searchQuery),
+              onPageSizeChange: (size) => {
+                setPageSize(size);
+                fetchLeads(true, 1, size, assignedToFilter, searchQuery);
+              },
+              onAssignedToChange: (assignedTo) => {
+                setAssignedToFilter(assignedTo);
+                fetchLeads(true, 1, pageSize, assignedTo, searchQuery);
+              },
+              onSearchChange: (search) => {
+                setSearchQuery(search);
+                // Use isRefresh=true to avoid showing skeleton and unmounting LeadsTable
+                fetchLeads(true, 1, pageSize, assignedToFilter, search);
+              },
             }}
           />
         )}

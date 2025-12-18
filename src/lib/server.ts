@@ -14,8 +14,10 @@ async function initServer() {
   isInitializing = true;
 
   try {
+    // Connect to DB first (for Mongoose models used in mongoListener)
     await dbConnect();
     
+    // Then start MongoDB change stream watchers
     await watchCollections();
     
     isInitialized = true;

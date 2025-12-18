@@ -44,79 +44,93 @@ export const resolve_status_enum = [
 
 // Reusability:
 // Agar aapko similar logic multiple jagah pe chahiye ho, toh aap controller functions ko import karke reuse kar sakte hain.
+
+// Mongoose will simply return null for unpopulated fields - this is much faster
+const LEAD_POPULATIONS = [
+  { path: "free_signup", model: "Customer" },
+  { path: "contact_us", model: "Contact" },
+  { path: "abandoned_cart", model: "AbandonedCart" },
+  { path: "scholarship", model: "Scholarship" },
+  { path: "order_creation", model: "OrderCreation" },
+  { path: "custom_lead", model: "CustomLead" },
+  { path: "shortcourse_discount", model: "ShortCourseDiscount" },
+  { path: "invoice", model: "Invoice" },
+  { path: "assigned_to", model: "User", select: "full_name user_name" },
+];
+
 export const getAllLeads = async (options?: {
   limit?: number;
   skip?: number;
   latest?: boolean;
+  category?: string;
+  assignedTo?: string;
+  search?: string;
 }) => {
-  // console.log("Inside getAllLeads function");
   try {
-    const populations = [];
-    if (await Lead.exists({ free_signup: { $ne: null } })) {
-      populations.push({ path: "free_signup", model: "Customer" });
-    }
-    if (await Lead.exists({ contact_us: { $ne: null } })) {
-      populations.push({ path: "contact_us", model: "Contact" });
-    }
-    if (await Lead.exists({ abandoned_cart: { $ne: null } })) {
-      populations.push({ path: "abandoned_cart", model: "AbandonedCart" });
-    }
-    if (await Lead.exists({ scholarship: { $ne: null } })) {
-      populations.push({ path: "scholarship", model: "Scholarship" });
-    }
-    if (await Lead.exists({ order_creation: { $ne: null } })) {
-      populations.push({ 
-        path: "order_creation", 
-        model: "OrderCreation",
-        // populate: {
-        //   path: "user",
-        //   model: "User",
-        //   select: "user_name full_name",
-        //   options: { strictPopulate: false }
-        // }
-      });
-    }
-    if (await Lead.exists({ custom_lead: { $ne: null } })) {
-      populations.push({ path: "custom_lead", model: "CustomLead" });
-    }
-    if (await Lead.exists({ shortcourse_discount: { $ne: null } })) {
-      populations.push({ path: "shortcourse_discount", model: "ShortCourseDiscount" });
-    }
-    if (await Lead.exists({ invoice: { $ne: null } })) {
-      populations.push({ path: "invoice", model: "Invoice" });
-    }
-    // Add assigned_to population
-    populations.push({
-      path: "assigned_to",
-      model: "User",
-      select: "full_name user_name",
-    });
+    // Default pagination: 50 records (smallest option from UI)
+    const limit = options?.limit ?? 50;
+    const skip = options?.skip ?? 0;
 
-    // console.log("Populations: ", options);
-    const query = Lead.find()
+    // Build query filter
+    const filter: any = {};
+    if (options?.category) {
+      filter.category = options.category;
+    }
+
+    // Assignment filter
+    if (options?.assignedTo) {
+      if (options.assignedTo.toLowerCase() === "unassigned") {
+        filter.assigned_to = null ;
+      } else if (options.assignedTo.toLowerCase() === "assigned") {
+        filter.assigned_to = { $exists: true, $ne: null };
+      } else {
+        // Specific user ID
+        filter.assigned_to = options.assignedTo;
+      }
+    }
+
+    // Search filter - search across multiple fields
+    if (options?.search && options.search.trim()) {
+      const searchRegex = new RegExp(options.search.trim(), "i");
+      filter.$or = [
+        { fullname: searchRegex },
+        { email: searchRegex },
+        { contactNo: searchRegex },
+        { category: searchRegex },
+        { domain: searchRegex },
+        { status: searchRegex },
+      ];
+    }
+
+    // Get total count FIRST (single fast query with no population)
+    const totalCount = await Lead.countDocuments(filter);
+
+    // Then get paginated leads with population
+    const leads = await Lead.find(filter)
       .sort(options?.latest === false ? { createdAt: 1 } : { createdAt: -1 })
-      .skip(options?.skip ?? 0)
-      .limit(options?.limit ?? 500)
-      // send only the fields needed by UI to reduce payload size
-      .select(
-        "category email fullname contactNo status resolve_status assigned assigned_to invoice createdAt domain next_follow_up notes free_signup contact_us abandoned_cart scholarship order_creation custom_lead shortcourse_discount"
-      )
-      .populate(populations)
+      .skip(skip)
+      .limit(limit)
+      .populate(LEAD_POPULATIONS)
       .lean();
 
-    const leads = await query;
-
-    if (!leads || leads.length === 0) {
-      return { message: "No leads found", leads: [] };
-    }
-    // console.log("Leads: ", leads);
-    return { message: "All leads fetched successfully", total: leads.length, leads };
+    return { 
+      message: "All leads fetched successfully", 
+      leads,
+      total: totalCount,           // Total records in DB (for pagination UI)
+      showing: leads.length,       // Records returned in this page
+      page: Math.floor(skip / limit) + 1,
+      pageSize: limit,
+      totalPages: Math.ceil(totalCount / limit),
+      hasMore: skip + leads.length < totalCount,
+    };
   } catch (error: any) {
-    console.error("Error caught: ", error);
+    console.error("Error fetching leads:", error.message);
     return {
       error: "Failed to fetch leads",
       details: error.message,
       leads: [],
+      total: 0,
+      showing: 0,
     };
   }
 };
@@ -300,54 +314,28 @@ export const createLead = async (requestBody: Partial<ILead>) => {
 
 export const getLeadsByUser = async (userId: string) => {
   try {
-    // console.log("UserId: ", userId);
-    const populations = [];
-    if (await Lead.exists({ free_signup: { $ne: null } })) {
-      populations.push({ path: "free_signup", model: "Customer" });
-    }
-    if (await Lead.exists({ contact_us: { $ne: null } })) {
-      populations.push({ path: "contact_us", model: "Contact" });
-    }
-    if (await Lead.exists({ abandoned_cart: { $ne: null } })) {
-      populations.push({ path: "abandoned_cart", model: "AbandonedCart" });
-    }
-    if (await Lead.exists({ scholarship: { $ne: null } })) {
-      populations.push({ path: "scholarship", model: "Scholarship" });
-    }
-    if (await Lead.exists({ order_creation: { $ne: null } })) {
-      populations.push({ path: "order_creation", model: "OrderCreation" });
-    }
-    if (await Lead.exists({ custom_lead: { $ne: null } })) {
-      populations.push({ path: "custom_lead", model: "CustomLead" });
-    }
-    if (await Lead.exists({ shortcourse_discount: { $ne: null } })) {
-      populations.push({ path: "shortcourse_discount", model: "ShortCourseDiscount" });
-    }
-    if (await Lead.exists({ invoice: { $ne: null } })) {
-      populations.push({ path: "invoice", model: "Invoice" });
-    }
-    // Add assigned_to population - this was missing!
-    populations.push({
-      path: "assigned_to",
-      model: "User",
-      select: "full_name",
-    });
-
-    const leads = await Lead.find({
-      assigned_to: userId,
-    }).populate(populations);
+    // OPTIMIZED: Use static populations array instead of 8 separate exists() queries
+    const leads = await Lead.find({ assigned_to: userId })
+      .sort({ createdAt: -1 })
+      .populate(LEAD_POPULATIONS)
+      .lean();
 
     if (!leads || leads.length === 0) {
-      return { message: "No leads found for this user", leads: [] };
+      return { message: "No leads found for this user", leads: [], total: 0 };
     }
-    // console.log("User Leads: ",leads);
-    return { message: "Leads fetched successfully", leads };
+
+    return { 
+      message: "Leads fetched successfully", 
+      leads,
+      total: leads.length 
+    };
   } catch (error: any) {
-    console.error("Error fetching getLeadsByUser", error);
+    console.error("Error fetching getLeadsByUser:", error.message);
     return {
       error: "Failed to fetch My Leads",
       details: error.message,
       leads: [],
+      total: 0,
     };
   }
 };

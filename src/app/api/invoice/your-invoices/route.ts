@@ -16,9 +16,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Invalid authentication" }, { status: 401 });
     }
     const userData = tokenResult.data as unknown as TokenPayload;
-    // Fetch invoices created by this agent
-    const invoices = await getInvoicesByAgent(userData._id);
-    return NextResponse.json({ success: true, invoices });
+    
+    // Parse query parameters for pagination
+    const url = new URL(request.url);
+    const page = parseInt(url.searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(url.searchParams.get("pageSize") || "50", 10);
+    
+    // Fetch invoices created by this agent with pagination
+    const result = await getInvoicesByAgent(userData._id, { page, pageSize });
+    
+    return NextResponse.json({ 
+      success: true, 
+      invoices: result.invoices,
+      total: result.total,
+      page: result.page,
+      pageSize: result.pageSize,
+      totalPages: result.totalPages,
+    });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message || "Internal server error" }, { status: 500 });
   }

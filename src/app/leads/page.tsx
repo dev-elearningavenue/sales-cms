@@ -832,6 +832,7 @@ const Leads = () => {
               setSelectedLead(lead);
               setIsModalOpen(true);
             }}
+            isLoading={backgroundLoading}
             // Server-side pagination props
             serverPagination={{
               currentPage,

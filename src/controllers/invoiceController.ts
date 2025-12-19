@@ -163,9 +163,16 @@ export const getInvoiceById = async (
 };
 
 // Get all invoices created by a specific agent (excluding only unpaid invoices with past due dates)
-export const getInvoicesByAgent = async (agentId: string) => {
+export const getInvoicesByAgent = async (agentId: string, options?: {
+  page?: number;
+  pageSize?: number;
+}) => {
   try {
     await connectDB();
+    
+    const page = options?.page || 1;
+    const pageSize = options?.pageSize || 50;
+    const skip = (page - 1) * pageSize;
     
     // Get current date in US Eastern Time
     const now = new Date();
@@ -174,14 +181,16 @@ export const getInvoicesByAgent = async (agentId: string) => {
     // Format the date for comparison (YYYY-MM-DD)
     const currentDate = usEasternTime.toISOString().split('T')[0];
     
+    // Get total count first (for valid invoices)
     const allInvoices = await Invoice.find({ 
       agentId: new mongoose.Types.ObjectId(agentId)
     })
       .populate('agentId', 'full_name')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     
     // Filter invoices based on due date (only exclude unpaid invoices with past due dates)
-    const filteredInvoices = allInvoices.filter(invoice => {
+    const filteredInvoices = allInvoices.filter((invoice: any) => {
       // If invoice is paid, include it regardless of due date
       if (invoice.status === 'paid') {
         return true;
@@ -194,41 +203,45 @@ export const getInvoicesByAgent = async (agentId: string) => {
         
         // Try to parse the due date - handle different formats
         let parsedDueDate: Date;
-        // If it's already a Date object
         if (typeof dueDate === 'object' && dueDate !== null && Object.prototype.toString.call(dueDate) === '[object Date]') {
           parsedDueDate = dueDate as Date;
         } else {
-          // If it's a string, try to parse it
           parsedDueDate = new Date(dueDate as string);
         }
         
-        // If parsing failed, skip this invoice
         if (isNaN(parsedDueDate.getTime())) {
           return false;
         }
         
-        // Convert due date to US Eastern Time for comparison
         const dueDateInEastern = new Date(parsedDueDate.toLocaleString("en-US", { timeZone: "America/New_York" }));
         const dueDateString = dueDateInEastern.toISOString().split('T')[0];
         
-        // Compare dates as strings (YYYY-MM-DD format)
-        const isNotPastDue = dueDateString >= currentDate;
-        
-        if (!isNotPastDue) {
-          // console.log(`Excluding unpaid invoice ${invoice._id} - Due date: ${dueDateString}, Current: ${currentDate}`);
-        }
-        
-        return isNotPastDue;
+        return dueDateString >= currentDate;
       }
       
-      // For other statuses (sent, overdue, cancelled), include them
       return true;
     });
     
-    return filteredInvoices;
+    // Paginate the filtered results
+    const totalCount = filteredInvoices.length;
+    const paginatedInvoices = filteredInvoices.slice(skip, skip + pageSize);
+    
+    return {
+      invoices: paginatedInvoices,
+      total: totalCount,
+      page,
+      pageSize,
+      totalPages: Math.ceil(totalCount / pageSize),
+    };
   } catch (error) {
     console.error("Error fetching agent invoices:", error);
-    return [];
+    return {
+      invoices: [],
+      total: 0,
+      page: 1,
+      pageSize: 50,
+      totalPages: 0,
+    };
   }
 };
 
@@ -247,16 +260,85 @@ export const getInvoicesByCustomer = async (
   }
 };
 
-export const getAllInvoices = async (): Promise<IInvoice[]> => {
+export const getAllInvoices = async (options?: {
+  page?: number;
+  pageSize?: number;
+  agentName?: string;
+  status?: string;
+  date?: string;
+  search?: string;
+}) => {
   try {
     await connectDB();
-    const invoices = await Invoice.find({})
+    
+    const page = options?.page || 1;
+    const pageSize = options?.pageSize || 50;
+    const skip = (page - 1) * pageSize;
+
+    // Build filter
+    const filter: any = {};
+    
+    if (options?.status) {
+      filter.status = options.status;
+    }
+    
+    if (options?.agentName) {
+      filter.agentName = options.agentName;
+    }
+    
+    if (options?.date) {
+      if (options.date === "today") {
+        const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        filter.createdAt = { $gte: startOfDay, $lt: endOfDay };
+      } else {
+        const selectedDate = new Date(options.date);
+        const startOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+        const endOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + 1);
+        filter.createdAt = { $gte: startOfDay, $lt: endOfDay };
+      }
+    }
+
+    // Add search filter
+    if (options?.search) {
+      const searchRegex = new RegExp(options.search, 'i');
+      filter.$or = [
+        { firstName: searchRegex },
+        { lastName: searchRegex },
+        { email: searchRegex },
+        { invoiceNumber: searchRegex },
+        { agentName: searchRegex },
+      ];
+    }
+
+    // Get total count
+    const totalCount = await Invoice.countDocuments(filter);
+
+    // Get paginated invoices
+    const invoices = await Invoice.find(filter)
       .populate('agentId', 'full_name')
-      .sort({ createdAt: -1 });
-    return invoices;
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(pageSize)
+      .lean();
+
+    return {
+      invoices,
+      total: totalCount,
+      page,
+      pageSize,
+      totalPages: Math.ceil(totalCount / pageSize),
+    };
   } catch (error) {
     console.error("Error fetching all invoices:", error);
-    return [];
+    return {
+      invoices: [],
+      total: 0,
+      page: 1,
+      pageSize: 50,
+      totalPages: 0,
+    };
   }
 };
 
@@ -333,6 +415,54 @@ export const deleteInvoice = async (
     return {
       success: false,
       message: "Failed to delete invoice",
+      error: error.message || "Unknown error occurred",
+    };
+  }
+};
+
+// Mark invoice as paid manually
+export const markInvoiceAsPaid = async (invoiceId: string, userId: string, userType: number) => {
+  try {
+    await connectDB();
+
+    // Only admin (1) or manager (2) can mark as paid
+    if (userType !== 1 && userType !== 2) {
+      return {
+        success: false,
+        message: "Unauthorized: Only admins can mark invoices as paid",
+      };
+    }
+
+    const invoice = await Invoice.findById(invoiceId);
+    if (!invoice) {
+      return {
+        success: false,
+        message: "Invoice not found",
+      };
+    }
+
+    if (invoice.status === "paid") {
+      return {
+        success: false,
+        message: "Invoice is already marked as paid",
+      };
+    }
+
+    // Update invoice status
+    invoice.status = "paid";
+    invoice.paidAt = new Date();
+    await invoice.save();
+
+    return {
+      success: true,
+      message: "Invoice marked as paid successfully",
+      invoice,
+    };
+  } catch (error: any) {
+    console.error("Error marking invoice as paid:", error);
+    return {
+      success: false,
+      message: "Failed to mark invoice as paid",
       error: error.message || "Unknown error occurred",
     };
   }

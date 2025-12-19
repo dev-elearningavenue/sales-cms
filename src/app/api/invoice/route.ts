@@ -5,6 +5,7 @@ import {
   getAllInvoices,
   getInvoicesByAgent,
   deleteInvoice,
+  markInvoiceAsPaid,
 } from "@/controllers/invoiceController";
 import { verifyToken } from "@/utils/auth";
 import { cookies } from "next/headers";
@@ -186,10 +187,32 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const userData = tokenResult.data as unknown as TokenPayload;
-    const invoices = await getAllInvoices();
+    // Parse query parameters for pagination and filtering
+    const url = new URL(request.url);
+    const page = parseInt(url.searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(url.searchParams.get("pageSize") || "50", 10);
+    const agentName = url.searchParams.get("agentName") || undefined;
+    const status = url.searchParams.get("status") || undefined;
+    const date = url.searchParams.get("date") || undefined;
+    const search = url.searchParams.get("search") || undefined;
 
-    return NextResponse.json({ success: true, invoices });
+    const result = await getAllInvoices({
+      page,
+      pageSize,
+      agentName,
+      status,
+      date,
+      search,
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      invoices: result.invoices,
+      total: result.total,
+      page: result.page,
+      pageSize: result.pageSize,
+      totalPages: result.totalPages,
+    });
   } catch (error: any) {
     console.error("Error in invoice API:", error);
     return NextResponse.json(
@@ -237,6 +260,63 @@ export async function DELETE(request: NextRequest) {
     }
   } catch (error: any) {
     console.error("Error in invoice deletion API:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Internal server error",
+        message: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - Mark invoice as paid
+export async function PATCH(request: NextRequest) {
+  try {
+    const cookieStore = cookies();
+    const token = cookieStore.get("token");
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    const tokenResult = await verifyToken(token.value);
+    if (!tokenResult.success || !tokenResult.data) {
+      return NextResponse.json(
+        { success: false, error: "Invalid authentication" },
+        { status: 401 }
+      );
+    }
+
+    const userData = tokenResult.data as unknown as TokenPayload;
+    const userId = userData._id;
+    const userType = userData.user_type;
+
+    // Get invoice ID from request body
+    const body = await request.json();
+    const { invoiceId } = body;
+
+    if (!invoiceId) {
+      return NextResponse.json(
+        { success: false, error: "Invoice ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Mark invoice as paid
+    const result = await markInvoiceAsPaid(invoiceId, userId, userType);
+
+    if (result.success) {
+      return NextResponse.json(result, { status: 200 });
+    } else {
+      return NextResponse.json(result, { status: 400 });
+    }
+  } catch (error: any) {
+    console.error("Error marking invoice as paid:", error);
     return NextResponse.json(
       {
         success: false,

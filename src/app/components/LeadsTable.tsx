@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Eye,
   X,
+  Loader2,
 } from "lucide-react";
 import { ILead } from "@/types/leads";
 import { useApp } from "@/contexts/AppContext";
@@ -60,6 +61,7 @@ interface LeadsTableProps {
   onRefresh?: () => Promise<void>;
   onViewDetails?: (lead: ILead) => void;
   serverPagination?: ServerPaginationProps;
+  isLoading?: boolean;
 }
 
 const LeadsTable: React.FC<LeadsTableProps> = ({
@@ -74,6 +76,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   onRefresh,
   onViewDetails,
   serverPagination,
+  isLoading = false,
 }) => {
   const { session, addNotification } = useApp();
 
@@ -1001,7 +1004,16 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
         )}
 
         {/* Leads Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto relative">
+          {/* Loading overlay when fetching new page */}
+          {isLoading && (
+            <div className="absolute inset-0 bg-white/70 z-10 flex items-center justify-center">
+              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-lg">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                <span className="text-sm text-gray-600">Loading...</span>
+              </div>
+            </div>
+          )}
           <table className="w-full border-collapse text-xs">
             <thead className="bg-gray-50">
               <tr>

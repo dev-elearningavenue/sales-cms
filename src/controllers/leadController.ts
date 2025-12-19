@@ -116,8 +116,8 @@ export const getAllLeads = async (options?: {
     return { 
       message: "All leads fetched successfully", 
       leads,
-      total: totalCount,           // Total records in DB (for pagination UI)
-      showing: leads.length,       // Records returned in this page
+      total: totalCount,
+      showing: leads.length,
       page: Math.floor(skip / limit) + 1,
       pageSize: limit,
       totalPages: Math.ceil(totalCount / limit),

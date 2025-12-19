@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   FileText,
   Loader2,
@@ -8,6 +8,12 @@ import {
   TrendingUp,
   Eye,
   ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Search,
+  Check,
 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 
@@ -59,6 +65,29 @@ const YourInvoicesPage = () => {
     [id: string]: { status: string; paidAt?: string };
   }>({});
 
+  // ============ PAGINATION STATE ============
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  // ============ SEARCH STATE ============
+  const [searchQuery, setSearchQuery] = useState("");
+  const [markingPaid, setMarkingPaid] = useState<string | null>(null);
+
+  // ============ CACHE (using ref for immediate access) ============
+  const cacheRef = useRef<{
+    invoices: Invoice[];
+    highestPage: number;
+    pageSize: number;
+    filters: string; // JSON string of filters for cache invalidation
+  }>({
+    invoices: [],
+    highestPage: 0,
+    pageSize: 50,
+    filters: "",
+  });
+
   // Fetch agents sales for admin users
   const fetchAgentsSales = async () => {
     if (!session || (session.user_type !== 1 && session.user_type !== 2))
@@ -78,65 +107,171 @@ const YourInvoicesPage = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchInvoices = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        let endpoint = "/api/invoice/your-invoices";
-        if (session && (session.user_type === 1 || session.user_type === 2)) {
-          endpoint = "/api/invoice/";
-        }
-        const res = await fetch(endpoint);
-        const data = await res.json();
-        if (res.ok && data.success) {
-          setInvoices(data.invoices || []);
-        } else {
-          setError(data.error || "Failed to fetch invoices");
-        }
-      } catch (err) {
-        setError("Failed to fetch invoices");
-      } finally {
-        setLoading(false);
+  // Fetch invoices with pagination and caching
+  const fetchInvoices = async (
+    page: number = currentPage,
+    size: number = pageSize,
+    forceRefresh: boolean = false
+  ) => {
+    const cache = cacheRef.current;
+
+    // Build current filters string for cache comparison
+    const currentFilters = JSON.stringify({ filterAgent, filterStatus, filterDate, searchQuery, userType: session?.user_type });
+
+    // Check if filters changed
+    const filtersChanged = currentFilters !== cache.filters;
+    const pageSizeChanged = size !== cache.pageSize;
+    const shouldClearCache = forceRefresh || filtersChanged || pageSizeChanged;
+
+    if (shouldClearCache) {
+      cache.invoices = [];
+      cache.highestPage = 0;
+      cache.pageSize = size;
+      cache.filters = currentFilters;
+    }
+
+    // Check if we can serve from cache
+    const startIndex = (page - 1) * size;
+    const cachedInvoicesForPage = cache.invoices.slice(startIndex, startIndex + size);
+    const hasFullPage = cachedInvoicesForPage.length === size;
+    const isLastPageWithData = cache.invoices.length > startIndex && cache.invoices.length <= startIndex + size;
+
+    if (!shouldClearCache && (hasFullPage || isLastPageWithData) && page <= cache.highestPage) {
+      // Serve from cache
+      setInvoices(cachedInvoicesForPage);
+      setCurrentPage(page);
+      setPageSize(size);
+      return;
+    }
+
+    // Fetch from API
+    setLoading(true);
+    setError(null);
+
+    try {
+      let endpoint = "/api/invoice/your-invoices";
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: size.toString(),
+      });
+
+      if (session && (session.user_type === 1 || session.user_type === 2)) {
+        endpoint = "/api/invoice";
+        // Add filters for admin
+        if (filterAgent) params.set("agentName", filterAgent);
+        if (filterStatus) params.set("status", filterStatus);
+        if (filterDate) params.set("date", filterDate);
+        if (searchQuery) params.set("search", searchQuery);
       }
-    };
-    fetchInvoices();
-    fetchAgentsSales();
+
+      const res = await fetch(`${endpoint}?${params.toString()}`);
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        const fetchedInvoices = data.invoices || [];
+
+        // Update cache
+        if (shouldClearCache || page === 1) {
+          cache.invoices = fetchedInvoices;
+          cache.highestPage = 1;
+        } else if (page > cache.highestPage) {
+          cache.invoices = [...cache.invoices, ...fetchedInvoices];
+          cache.highestPage = page;
+        }
+
+        setInvoices(fetchedInvoices);
+        setTotalCount(data.total || 0);
+        setTotalPages(data.totalPages || 1);
+        setCurrentPage(page);
+        setPageSize(size);
+      } else {
+        setError(data.error || "Failed to fetch invoices");
+      }
+    } catch (err) {
+      setError("Failed to fetch invoices");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (session) {
+      fetchInvoices(1, pageSize, true);
+      fetchAgentsSales();
+    }
   }, [session]);
 
-  let sortedInvoices = [...invoices];
+  // Refetch when filters change (admin only) - excluding search
+  useEffect(() => {
+    if (session && (session.user_type === 1 || session.user_type === 2)) {
+      fetchInvoices(1, pageSize, true);
+    }
+  }, [filterAgent, filterStatus, filterDate]);
 
-  // Admin filtering logic
-  let filteredInvoices = sortedInvoices;
-  if (session && (session.user_type === 1 || session.user_type === 2)) {
-    filteredInvoices = sortedInvoices.filter((inv) => {
-      let pass = true;
-      if (filterAgent) {
-        pass = pass && inv.agentName === filterAgent;
+  // Debounced search - triggers API call 500ms after user stops typing
+  useEffect(() => {
+    if (!session || (session.user_type !== 1 && session.user_type !== 2)) return;
+
+    const debounceTimer = setTimeout(() => {
+      fetchInvoices(1, pageSize, true);
+    }, 500);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
+
+  // Handle search submit
+  const handleSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    fetchInvoices(1, pageSize, true);
+  };
+
+  // Handle mark as paid
+  const handleMarkAsPaid = async (invoiceId: string) => {
+    if (!confirm("Are you sure you want to mark this invoice as paid?")) {
+      return;
+    }
+
+    setMarkingPaid(invoiceId);
+    try {
+      const response = await fetch("/api/invoice", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ invoiceId }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // Update the invoice in local state
+        setInvoices(prevInvoices =>
+          prevInvoices.map(inv =>
+            inv._id === invoiceId
+              ? { ...inv, status: "paid", paidAt: new Date().toISOString() }
+              : inv
+          )
+        );
+        // Also update cache
+        cacheRef.current.invoices = cacheRef.current.invoices.map(inv =>
+          inv._id === invoiceId
+            ? { ...inv, status: "paid", paidAt: new Date().toISOString() }
+            : inv
+        );
+        alert("Invoice marked as paid successfully");
+      } else {
+        alert(result.error || "Failed to mark invoice as paid");
       }
-      if (filterStatus) {
-        pass = pass && inv.status === filterStatus;
-      }
-      if (filterDate === "today") {
-        const today = new Date();
-        const created = new Date(inv.createdAt);
-        pass =
-          pass &&
-          created.getFullYear() === today.getFullYear() &&
-          created.getMonth() === today.getMonth() &&
-          created.getDate() === today.getDate();
-      } else if (filterDate) {
-        const selected = new Date(filterDate);
-        const created = new Date(inv.createdAt);
-        pass =
-          pass &&
-          created.getFullYear() === selected.getFullYear() &&
-          created.getMonth() === selected.getMonth() &&
-          created.getDate() === selected.getDate();
-      }
-      return pass;
-    });
-  }
+    } catch (error) {
+      console.error("Error marking invoice as paid:", error);
+      alert("Failed to mark invoice as paid. Please try again.");
+    } finally {
+      setMarkingPaid(null);
+    }
+  };
+
+  // Sort invoices (client-side sorting on current page data)
+  let sortedInvoices = [...invoices];
 
   // Handle invoice deletion
   const handleDeleteInvoice = async (invoiceId: string) => {
@@ -357,6 +492,169 @@ const YourInvoicesPage = () => {
           </div>
         )}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-4 md:p-8">
+          {/* Stats for non-admin users */}
+          {session && session.user_type === 3 && invoices.length > 0 && (
+            <div className="bg-blue-50 dark:bg-gray-900 rounded-xl mb-4 py-4 px-4 flex flex-col md:flex-row justify-center items-center gap-4 w-full">
+              <span className="text-2xl md:text-2xl font-bold text-blue-700 dark:text-blue-300 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
+                Total: {totalCount}
+              </span>
+              <span className="text-xl md:text-2xl font-bold text-green-700 dark:text-green-400 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
+                Paid: {sortedInvoices.filter((inv) => inv.status === "paid").length}
+              </span>
+              <span className="text-xl md:text-2xl font-bold text-yellow-700 dark:text-yellow-400 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
+                Pending: {sortedInvoices.filter((inv) => inv.status !== "paid").length}
+              </span>
+              <span className="text-xl md:text-2xl font-bold text-purple-700 dark:text-purple-400 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
+                This Month Sales: $
+                {(() => {
+                  const currentMonth = new Date().getMonth();
+                  const currentYear = new Date().getFullYear();
+                  return sortedInvoices
+                    .filter((inv) => {
+                      if (inv.status !== "paid") return false;
+                      const paidDate = new Date(inv.paidAt!);
+                      return paidDate.getMonth() === currentMonth && paidDate.getFullYear() === currentYear;
+                    })
+                    .reduce((sum, inv) => sum + inv.totalPrice, 0)
+                    .toFixed(2);
+                })()}
+              </span>
+              <span className="text-lg md:text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+                Total Paid: ${sortedInvoices.filter((inv) => inv.status === "paid").reduce((sum, inv) => sum + inv.totalPrice, 0).toFixed(2)}
+              </span>
+            </div>
+          )}
+
+          {/* Filters and Search - Always visible for admin */}
+          {session && (session.user_type === 1 || session.user_type === 2) && (
+            <div className="mb-6 flex flex-col md:flex-row gap-4 items-center justify-center flex-wrap">
+              <select
+                value={filterAgent}
+                onChange={(e) => setFilterAgent(e.target.value)}
+                className="px-3 py-2 border rounded-md text-sm w-40"
+              >
+                <option value="">All Agents</option>
+                <option value="Faizyab Ali">Faizyab Ali</option>
+                <option value="Hussain Moiz">Hussain Moiz</option>
+                <option value="Rafey Haq">Rafey Haq</option>
+              </select>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-3 py-2 border rounded-md text-sm w-40"
+              >
+                <option value="">All Statuses</option>
+                <option value="paid">Paid</option>
+                <option value="unpaid">Unpaid</option>
+              </select>
+              <select
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                className="px-3 py-2 border rounded-md text-sm w-40"
+              >
+                <option value="">All Dates</option>
+                <option value="today">Today</option>
+              </select>
+              <input
+                type="date"
+                value={filterDate && filterDate !== "today" ? filterDate : ""}
+                onChange={(e) => setFilterDate(e.target.value)}
+                className="px-3 py-2 border rounded-md text-sm w-40"
+              />
+              {/* Search input */}
+              <form onSubmit={handleSearch} className="flex">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search invoices..."
+                  className="px-3 py-2 border rounded-l-md text-sm w-48"
+                />
+                <button
+                  type="submit"
+                  className="px-3 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600"
+                >
+                  <Search size={18} />
+                </button>
+              </form>
+              {/* Clear filters button */}
+              {(filterAgent || filterStatus || filterDate || searchQuery) && (
+                <button
+                  onClick={() => {
+                    setFilterAgent("");
+                    setFilterStatus("");
+                    setFilterDate("");
+                    setSearchQuery("");
+                    fetchInvoices(1, pageSize, true);
+                  }}
+                  className="px-3 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Top Pagination Controls */}
+          {!loading && invoices.length > 0 && (
+            <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-4 px-4 border-b pb-4">
+              <div className="text-sm text-gray-600 dark:text-gray-300">
+                Showing {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalCount)} of {totalCount} invoices
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={currentPage === 1}
+                  onClick={() => fetchInvoices(1, pageSize)}
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </button>
+                <button
+                  className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={currentPage === 1}
+                  onClick={() => fetchInvoices(Math.max(currentPage - 1, 1), pageSize)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="px-3 py-1 text-sm">Page {currentPage} of {totalPages}</span>
+                <button
+                  className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  onClick={() => fetchInvoices(Math.min(currentPage + 1, totalPages), pageSize)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                <button
+                  className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  onClick={() => fetchInvoices(totalPages, pageSize)}
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </button>
+                <div className="relative group ml-2">
+                  <button className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 text-sm">
+                    {pageSize}/page
+                  </button>
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden z-20 hidden group-hover:block">
+                    {[50, 100, 200].map((value) => (
+                      <button
+                        key={value}
+                        className={`w-full px-4 py-2 text-left text-sm ${pageSize === value ? "bg-blue-50 text-blue-600 font-medium" : "hover:bg-gray-100"}`}
+                        onClick={() => {
+                          setPageSize(value);
+                          fetchInvoices(1, value, true);
+                        }}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Loading State */}
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="animate-spin text-blue-600" size={32} />
@@ -372,99 +670,15 @@ const YourInvoicesPage = () => {
               <span className="text-gray-600 font-semibold">
                 No invoices found.
               </span>
+              {(filterAgent || filterStatus || filterDate || searchQuery) && (
+                <span className="text-gray-500 text-sm mt-2">
+                  Try adjusting your filters or search query
+                </span>
+              )}
             </div>
           ) : (
             <>
-              {/* Only show filteredInvoices for admin, otherwise sortedInvoices */}
-              {session &&
-                session.user_type === 3 && ( // chahyein tw admin ko bhi dikhadein lekin faida nahin
-                  <div className="bg-blue-50 dark:bg-gray-900 rounded-xl mb-4 py-4 px-4 flex flex-col md:flex-row justify-center items-center gap-4 w-full">
-                    <span className="text-2xl md:text-2xl font-bold text-blue-700 dark:text-blue-300 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
-                      Total: {sortedInvoices.length}
-                    </span>
-                    <span className="text-xl md:text-2xl font-bold text-green-700 dark:text-green-400 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
-                      Paid:{" "}
-                      {
-                        sortedInvoices.filter((inv) => inv.status === "paid")
-                          .length
-                      }
-                    </span>
-                    <span className="text-xl md:text-2xl font-bold text-yellow-700 dark:text-yellow-400 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
-                      Pending:{" "}
-                      {
-                        sortedInvoices.filter((inv) => inv.status !== "paid")
-                          .length
-                      }
-                    </span>
-                    <span className="text-xl md:text-2xl font-bold text-purple-700 dark:text-purple-400 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
-                      This Month Sales: $
-                      {(() => {
-                        const currentMonth = new Date().getMonth();
-                        const currentYear = new Date().getFullYear();
-                        return sortedInvoices
-                          .filter((inv) => {
-                            if (inv.status !== "paid") return false;
-                            const paidDate = new Date(inv.paidAt!);
-                            return (
-                              paidDate.getMonth() === currentMonth &&
-                              paidDate.getFullYear() === currentYear
-                            );
-                          })
-                          .reduce((sum, inv) => sum + inv.totalPrice, 0)
-                          .toFixed(2);
-                      })()}
-                    </span>
-                    <span className="text-lg md:text-2xl font-bold text-emerald-700 dark:text-emerald-400">
-                      Total Paid: $
-                      {sortedInvoices
-                        .filter((inv) => inv.status === "paid")
-                        .reduce((sum, inv) => sum + inv.totalPrice, 0)
-                        .toFixed(2)}
-                    </span>
-                  </div>
-                )}
-
               <div className="overflow-x-auto md:-mx-6">
-                {session &&
-                  (session.user_type === 1 || session.user_type === 2) && (
-                    <div className="mb-6 flex flex-col md:flex-row gap-4 items-center justify-center">
-                      <select
-                        value={filterAgent}
-                        onChange={(e) => setFilterAgent(e.target.value)}
-                        className="px-3 py-2 border rounded-md text-sm w-40"
-                      >
-                        <option value="">All Agents</option>
-                        <option value="Faizyab Ali">Faizyab Ali</option>
-                        <option value="Hussain Moiz">Hussain Moiz</option>
-                        <option value="Rafey Haq">Rafey Haq</option>
-                      </select>
-                      <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        className="px-3 py-2 border rounded-md text-sm w-40"
-                      >
-                        <option value="">All Statuses</option>
-                        <option value="paid">Paid</option>
-                        <option value="unpaid">Unpaid</option>
-                      </select>
-                      <select
-                        value={filterDate}
-                        onChange={(e) => setFilterDate(e.target.value)}
-                        className="px-3 py-2 border rounded-md text-sm w-40"
-                      >
-                        <option value="">All Dates</option>
-                        <option value="today">Today</option>
-                      </select>
-                      <input
-                        type="date"
-                        value={
-                          filterDate && filterDate !== "today" ? filterDate : ""
-                        }
-                        onChange={(e) => setFilterDate(e.target.value)}
-                        className="px-3 py-2 border rounded-md text-sm w-40"
-                      />
-                    </div>
-                  )}
                 <table className="min-w-full table-fixed divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-700 rounded-sm">
                     <tr>
@@ -553,18 +767,14 @@ const YourInvoicesPage = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
-                    {(session &&
-                      (session.user_type === 1 || session.user_type === 2)
-                      ? filteredInvoices
-                      : sortedInvoices
-                    ).map((inv, idx) => (
+                    {sortedInvoices.map((inv, idx) => (
                       <tr
                         key={inv._id}
                         className="hover:bg-blue-50 dark:hover:bg-gray-700 transition"
                       >
                         {/* INDEX */}
                         <td className="px-3 py-4 font-mono text-gray-500 dark:text-gray-400 font-bold">
-                          {idx + 1}
+                          {(currentPage - 1) * pageSize + idx + 1}
                         </td>
                         {/* INVOICE NUMBER */}
                         {/* <td className="px-3 py-4 font-mono text-blue-700 dark:text-blue-300">
@@ -673,6 +883,22 @@ const YourInvoicesPage = () => {
                                 <ArrowUpRight size={14} className="mr-1" />
                               </button>
                             )}
+                            {/* Mark as Paid button - only for admin/manager and unpaid invoices */}
+                            {session && session.user_type !== 3 && inv.status !== "paid" && (
+                              <button
+                                type="button"
+                                className="flex items-center px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md text-sm disabled:opacity-50"
+                                onClick={() => handleMarkAsPaid(inv._id)}
+                                disabled={markingPaid === inv._id}
+                              >
+                                {markingPaid === inv._id ? (
+                                  <Loader2 size={14} className="animate-spin mr-1" />
+                                ) : (
+                                  <Check size={14} className="mr-1" />
+                                )}
+                                Paid
+                              </button>
+                            )}
                             {(session && session.user_type !== 3) && (
                               <button
                                 type="button"
@@ -688,6 +914,102 @@ const YourInvoicesPage = () => {
                     ))}
                   </tbody>
                 </table>
+
+                {/* Pagination Controls */}
+                <div className="flex flex-col md:flex-row items-center justify-between mt-6 gap-4 px-4">
+                  {/* Pagination Summary */}
+                  <div className="text-sm text-gray-600 dark:text-gray-300">
+                    Showing {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalCount)} of {totalCount} invoices
+                  </div>
+
+                  {/* Pagination Navigation */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={currentPage === 1}
+                      onClick={() => fetchInvoices(1, pageSize)}
+                    >
+                      <ChevronsLeft className="h-5 w-5" />
+                    </button>
+                    <button
+                      className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={currentPage === 1}
+                      onClick={() => fetchInvoices(Math.max(currentPage - 1, 1), pageSize)}
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+
+                    <div className="flex gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+
+                        return (
+                          <button
+                            key={pageNum}
+                            className={`w-10 h-10 ${currentPage === pageNum
+                              ? "bg-blue-500 text-white font-medium"
+                              : "hover:bg-gray-100"
+                              } border border-gray-300 rounded-md`}
+                            onClick={() => fetchInvoices(pageNum, pageSize)}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                      {totalPages > 5 && (
+                        <span className="flex items-center px-2">...</span>
+                      )}
+                    </div>
+
+                    <button
+                      className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={currentPage === totalPages || totalPages === 0}
+                      onClick={() => fetchInvoices(Math.min(currentPage + 1, totalPages), pageSize)}
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                    <button
+                      className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={currentPage === totalPages || totalPages === 0}
+                      onClick={() => fetchInvoices(totalPages, pageSize)}
+                    >
+                      <ChevronsRight className="h-5 w-5" />
+                    </button>
+
+                    {/* Page Size Selector */}
+                    <div className="relative group ml-4">
+                      <button className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                        {pageSize} / page
+                      </button>
+                      <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden z-20 hidden group-hover:block">
+                        {[50, 100, 200].map((value) => (
+                          <button
+                            key={value}
+                            className={`w-full px-4 py-2 text-left ${pageSize === value
+                              ? "bg-blue-50 text-blue-600 font-medium"
+                              : "hover:bg-gray-100"
+                              }`}
+                            onClick={() => {
+                              setPageSize(value);
+                              fetchInvoices(1, value, true);
+                            }}
+                          >
+                            {value}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </>
           )}

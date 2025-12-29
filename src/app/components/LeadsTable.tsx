@@ -1147,11 +1147,16 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   <td className="px-4 py-4 text-sm">
                     <div className="py-4 text-sm font-medium text-gray-600 whitespace-nowrap">
                       {lead.createdAt
-                        ? new Date(lead.createdAt).toLocaleDateString("en-US", {
+                        ? new Date(lead.createdAt).toLocaleString("en-US", {
                           year: "numeric",
                           month: "short",
                           day: "numeric",
-                        })
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                          timeZone: "America/New_York",
+                          hour12: false,
+                        }) + " EST"
                         : "N/A"}
                     </div>
                   </td>

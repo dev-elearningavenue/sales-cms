@@ -45,12 +45,12 @@ async function ensureConnection(
     if (!client) {
       client = new MongoClient(uri, CONNECTION_OPTIONS);
       await client.connect();
-      console.log(`${name} connection established successfully`);
+      console.log(`${name} connection established successfully`, new Date().toLocaleString('en-US'));
     } else {
       try {
         await client.db("admin").command({ ping: 1 });
       } catch (err) {
-        console.log(`${name} connection lost, reconnecting...`);
+        console.log(`${name} connection lost, reconnecting...`, new Date().toLocaleString('en-US'));
         try {
           await client.close(true);
         } catch (closeErr) {
@@ -62,7 +62,7 @@ async function ensureConnection(
     }
     return client;
   } catch (error: any) {
-    console.error(`Error ensuring ${name} connection at ${Date.now()}: `, error.message);
+    console.error(`Error ensuring ${name} connection at ${new Date().toLocaleString('en-US')}: `, error.message);
     throw error;
   }
 }
@@ -384,7 +384,7 @@ function setupOrderCollectionWatch(
           // Store the order ID in a temporary map with a timestamp
           const orderId = newOrder._id.toString();
           pendingOrders.set(orderId, {
-            timestamp: Date.now(),
+            timestamp: new Date().toLocaleString('en-US'),
             processed: false,
           });
 
@@ -728,7 +728,7 @@ function setupConnectionMonitoring() {
     try {
       if (!master_client || !outreach_client) {
         console.warn(
-          "One or both clients are null, initiating reconnection...", Date.now()
+          "One or both clients are null, initiating reconnection...", new Date().toLocaleString('en-US')
         );
         await restartWatchers();
         return;

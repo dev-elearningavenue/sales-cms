@@ -39,17 +39,32 @@ const Leads = () => {
     pageSize: number;
     filter: string;
     search: string;
+    tableFiltersKey: string;
   }>({
     leads: [],
     highestPage: 0,
     pageSize: 50,
     filter: "",
     search: "",
+    tableFiltersKey: "",
   });
 
   // ============ SERVER FILTER STATE ============
   const [assignedToFilter, setAssignedToFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [tableFilters, setTableFilters] = useState<{
+    type: string;
+    domain: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+  }>({
+    type: "",
+    domain: "",
+    status: "",
+    startDate: "",
+    endDate: "",
+  });
 
   // Add state for View Details modal (only for user types 1 and 2)
   const [selectedLead, setSelectedLead] = useState<ILead | null>(null);
@@ -187,6 +202,7 @@ const Leads = () => {
     size: number = pageSize,
     assignedTo: string = assignedToFilter,
     search: string = searchQuery,
+    extraFilters: typeof tableFilters = tableFilters,
     forceRefresh: boolean = false
   ) => {
     const cache = cacheRef.current;
@@ -195,7 +211,10 @@ const Leads = () => {
     const filterChanged = assignedTo !== cache.filter;
     const searchChanged = search !== cache.search;
     const pageSizeChanged = size !== cache.pageSize;
-    const shouldClearCache = forceRefresh || filterChanged || searchChanged || pageSizeChanged;
+    const nextFiltersKey = JSON.stringify(extraFilters || {});
+    const tableFiltersChanged = nextFiltersKey !== cache.tableFiltersKey;
+    const shouldClearCache =
+      forceRefresh || filterChanged || searchChanged || pageSizeChanged || tableFiltersChanged;
 
     if (shouldClearCache) {
       // Clear cache
@@ -204,6 +223,7 @@ const Leads = () => {
       cache.pageSize = size;
       cache.filter = assignedTo;
       cache.search = search;
+      cache.tableFiltersKey = nextFiltersKey;
     }
 
     // ============ CHECK IF WE CAN SERVE FROM CACHE ============
@@ -240,6 +260,21 @@ const Leads = () => {
       if (search) {
         params.set("search", search);
       }
+      if (extraFilters?.type) {
+        params.set("type", extraFilters.type);
+      }
+      if (extraFilters?.domain) {
+        params.set("domain", extraFilters.domain);
+      }
+      if (extraFilters?.status) {
+        params.set("status", extraFilters.status);
+      }
+      if (extraFilters?.startDate) {
+        params.set("startDate", extraFilters.startDate);
+      }
+      if (extraFilters?.endDate) {
+        params.set("endDate", extraFilters.endDate);
+      }
 
       const res = await fetch(`/api/leads?${params.toString()}`);
       const data = await res.json();
@@ -267,6 +302,7 @@ const Leads = () => {
       cache.pageSize = size;
       cache.filter = assignedTo;
       cache.search = search;
+      cache.tableFiltersKey = nextFiltersKey;
 
       setLeads(filteredLeads);
       setTotalCount(data.total || 0);
@@ -275,6 +311,7 @@ const Leads = () => {
       setPageSize(size);
       setAssignedToFilter(assignedTo);
       setSearchQuery(search);
+      setTableFilters(extraFilters);
       setLastFetchTime(new Date());
     } catch (error) {
       console.error("Error fetching leads:", error);
@@ -827,7 +864,7 @@ const Leads = () => {
             onCreateClick={() => setIsCreateModalOpen(true)}
             onDelete={handleDelete}
             onBatchDelete={handleBatchDelete}
-            onRefresh={() => fetchLeads(true, 1, pageSize, assignedToFilter, searchQuery, true)}
+            onRefresh={() => fetchLeads(true, 1, pageSize, assignedToFilter, searchQuery, tableFilters, true)}
             onViewDetails={(lead) => {
               setSelectedLead(lead);
               setIsModalOpen(true);
@@ -841,19 +878,24 @@ const Leads = () => {
               totalPages,
               assignedToFilter,
               searchQuery,
-              onPageChange: (page) => fetchLeads(true, page, pageSize, assignedToFilter, searchQuery),
+              onPageChange: (page) =>
+                fetchLeads(true, page, pageSize, assignedToFilter, searchQuery, tableFilters),
               onPageSizeChange: (size) => {
                 setPageSize(size);
-                fetchLeads(true, 1, size, assignedToFilter, searchQuery);
+                fetchLeads(true, 1, size, assignedToFilter, searchQuery, tableFilters, true);
               },
               onAssignedToChange: (assignedTo) => {
                 setAssignedToFilter(assignedTo);
-                fetchLeads(true, 1, pageSize, assignedTo, searchQuery);
+                fetchLeads(true, 1, pageSize, assignedTo, searchQuery, tableFilters, true);
               },
               onSearchChange: (search) => {
                 setSearchQuery(search);
                 // Use isRefresh=true to avoid showing skeleton and unmounting LeadsTable
-                fetchLeads(true, 1, pageSize, assignedToFilter, search);
+                fetchLeads(true, 1, pageSize, assignedToFilter, search, tableFilters, true);
+              },
+              onFiltersChange: (filters) => {
+                setTableFilters(filters);
+                fetchLeads(true, 1, pageSize, assignedToFilter, searchQuery, filters, true);
               },
             }}
           />

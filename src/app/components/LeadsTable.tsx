@@ -43,6 +43,13 @@ interface ServerPaginationProps {
   onPageSizeChange: (size: number) => void;
   onAssignedToChange?: (assignedTo: string) => void;
   onSearchChange?: (search: string) => void;
+  onFiltersChange?: (filters: {
+    type: string;
+    domain: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+  }) => void;
 }
 
 interface LeadsTableProps {
@@ -304,12 +311,13 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
       }
     }
 
-    // Apply other filters
-    if (filters.type && lead.category !== filters.type) return false;
-    if (filters.domain && lead.domain !== filters.domain) return false;
-
-    // Status filter
-    if (filters.status && lead.status !== filters.status) return false;
+    // Apply other filters (client-side only when NOT server-paginated)
+    // For server pagination, these filters must come from backend query params
+    if (!isServerPaginated) {
+      if (filters.type && lead.category !== filters.type) return false;
+      if (filters.domain && lead.domain !== filters.domain) return false;
+      if (filters.status && lead.status !== filters.status) return false;
+    }
 
     // Assignment filter (only for client-side pagination, server handles it otherwise)
     if (!isServerPaginated && filters.assignedTo) {
@@ -355,39 +363,50 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     : endIndex;
 
   const handleFilterChange = (category: string, value: string) => {
-    setFilters((prev) => {
-      const newFilters = { ...prev };
+    const newFilters = { ...filters };
 
-      if (category === "category") {
-        if (newFilters.category.includes(value)) {
-          newFilters.category = newFilters.category.filter(
-            (cat) => cat !== value
-          );
-        } else {
-          newFilters.category = [...newFilters.category, value];
-        }
-      } else if (category === "type") {
-        newFilters.type = value;
-      } else if (category === "domain") {
-        // Convert domain label back to domain code
-        const domainCode =
-          value === "Osha Outreach" ? "OOR"
-            : value === "Osha Online Center" ? "OOC"
-              : value === "Osha Education School" ? "OES"
-                : value === "Free Osha Courses" ? "FOC"
-                  : value === "Osha 30 Construction" ? "30Construction"
-                    : value === "EHS Practice" ? "EHSP"
-                      : value === "EHS School" ? "EHSS"
-                        : value === "Osha Practice" ? "OP"
-                          : value === "NY Osha 30" ? "NY30"
-                            : value === "Osha 360" ? "Osha360"
-                              : "";
-        newFilters.domain = domainCode;
+    if (category === "category") {
+      if (newFilters.category.includes(value)) {
+        newFilters.category = newFilters.category.filter((cat) => cat !== value);
       } else {
-        (newFilters as any)[category] = value;
+        newFilters.category = [...newFilters.category, value];
       }
-      return newFilters;
-    });
+    } else if (category === "type") {
+      newFilters.type = value;
+    } else if (category === "domain") {
+      // Convert domain label back to domain code
+      const domainCode =
+        value === "Osha Outreach" ? "OOR"
+          : value === "Osha Online Center" ? "OOC"
+            : value === "Osha Education School" ? "OES"
+              : value === "Free Osha Courses" ? "FOC"
+                : value === "Osha 30 Construction" ? "30Construction"
+                  : value === "EHS Practice" ? "EHSP"
+                    : value === "EHS School" ? "EHSS"
+                      : value === "Osha Practice" ? "OP"
+                        : value === "NY Osha 30" ? "NY30"
+                          : value === "Osha 360" ? "Osha360"
+                            : "";
+      newFilters.domain = domainCode;
+    } else {
+      (newFilters as any)[category] = value;
+    }
+
+    setFilters(newFilters);
+
+    // If using server pagination, push filters to backend (so each page stays full)
+    if (isServerPaginated && serverPagination?.onFiltersChange) {
+      serverPagination.onPageChange(1);
+      serverPagination.onFiltersChange({
+        type: newFilters.type,
+        domain: newFilters.domain,
+        status: newFilters.status,
+        startDate: newFilters.startDate,
+        endDate: newFilters.endDate,
+      });
+    } else if (!isServerPaginated) {
+      setLocalCurrentPage(1);
+    }
   };
 
   // Handle select all leads
@@ -942,6 +961,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                     "Free Study Guide",
                     "Custom Lead",
                     "Scholarship",
+                    "Invoice",
                   ].map((type) => (
                     <label key={type} className="flex items-center space-x-2">
                       <input

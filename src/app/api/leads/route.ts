@@ -19,6 +19,7 @@ const TYPE_MAP: { [key: string]: string } = {
   abandoned_cart: "Abandoned Cart",
   order_creation: "Order Creation",
   scholarship: "Scholarship",
+  invoice: "Invoice",
 };
 
 // GET method for fetching all leads
@@ -44,6 +45,10 @@ export async function GET(req: Request) {
     const pageSize = url.searchParams.get("pageSize");
     const assignedTo = url.searchParams.get("assignedTo");
     const search = url.searchParams.get("search");
+    const domain = url.searchParams.get("domain");
+    const status = url.searchParams.get("status");
+    const startDate = url.searchParams.get("startDate");
+    const endDate = url.searchParams.get("endDate");
 
     const parsedPageSize = pageSize ? parseInt(pageSize, 10) : 50;
     const parsedPage = page ? parseInt(page, 10) : 1;
@@ -60,6 +65,10 @@ export async function GET(req: Request) {
       category: category,
       assignedTo: assignedTo || undefined,
       search: search || undefined,
+      domain: domain || undefined,
+      status: status || undefined,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
     };
 
     const leadsResult = await getAllLeads(options);

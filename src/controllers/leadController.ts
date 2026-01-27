@@ -65,6 +65,10 @@ export const getAllLeads = async (options?: {
   category?: string;
   assignedTo?: string;
   search?: string;
+  domain?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
 }) => {
   try {
     // Default pagination: 50 records (smallest option from UI)
@@ -75,6 +79,39 @@ export const getAllLeads = async (options?: {
     const filter: any = {};
     if (options?.category) {
       filter.category = options.category;
+    }
+    
+    if (options?.domain) {
+      filter.domain = options.domain;
+    }
+    
+    if (options?.status) {
+      filter.status = options.status;
+    }
+
+    // Created date range filter (expects YYYY-MM-DD from UI)
+    if (options?.startDate || options?.endDate) {
+      const createdAt: { $gte?: Date; $lte?: Date } = {};
+
+      if (options.startDate) {
+        const start = new Date(options.startDate);
+        if (!isNaN(start.getTime())) {
+          start.setHours(0, 0, 0, 0);
+          createdAt.$gte = start;
+        }
+      }
+
+      if (options.endDate) {
+        const end = new Date(options.endDate);
+        if (!isNaN(end.getTime())) {
+          end.setHours(23, 59, 59, 999);
+          createdAt.$lte = end;
+        }
+      }
+
+      if (createdAt.$gte || createdAt.$lte) {
+        filter.createdAt = createdAt;
+      }
     }
 
     // Assignment filter

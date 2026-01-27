@@ -30,7 +30,7 @@ export const updateInvoiceStatus = async () => {
   try {
     // Fetch all invoices
     // console.log("Fetching all unpaid invoices to update status...");
-    const invoices = await Invoice.find({ status: "unpaid" });
+    const invoices = await Invoice.find({ status: "unpaid", deletedAt: null });
 
     for (const inv of invoices) {
       const { status, paidAt } = await fetchInvoiceStatus(inv);

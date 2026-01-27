@@ -154,7 +154,10 @@ export const getInvoiceById = async (
 ): Promise<IInvoice | null> => {
   try {
     await connectDB();
-    const invoice = await Invoice.findById(invoiceId).populate('agentId', 'full_name');
+    const invoice = await Invoice.findOne({
+      _id: invoiceId,
+      deletedAt: null,
+    }).populate("agentId", "full_name");
     return invoice;
   } catch (error) {
     console.error("Error fetching invoice:", error);
@@ -182,8 +185,9 @@ export const getInvoicesByAgent = async (agentId: string, options?: {
     const currentDate = usEasternTime.toISOString().split('T')[0];
     
     // Get total count first (for valid invoices)
-    const allInvoices = await Invoice.find({ 
-      agentId: new mongoose.Types.ObjectId(agentId)
+    const allInvoices = await Invoice.find({
+      agentId: new mongoose.Types.ObjectId(agentId),
+      deletedAt: null,
     })
       .populate('agentId', 'full_name')
       .sort({ createdAt: -1 })
@@ -250,7 +254,7 @@ export const getInvoicesByCustomer = async (
 ): Promise<IInvoice[]> => {
   try {
     await connectDB();
-    const invoices = await Invoice.find({ customerId })
+    const invoices = await Invoice.find({ customerId, deletedAt: null })
       .populate('agentId', 'full_name')
       .sort({ createdAt: -1 });
     return invoices;
@@ -276,7 +280,7 @@ export const getAllInvoices = async (options?: {
     const skip = (page - 1) * pageSize;
 
     // Build filter
-    const filter: any = {};
+    const filter: any = { deletedAt: null };
     
     if (options?.status) {
       filter.status = options.status;
@@ -368,8 +372,11 @@ export const deleteInvoice = async (
   try {
     await connectDB();
     
-    // Check if invoice exists
-    const invoice = await Invoice.findById(invoiceId);
+    // Check if invoice exists (and not already soft-deleted)
+    const invoice = await Invoice.findOne({
+      _id: invoiceId,
+      deletedAt: null,
+    });
     if (!invoice) {
       return {
         success: false,
@@ -378,16 +385,9 @@ export const deleteInvoice = async (
       };
     }
 
-    // Delete the invoice
-    const result = await Invoice.findByIdAndDelete(invoiceId);
-    
-    if (!result) {
-      return {
-        success: false,
-        message: "Failed to delete invoice",
-        error: "Delete operation failed",
-      };
-    }
+    // Soft-delete the invoice
+    invoice.deletedAt = new Date();
+    await invoice.save();
 
     // Also delete the associated lead if it exists
     try {

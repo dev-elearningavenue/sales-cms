@@ -700,8 +700,15 @@ export const deleteLead = async (
     }
 
     if (lead.invoice) {
-      deletionPromises.push(Invoice.findByIdAndDelete(lead.invoice));
-      console.log(`Deleting invoice record: ${lead.invoice}`);
+      // Soft-delete associated invoice instead of hard delete
+      deletionPromises.push(
+        Invoice.findByIdAndUpdate(
+          lead.invoice,
+          { deletedAt: new Date() },
+          { new: true }
+        )
+      );
+      console.log(`Soft-deleting invoice record: ${lead.invoice}`);
     }
 
     // Execute all deletions in parallel

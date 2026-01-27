@@ -31,6 +31,7 @@ export interface IInvoice extends Document {
   paidAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt?: Date | null;
 }
 
 const InvoiceProductSchema = new Schema({
@@ -69,6 +70,7 @@ const InvoiceSchema = new Schema({
   percent_off: { type: String, default: '' },
   hostedUrl: { type: String, default: '' },
   paidAt: { type: Date, default: null },
+  deletedAt: { type: Date, default: null },
 }, {
   timestamps: true,
   strict: true

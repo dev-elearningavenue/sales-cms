@@ -22,6 +22,7 @@ import { useApp } from "@/contexts/AppContext";
 import { isResolvedStatus } from "@/lib/leadUtils";
 import { getDomainLabel, categoryColors } from "@/components/LeadUtils";
 import LeadDetailsModal from "@/components/LeadDetailsModal";
+import ConfirmationModal from "@/app/components/ConfirmationModal";
 
 // User type for the dropdown
 interface User {
@@ -566,44 +567,6 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
       const lead = leads.find((l) => l._id === leadId);
       return lead?.assigned === true; // True if it is assigned
     });
-  };
-
-  // Reusable Modal Component
-  const ConfirmationModal = ({
-    title,
-    message,
-    onCancel,
-    onConfirm,
-    confirmText,
-  }: {
-    title: string;
-    message: string;
-    onCancel: () => void;
-    onConfirm: () => void;
-    confirmText: string;
-  }) => {
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">{title}</h2>
-          <p className="text-gray-600 mb-6">{message}</p>
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={onCancel}
-              className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onConfirm}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-            >
-              {confirmText}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   return (

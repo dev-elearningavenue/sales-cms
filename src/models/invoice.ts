@@ -29,6 +29,8 @@ export interface IInvoice extends Document {
   percent_off?: string;
   hostedUrl?: string;
   paidAt?: Date | null;
+  orderId?: string;
+  user?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date | null;
@@ -70,6 +72,8 @@ const InvoiceSchema = new Schema({
   percent_off: { type: String, default: '' },
   hostedUrl: { type: String, default: '' },
   paidAt: { type: Date, default: null },
+  orderId: { type: String, default: null },
+  user: { type: mongoose.Schema.Types.ObjectId, default: null },
   deletedAt: { type: Date, default: null },
 }, {
   timestamps: true,

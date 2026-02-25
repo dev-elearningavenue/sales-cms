@@ -1,5 +1,4 @@
 // app/api/cron-job/route.ts
-
 import "@/services/cronJobs";
 
 export async function GET() {

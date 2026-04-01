@@ -38,7 +38,7 @@ export default function CompanyLeadsPage() {
         month: 0,
         byDomain: {} as Record<string, number>,
         quota: {
-            daily: 100,
+            daily: 200,
             current: 0
         }
     });

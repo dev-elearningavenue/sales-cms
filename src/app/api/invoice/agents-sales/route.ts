@@ -29,11 +29,7 @@ export async function GET(req: NextRequest) {
 
     // Aggregate pipeline to get agents sales data
     const agentsSales = await Invoice.aggregate([
-      {
-        $match: {
-          status: 'paid'
-        }
-      },
+      { $match: { status: "paid" } },
       {
         $addFields: {
           paidMonth: { $month: "$paidAt" },
@@ -70,9 +66,8 @@ export async function GET(req: NextRequest) {
           as: "agent"
         }
       },
-      {
-        $unwind: "$agent"
-      },
+      { $unwind: "$agent" },
+      { $match: { "agent.is_blocked": { $ne: true } } },
       {
         $project: {
           agentId: "$_id",

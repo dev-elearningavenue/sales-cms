@@ -33,18 +33,18 @@ module.exports = {
         NODE_ENV: "production"
       }
     },*/
-    {
-      name: "cron-jobs",
-      script: "src/services/cronJobs.ts",
-      interpreter: "node", 
-      args: "--loader ts-node/esm",
-      autorestart: true,
-      watch: false,
-      max_memory_restart: "1G",
-      env: {
-        NODE_ENV: "production",
-        NEXT_PUBLIC_SITE_URL: "https://presale.oshanewsletter.com"
-      }
-    }
+    // {
+    //   name: "cron-jobs",
+    //   script: "src/services/cronJobs.ts",
+    //   interpreter: "node", 
+    //   args: "--loader ts-node/esm",
+    //   autorestart: true,
+    //   watch: false,
+    //   max_memory_restart: "1G",
+    //   env: {
+    //     NODE_ENV: "production",
+    //     NEXT_PUBLIC_SITE_URL: "https://presale.oshanewsletter.com"
+    //   }
+    // }
   ]
 };

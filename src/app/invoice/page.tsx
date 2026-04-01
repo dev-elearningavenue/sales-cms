@@ -60,7 +60,7 @@ const getInitialFormData = (): FormData => ({
 });
 
 const Invoice = () => {
-  const { session } = useApp();
+  const { session, showToast } = useApp();
   const [isHovered, setIsHovered] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [step, setStep] = useState(1); // 1 = initial form, 2 = customer details, 3 = invoice creation
@@ -68,6 +68,7 @@ const Invoice = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isCreatingInvoice, setIsCreatingInvoice] = useState(false); // New state for invoice creation
   const [customerExists, setCustomerExists] = useState(false);
+  const [userId, setUserId] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [successData, setSuccessData] = useState<{
     invoiceNumber?: string;
@@ -448,6 +449,7 @@ const Invoice = () => {
       });
 
       const result = await response.json();
+      setUserId(result.customer?.userId ?? "");
 
       if (response.ok && result.success) {
         if (!result.customerId) {
@@ -829,6 +831,7 @@ const Invoice = () => {
         }
       }
       const finalTotal = subtotal - discount;
+
       // Handle firstName and lastName for both new and existing customers
       let firstName = formData.firstName;
       let lastName = formData.lastName;
@@ -898,7 +901,40 @@ const Invoice = () => {
 
           if (!leadResponse.ok) {
             console.error("Failed to create lead... ", leadResult);
+            showToast("Failed to create lead... ", "error");
           }
+          showToast("Lead created successfully", "success");
+          showToast("Creating an order", "info");
+          const invoiceNumber =
+            result.externalData?.data?.invoiceNumber ??
+            "";
+          const siteName =
+            result.externalData?.data?.site_name ?? formData.siteName ?? "";
+          const postCreatePayload = {
+            invoiceNumber,
+            siteName,
+            userId: userId,
+            email: formData.email,
+            firstName: firstName ?? "",
+            lastName: lastName ?? "",
+            contactNo: formData?.contactNo ?? "",
+            address: formData.address ?? "",
+            city: formData.city ?? "",
+            state: formData.state ?? "",
+            country: formData.country ?? "",
+            zipCode: formData.zipCode ?? "",
+          };
+          const orderResponse = await fetch("/api/invoice/post-create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(postCreatePayload),
+          });
+          const orderResult = await orderResponse.json();
+
+          if (orderResponse.status === 201) {
+            showToast("Order created successfully", "success");
+          }
+
         } catch (err) {
           console.error("Error creating invoice lead:", err);
         }

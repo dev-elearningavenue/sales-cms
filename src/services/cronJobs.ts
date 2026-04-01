@@ -1,47 +1,19 @@
 import cron from "node-cron";
-import { updateInvoiceStatus } from "../lib/invoiceCronUtils";
+import { updateInvoiceStatus, syncRacData } from "../lib/invoiceCronUtils";
 import connectDB from "../lib/db";
-import axios from "axios";
-
-// Function to hit RAC API
-async function syncRacData() {
-  try {
-    
-    // Use environment-based URL (with fallback)
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-      (process.env.NODE_ENV === 'production' 
-        ? 'https://presale.oshanewsletter.com'
-        : 'http://localhost:3000');
-    
-    const apiUrl = `${baseUrl}/api/rac`;
-    
-    const response = await axios.get(apiUrl, {
-      timeout: 30000, // 30 second timeout
-      headers: {
-        'User-Agent': 'RAC-Cron-Job',
-        'Content-Type': 'application/json'
-      }
-    });
-    
-  } catch (error: any) {
-    console.error("❌ RAC sync failed:", error.message || error);
-    if (error.response) {
-      console.error("Response status:", error.response.status);
-      console.error("Response data:", error.response.data);
-    }
-  }
-}
 
 (async () => {
-  await connectDB();
+  // await connectDB();
 
   // Invoice status updater - runs every minute
-  cron.schedule("* * * * *", async () => {
-    await updateInvoiceStatus();
-  });
+  // cron.schedule("* * * * *", async () => {
+  //   console.log("Updating invoice status...", new Date().toLocaleString('en-US'));
+  //   await updateInvoiceStatus();
+  // });
   
   // RAC data sync - runs every 15 minutes
   cron.schedule("*/15 * * * *", async () => {
+    console.log("Syncing RAC data...", new Date().toLocaleString('en-US'));
     await syncRacData();
   });
   

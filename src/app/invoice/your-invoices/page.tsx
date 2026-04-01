@@ -14,8 +14,10 @@ import {
   ChevronsRight,
   Search,
   Check,
+  RefreshCw,
 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
+import ConfirmationModal from "@/app/components/ConfirmationModal";
 
 interface Invoice {
   firstName: string;
@@ -50,7 +52,7 @@ const YourInvoicesPage = () => {
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [filterDate, setFilterDate] = useState<string>(""); // "today" or custom date
 
-  const { session } = useApp();
+  const { session, showToast } = useApp();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [agentsSales, setAgentsSales] = useState<AgentSales[]>([]);
   const [sortBy, setSortBy] = useState<
@@ -74,6 +76,8 @@ const YourInvoicesPage = () => {
   // ============ SEARCH STATE ============
   const [searchQuery, setSearchQuery] = useState("");
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
+  const [deleteConfirmInvoiceId, setDeleteConfirmInvoiceId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // ============ CACHE (using ref for immediate access) ============
   const cacheRef = useRef<{
@@ -273,11 +277,15 @@ const YourInvoicesPage = () => {
   // Sort invoices (client-side sorting on current page data)
   let sortedInvoices = [...invoices];
 
-  // Handle invoice deletion
-  const handleDeleteInvoice = async (invoiceId: string) => {
-    if (!confirm("Are you sure you want to delete this invoice? This action cannot be undone.")) {
-      return;
-    }
+  // Handle invoice deletion – open confirmation modal
+  const handleDeleteInvoice = (invoiceId: string) => {
+    setDeleteConfirmInvoiceId(invoiceId);
+  };
+
+  const confirmDeleteInvoice = async () => {
+    if (!deleteConfirmInvoiceId) return;
+    const invoiceId = deleteConfirmInvoiceId;
+    setDeleteConfirmInvoiceId(null);
 
     try {
       const response = await fetch(`/api/invoice?id=${invoiceId}`, {
@@ -290,15 +298,14 @@ const YourInvoicesPage = () => {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        // Remove the deleted invoice from the local state
         setInvoices(prevInvoices => prevInvoices.filter(inv => inv._id !== invoiceId));
-        alert("Invoice deleted successfully");
+        showToast("Invoice deleted successfully", "success");
       } else {
-        alert(result.error || "Failed to delete invoice");
+        showToast(result.error || "Failed to delete invoice", "error");
       }
     } catch (error) {
       console.error("Error deleting invoice:", error);
-      alert("Failed to delete invoice. Please try again.");
+      showToast("Failed to delete invoice. Please try again.", "error");
     }
   };
   if (sortBy === "createdAt") {
@@ -531,7 +538,7 @@ const YourInvoicesPage = () => {
               <select
                 value={filterAgent}
                 onChange={(e) => setFilterAgent(e.target.value)}
-                className="px-3 py-2 border rounded-md text-sm w-40"
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm w-40 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 <option value="">All Agents</option>
                 <option value="Faizyab Ali">Faizyab Ali</option>
@@ -541,7 +548,7 @@ const YourInvoicesPage = () => {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-3 py-2 border rounded-md text-sm w-40"
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm w-40 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 <option value="">All Statuses</option>
                 <option value="paid">Paid</option>
@@ -550,7 +557,7 @@ const YourInvoicesPage = () => {
               <select
                 value={filterDate}
                 onChange={(e) => setFilterDate(e.target.value)}
-                className="px-3 py-2 border rounded-md text-sm w-40"
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm w-40 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 <option value="">All Dates</option>
                 <option value="today">Today</option>
@@ -559,16 +566,15 @@ const YourInvoicesPage = () => {
                 type="date"
                 value={filterDate && filterDate !== "today" ? filterDate : ""}
                 onChange={(e) => setFilterDate(e.target.value)}
-                className="px-3 py-2 border rounded-md text-sm w-40"
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm w-40 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
-              {/* Search input */}
               <form onSubmit={handleSearch} className="flex">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search invoices..."
-                  className="px-3 py-2 border rounded-l-md text-sm w-48"
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-l-md text-sm w-48 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                 />
                 <button
                   type="submit"
@@ -577,6 +583,20 @@ const YourInvoicesPage = () => {
                   <Search size={18} />
                 </button>
               </form>
+              {/* Refresh invoices */}
+              <button
+                type="button"
+                onClick={async () => {
+                  setRefreshing(true);
+                  await fetchInvoices(currentPage, pageSize, true);
+                  setRefreshing(false);
+                }}
+                disabled={refreshing}
+                className="p-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 disabled:opacity-50"
+                title="Refresh invoices"
+              >
+                <RefreshCw size={18} className={refreshing ? "animate-spin" : ""} />
+              </button>
               {/* Clear filters button */}
               {(filterAgent || filterStatus || filterDate || searchQuery) && (
                 <button
@@ -587,7 +607,7 @@ const YourInvoicesPage = () => {
                     setSearchQuery("");
                     fetchInvoices(1, pageSize, true);
                   }}
-                  className="px-3 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
+                  className="px-3 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 text-sm"
                 >
                   Clear Filters
                 </button>
@@ -597,49 +617,64 @@ const YourInvoicesPage = () => {
 
           {/* Top Pagination Controls */}
           {!loading && invoices.length > 0 && (
-            <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-4 px-4 border-b pb-4">
-              <div className="text-sm text-gray-600 dark:text-gray-300">
-                Showing {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalCount)} of {totalCount} invoices
+            <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-4 px-4 border-b border-gray-200 dark:border-gray-600 pb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-300">
+                  Showing {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalCount)} of {totalCount} invoices
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setRefreshing(true);
+                    await fetchInvoices(currentPage, pageSize, true);
+                    setRefreshing(false);
+                  }}
+                  disabled={refreshing}
+                  className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 disabled:opacity-50"
+                  title="Refresh invoices"
+                >
+                  <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+                </button>
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800"
                   disabled={currentPage === 1}
                   onClick={() => fetchInvoices(1, pageSize)}
                 >
                   <ChevronsLeft className="h-4 w-4" />
                 </button>
                 <button
-                  className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800"
                   disabled={currentPage === 1}
                   onClick={() => fetchInvoices(Math.max(currentPage - 1, 1), pageSize)}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <span className="px-3 py-1 text-sm">Page {currentPage} of {totalPages}</span>
+                <span className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300">Page {currentPage} of {totalPages}</span>
                 <button
-                  className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800"
                   disabled={currentPage === totalPages || totalPages === 0}
                   onClick={() => fetchInvoices(Math.min(currentPage + 1, totalPages), pageSize)}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
                 <button
-                  className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800"
                   disabled={currentPage === totalPages || totalPages === 0}
                   onClick={() => fetchInvoices(totalPages, pageSize)}
                 >
                   <ChevronsRight className="h-4 w-4" />
                 </button>
                 <div className="relative group ml-2">
-                  <button className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 text-sm">
+                  <button className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800">
                     {pageSize}/page
                   </button>
-                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden z-20 hidden group-hover:block">
+                  <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg overflow-hidden z-20 hidden group-hover:block">
                     {[50, 100, 200].map((value) => (
                       <button
                         key={value}
-                        className={`w-full px-4 py-2 text-left text-sm ${pageSize === value ? "bg-blue-50 text-blue-600 font-medium" : "hover:bg-gray-100"}`}
+                        className={`w-full px-4 py-2 text-left text-sm ${pageSize === value ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 font-medium" : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"}`}
                         onClick={() => {
                           setPageSize(value);
                           fetchInvoices(1, value, true);
@@ -666,12 +701,12 @@ const YourInvoicesPage = () => {
             </div>
           ) : invoices.length === 0 ? (
             <div className="flex flex-col items-center py-12">
-              <FileText className="text-gray-400 mb-2" size={32} />
-              <span className="text-gray-600 font-semibold">
+              <FileText className="text-gray-400 dark:text-gray-500 mb-2" size={32} />
+              <span className="text-gray-600 dark:text-gray-300 font-semibold">
                 No invoices found.
               </span>
               {(filterAgent || filterStatus || filterDate || searchQuery) && (
-                <span className="text-gray-500 text-sm mt-2">
+                <span className="text-gray-500 dark:text-gray-400 text-sm mt-2">
                   Try adjusting your filters or search query
                 </span>
               )}
@@ -854,10 +889,10 @@ const YourInvoicesPage = () => {
                         <td className="px-3 py-4">
                           <span
                             className={`px-3 py-1 rounded-full text-sm font-bold ${inv.status === "paid"
-                              ? "bg-green-100 text-green-700"
+                              ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"
                               : inv.status === "unpaid"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-yellow-100 text-yellow-700"
+                                ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
+                                : "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300"
                               }`}
                           >
                             {inv.status.charAt(0).toUpperCase() +
@@ -922,17 +957,16 @@ const YourInvoicesPage = () => {
                     Showing {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalCount)} of {totalCount} invoices
                   </div>
 
-                  {/* Pagination Navigation */}
                   <div className="flex items-center gap-2">
                     <button
-                      className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800"
                       disabled={currentPage === 1}
                       onClick={() => fetchInvoices(1, pageSize)}
                     >
                       <ChevronsLeft className="h-5 w-5" />
                     </button>
                     <button
-                      className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800"
                       disabled={currentPage === 1}
                       onClick={() => fetchInvoices(Math.max(currentPage - 1, 1), pageSize)}
                     >
@@ -955,10 +989,10 @@ const YourInvoicesPage = () => {
                         return (
                           <button
                             key={pageNum}
-                            className={`w-10 h-10 ${currentPage === pageNum
-                              ? "bg-blue-500 text-white font-medium"
-                              : "hover:bg-gray-100"
-                              } border border-gray-300 rounded-md`}
+                            className={`w-10 h-10 border rounded-md ${currentPage === pageNum
+                              ? "bg-blue-500 text-white font-medium border-blue-500"
+                              : "border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800"
+                              }`}
                             onClick={() => fetchInvoices(pageNum, pageSize)}
                           >
                             {pageNum}
@@ -966,38 +1000,34 @@ const YourInvoicesPage = () => {
                         );
                       })}
                       {totalPages > 5 && (
-                        <span className="flex items-center px-2">...</span>
+                        <span className="flex items-center px-2 text-gray-600 dark:text-gray-400">...</span>
                       )}
                     </div>
 
                     <button
-                      className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800"
                       disabled={currentPage === totalPages || totalPages === 0}
                       onClick={() => fetchInvoices(Math.min(currentPage + 1, totalPages), pageSize)}
                     >
                       <ChevronRight className="h-5 w-5" />
                     </button>
                     <button
-                      className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800"
                       disabled={currentPage === totalPages || totalPages === 0}
                       onClick={() => fetchInvoices(totalPages, pageSize)}
                     >
                       <ChevronsRight className="h-5 w-5" />
                     </button>
 
-                    {/* Page Size Selector */}
                     <div className="relative group ml-4">
-                      <button className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                      <button className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800">
                         {pageSize} / page
                       </button>
-                      <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden z-20 hidden group-hover:block">
+                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg overflow-hidden z-20 hidden group-hover:block">
                         {[50, 100, 200].map((value) => (
                           <button
                             key={value}
-                            className={`w-full px-4 py-2 text-left ${pageSize === value
-                              ? "bg-blue-50 text-blue-600 font-medium"
-                              : "hover:bg-gray-100"
-                              }`}
+                            className={`w-full px-4 py-2 text-left text-sm ${pageSize === value ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 font-medium" : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"}`}
                             onClick={() => {
                               setPageSize(value);
                               fetchInvoices(1, value, true);
@@ -1015,6 +1045,16 @@ const YourInvoicesPage = () => {
           )}
         </div>
       </div>
+
+      {deleteConfirmInvoiceId && (
+        <ConfirmationModal
+          title="Delete invoice"
+          message="Are you sure you want to delete this invoice? This action cannot be undone."
+          onCancel={() => setDeleteConfirmInvoiceId(null)}
+          onConfirm={confirmDeleteInvoice}
+          confirmText="Delete"
+        />
+      )}
     </div>
   );
 };

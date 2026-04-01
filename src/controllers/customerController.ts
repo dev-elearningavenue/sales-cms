@@ -18,29 +18,32 @@ const CONNECTION_OPTIONS = {
 };
 
 // Site database mappings
-const SITE_DATABASE_CONFIG = {
+export const SITE_DATABASE_CONFIG = {
   "001": {
     uri: mongoUri_Outreach,
     dbName: "osha-outreach-lms",
     collection: "users",
     siteName: "OSHA OUTREACH COURSES",
+    baseUrl: process.env.BASE_URI_001,
   },
   "002": {
     uri: mongoUri_Master,
     dbName: "oshaonlinecenter",
     collection: "users",
     siteName: "OSHA ONLINE CENTER",
+    baseUrl: process.env.BASE_URI_002,
   },
   "003": {
     uri: mongoUri_Master,
     dbName: "oes",
     collection: "users",
     siteName: "OSHA EDUCATION SCHOOL",
+    baseUrl: process.env.BASE_URI_003,
   },
 };
 
 // Legacy mapping for backwards compatibility
-const LEGACY_SITE_DATABASE_CONFIG = {
+export const LEGACY_SITE_DATABASE_CONFIG = {
   "OSHA OUTREACH COURSES": {
     uri: mongoUri_Outreach,
     dbName: "osha-outreach-lms",
@@ -84,6 +87,7 @@ async function generateUniqueUserName(
 export interface CustomerCheckResponse {
   exists: boolean;
   customer?: {
+    userId?: string;
     fullName?: string;
     email: string;
     contactNo?: string;
@@ -115,6 +119,7 @@ export interface CreateCustomerResponse {
   customerId?: string;
   message: string;
   customer?: {
+    userId?: string;
     email: string;
     fullName: string;
     contactNo: string;
@@ -152,7 +157,6 @@ export const createCustomer = async (
         console.error("Stripe Customer API failed:", response.error);
         throw new Error(`Stripe Customer API error: ${response.error}`);
       }
-
       // console.log("Stripe Create Customer API success, customerId:", response);
 
       return {
@@ -160,6 +164,7 @@ export const createCustomer = async (
         customerId: response.customerId,
         message: "Customer created on stripe successfully",
         customer: {
+          // userId: customerData.,
           email: customerData.email,
           fullName: customerData.fullName!,
           contactNo: customerData.contactNo || "",
@@ -187,90 +192,66 @@ export const createCustomer = async (
       const stripeApiResponse = await stripeCustomerAPI(stripeCustomerData);
 
       if (!stripeApiResponse.success) {
-        console.error("External API failed:", stripeApiResponse.error);
-        throw new Error(`External API error: ${stripeApiResponse.error}`);
+        console.error("External Customer Creation API failed:", stripeApiResponse.error);
+        throw new Error(`External Customer Creation API error: ${stripeApiResponse.error}`);
       }
       // Get database configuration for the site
       const siteConfig =
         SITE_DATABASE_CONFIG[
           customerData.site_name as keyof typeof SITE_DATABASE_CONFIG
         ];
-
-      if (!siteConfig) {
-        throw new Error(
-          `Configuration not found for site code: ${customerData.site_name}`
-        );
+      const baseUrl = siteConfig?.baseUrl;
+      if (!baseUrl) {
+        throw new Error(`No external base URL configured for site: ${customerData.site_name}`);
       }
 
-      const client = new MongoClient(siteConfig.uri, CONNECTION_OPTIONS);
-      try {
-        // Connect to the database
-        await client.connect();
+      const body = {
+        email: customerData.email.toLowerCase(),
+        firstName: customerData.firstName,
+        lastName: customerData.lastName,
+        password: customerData.password || "Apple@123!",
+        site_name: customerData.site_name,
+        contactNo: customerData.contactNo || "",
+        address: customerData.address || "-",
+        city: customerData.city || "-",
+        state: customerData.state || "-",
+        country: customerData.country || "-",
+        zipCode: customerData.zipCode || "-",
+        company: customerData.company || "-",
+        userType: customerData.userType === "manager" ? 2 : 4,
+      }
 
-        // Get the database and collection
-        const db = client.db(siteConfig.dbName);
-        const collection = db.collection(siteConfig.collection);
+      const signupRes = await fetch(`${baseUrl}/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-        // Generate unique username
-        const uniqueUserName = await generateUniqueUserName(
-          {
-            firstName: customerData.firstName,
-            lastName: customerData.lastName,
-          },
-          collection
-        );
+      const signupJson = await signupRes.json();
+      const signupOk = signupRes.status === 201;
 
-        const now = new Date();
-        // Prepare customer document with all default fields matching the original schema
-        const customerDocument = {
-          email: customerData.email.toLowerCase(),
-          firstName: customerData.firstName,
-          lastName: customerData.lastName,
-          userName: uniqueUserName,
-          password: customerData.password || "Apple@123!",
+      if (!signupOk) {
+        const errMsg = signupJson.message || signupJson.error || "Signup API error";
+        console.error("Signup API failed:", errMsg);
+        throw new Error(`Signup API error: ${errMsg}`);
+      }
+
+      return {
+        success: true,
+        customerId: stripeApiResponse.customerId,
+        message: "User created successfully.",
+        customer: {
+          userId: signupJson?.user?._id,
+          email: customerData.email,
+          fullName: fullName,
           contactNo: customerData.contactNo || "",
-          address: customerData.address || "-",
-          city: customerData.city || "-",
-          state: customerData.state || "-",
-          country: customerData.country || "-",
-          zipCode: customerData.zipCode || "-",
-          company: customerData.company || "-",
-          userType: customerData.userType === "manager" ? 2 : 4,
-          createdAt: now,
-          updatedAt: now,
-        };
-
-        // Insert the customer
-        const result = await collection.insertOne(customerDocument);
-
-        if (result.insertedId) {
-          return {
-            success: true,
-            customerId: stripeApiResponse.customerId, // Return external API customerId
-            message: "Customer created successfully",
-            customer: {
-              email: customerData.email,
-              fullName: fullName,
-              contactNo: customerData.contactNo || "",
-              site: siteConfig.siteName,
-            },
-          };
-        } else {
-          throw new Error("Failed to insert customer document");
-        }
-      } finally {
-        // Always close the connection
-        await client.close();
-      }
+          site: siteConfig?.siteName ?? customerData.site_name,
+        },
+      };
     }
   } catch (error: any) {
     console.error(`Error creating customer:`, {
       message: error.message,
-      customerData: {
-        ...customerData,
-        contactNo: customerData.contactNo ? "***masked***" : "",
-        password: "***masked***",
-      },
     });
 
     return {

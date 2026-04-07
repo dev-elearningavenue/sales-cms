@@ -313,13 +313,13 @@ export const syncRacData = async () => {
     
     const apiUrl = `${baseUrl}/api/rac`;
     
-    const response = await axios.get(apiUrl, {
-      timeout: 30000, // 30 second timeout
-      headers: {
-        'User-Agent': 'RAC-Cron-Job',
-        'Content-Type': 'application/json'
-      }
-    });
+    // const response = await axios.get(apiUrl, {
+    //   timeout: 30000, // 30 second timeout
+    //   headers: {
+    //     'User-Agent': 'RAC-Cron-Job',
+    //     'Content-Type': 'application/json'
+    //   }
+    // });
     console.log("RAC data synced successfully", new Date().toLocaleString('en-US'));
 
   } catch (error: any) {

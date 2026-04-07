@@ -33,12 +33,24 @@ interface CustomLead {
   supportType?: string;
 }
 
+/** Populated ShortCourseDiscount / SC Group Discount request */
+interface ShortCourseDiscountData {
+  name?: string;
+  email?: string;
+  phone?: string;
+  courseTitle?: string;
+  courseUrl?: string;
+  quantity?: number;
+  domain?: string;
+}
+
 type LeadData =
   | ContactUs
   | ICustomer
   | OrderCreation
   | Scholarship
   | CustomLead
+  | ShortCourseDiscountData
   | null;
 
 export const Customer: React.FC<{ selectedLead: ILead }> = ({
@@ -55,6 +67,7 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
     "scholarship",
     "custom_lead",
     "invoice",
+    "shortcourse_discount"
   ].find((key) => selectedLead[key as keyof ILead]);
 
   const leadData: LeadData = populatedKey
@@ -241,6 +254,36 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
               </>
             )}
 
+          {populatedKey === "shortcourse_discount" &&
+            leadData &&
+            isShortCourseDiscount(leadData) && (
+              <>
+                <Field label="Name" value={leadData?.name} />
+                <Field label="Email" value={leadData?.email} />
+                <Field label="Phone" value={leadData?.phone} />
+                <Field label="Course Title" value={leadData?.courseTitle} />
+                <Field
+                  label="Course URL"
+                  value={
+                    leadData?.courseUrl ? (
+                      <a
+                        href={leadData.courseUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block max-w-full break-all text-blue-600 underline hover:text-blue-800"
+                      >
+                        {leadData.courseUrl}
+                      </a>
+                    ) : (
+                      undefined
+                    )
+                  }
+                />
+                <Field label="Quantity (seats)" value={leadData?.quantity} />
+                <Field label="Domain" value={leadData?.domain} />
+              </>
+            )}
+
           {!populatedKey && (
             <p className="text-gray-500">No customer information available.</p>
           )}
@@ -257,9 +300,11 @@ interface FieldProps {
 
 // Field Component with Proper Types
 export const Field: React.FC<FieldProps> = ({ label, value }) => (
-  <div>
+  <div className="min-w-0">
     <h4 className="text-sm font-medium text-gray-500">{label}</h4>
-    <p className="mt-1 text-gray-900">{value || "N/A"}</p>
+    <p className="mt-1 min-w-0 break-words text-gray-900 [overflow-wrap:anywhere]">
+      {value || "N/A"}
+    </p>
   </div>
 );
 
@@ -304,5 +349,15 @@ function isCustomLead(data: LeadData): data is CustomLead {
     typeof data === "object" &&
     "firstName" in data &&
     "supportType" in data
+  );
+}
+
+function isShortCourseDiscount(data: LeadData): data is ShortCourseDiscountData {
+  return (
+    data !== null &&
+    typeof data === "object" &&
+    "courseTitle" in data &&
+    "courseUrl" in data &&
+    "quantity" in data
   );
 }

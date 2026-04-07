@@ -925,6 +925,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                     "Custom Lead",
                     "Scholarship",
                     "Invoice",
+                    "SC Group Discount",
                   ].map((type) => (
                     <label key={type} className="flex items-center space-x-2">
                       <input

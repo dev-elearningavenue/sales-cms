@@ -74,12 +74,29 @@ function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+/**
+ * Abandoned-cart sync runs inside THIS route (WordPress rac.php → DB).
+ * Commenting `axios.get` in `invoiceCronUtils.syncRacData` only stops that one caller.
+ * Anything that still HTTP GETs `/api/rac` (server crontab, uptime, manual curl) will run this handler.
+ * Set DISABLE_RAC_SYNC=true in env to turn off inserts + external fetches everywhere.
+ */
 export async function GET(req: NextRequest) {
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  };
+  if (process.env.DISABLE_RAC_SYNC === "true") {
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          "RAC sync disabled (DISABLE_RAC_SYNC=true). No abandoned carts fetched.",
+      },
+      { status: 503, headers: corsHeaders }
+    );
+  }
 
   try {
     // Connect to database

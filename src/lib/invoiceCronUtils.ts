@@ -3,7 +3,6 @@ import type { IInvoice as InvoiceType } from "@/models/invoice";
 import { createInvoicePaymentNotification } from "@/services/notificationService";
 import { MongoClient, ObjectId } from "mongodb";
 import { LEGACY_SITE_DATABASE_CONFIG } from "@/controllers/customerController";
-import axios from "axios";
 import connectDB from "@/lib/db";
 
 const BASE_API = "https://freeoshacourses.com/api/fetch_invoice_status.php";
@@ -301,26 +300,41 @@ export const updateInvoiceStatus = async () => {
   }
 };
 
-// Function to hit RAC API
+/**
+ * Triggers your own `GET /api/rac` (which pulls from WordPress + inserts carts).
+ * If this axios call is commented out, only this cron path stops — anything that still
+ * requests `/api/rac` directly (host crontab, curl, etc.) will still run `app/api/rac/route.ts`.
+ * To fully pause abandoned-cart sync: set DISABLE_RAC_SYNC=true on the server (see that route).
+ */
 export const syncRacData = async () => {
   try {
-    
+    if (process.env.DISABLE_RAC_SYNC === "true") {
+      console.log(
+        "[syncRacData] Skipped — DISABLE_RAC_SYNC=true",
+        new Date().toLocaleString("en-US")
+      );
+      return;
+    }
+
     // Use environment-based URL (with fallback)
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-      (process.env.NODE_ENV === 'production' 
-        ? 'https://presale.oshanewsletter.com'
-        : 'http://localhost:3000');
-    
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      (process.env.NODE_ENV === "production"
+        ? "https://presale.oshanewsletter.com"
+        : "http://localhost:3000");
+
     const apiUrl = `${baseUrl}/api/rac`;
-    
-    // const response = await axios.get(apiUrl, {
-    //   timeout: 30000, // 30 second timeout
+
+    // Uncomment to let cron (`/api/cron/rac`, `cronJobs.ts`) trigger the same work as a browser hit to `/api/rac`:
+    // const axios = (await import("axios")).default;
+    // await axios.get(apiUrl, {
+    //   timeout: 30000,
     //   headers: {
-    //     'User-Agent': 'RAC-Cron-Job',
-    //     'Content-Type': 'application/json'
-    //   }
+    //     "User-Agent": "RAC-Cron-Job",
+    //     "Content-Type": "application/json",
+    //   },
     // });
-    console.log("RAC data synced successfully", new Date().toLocaleString('en-US'));
+    console.log("RAC data synced successfully", new Date().toLocaleString("en-US"));
 
   } catch (error: any) {
     console.error("❌ RAC sync failed:", error.message || error);

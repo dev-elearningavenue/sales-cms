@@ -379,6 +379,7 @@ const Invoice = () => {
       if (response.ok) {
         if (result.exists) {
           setCustomerExists(true);
+          setUserId(result.customer?.userId ?? "");
           setFormData((prev) => ({
             ...prev,
             fullName: result.customer?.fullName || "",
@@ -386,7 +387,7 @@ const Invoice = () => {
           }));
         } else {
           setCustomerExists(false);
-          // Clear previous customer data when customer doesn't exist
+          setUserId("");
           setFormData((prev) => ({
             ...prev,
             fullName: "",
@@ -449,7 +450,8 @@ const Invoice = () => {
       });
 
       const result = await response.json();
-      setUserId(result.customer?.userId ?? "");
+      // New customer: API returns userId from signup. Existing: keep userId from check (API doesn't return it).
+      setUserId((prev) => result.customer?.userId ?? prev);
 
       if (response.ok && result.success) {
         if (!result.customerId) {
@@ -482,6 +484,7 @@ const Invoice = () => {
     setShowModal(false);
     setStep(1);
     setCustomerExists(false);
+    setUserId("");
     setFormData(getInitialFormData());
     setInvoiceData({
       customerId: "",
@@ -902,10 +905,45 @@ const Invoice = () => {
           if (!leadResponse.ok) {
             console.error("Failed to create lead... ", leadResult);
             showToast("Failed to create lead... ", "error");
+          } else {
+            showToast("Lead created successfully", "success");
           }
-          showToast("Lead created successfully", "success");
-          showToast("Creating an order", "info");
+
+          // Close modal and show success immediately; create order in background
+          setShowModal(false);
+          setShowSuccess(true);
+          setSuccessData({
+            invoiceNumber: result.invoiceNumber,
+            hostedUrl: result.hostedUrl ?? undefined,
+          });
+          setStep(1);
+          setCustomerExists(false);
+          setFormData(getInitialFormData());
+          setInvoiceData({
+            customerId: "",
+            products: [
+              {
+                product_id: "",
+                name: "",
+                price_id: "",
+                price: "",
+                quantity: 1,
+                total: 0,
+              },
+            ],
+            dueDate: "",
+            coupon: "",
+            agentName: "",
+            totalPrice: 0,
+          });
+          setProductSearchStates({});
+          setPriceOptions({});
+          setIsLoadingPrices({});
+          setCouponOptions([]);
+
+          // Post-create (order) in background – don't block UI
           const invoiceNumber =
+            result.invoiceNumber ??
             result.externalData?.data?.invoiceNumber ??
             "";
           const siteName =
@@ -924,52 +962,27 @@ const Invoice = () => {
             country: formData.country ?? "",
             zipCode: formData.zipCode ?? "",
           };
-          const orderResponse = await fetch("/api/invoice/post-create", {
+          fetch("/api/invoice/post-create", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(postCreatePayload),
-          });
-          const orderResult = await orderResponse.json();
-
-          if (orderResponse.status === 201) {
-            showToast("Order created successfully", "success");
-          }
-
+          })
+            .then((orderResponse) =>
+              orderResponse.json().then((orderResult) => ({ orderResponse, orderResult }))
+            )
+            .then(({ orderResponse, orderResult }) => {
+              if (orderResponse.status === 201) {
+                showToast("Order created successfully", "success");
+              } else {
+                showToast(orderResult?.error || "Order creation failed", "error");
+              }
+            })
+            .catch(() => {
+              showToast("Order creation failed", "error");
+            });
         } catch (err) {
           console.error("Error creating invoice lead:", err);
         }
-
-        // Show static success overlay instead of alert
-        setShowModal(false);
-        setShowSuccess(true);
-        setSuccessData({
-          invoiceNumber: result.invoiceNumber,
-          hostedUrl: result.hostedUrl ?? undefined,
-        });
-        setStep(1);
-        setCustomerExists(false);
-        setFormData(getInitialFormData());
-        setInvoiceData({
-          customerId: "",
-          products: [
-            {
-              product_id: "",
-              name: "",
-              price_id: "",
-              price: "",
-              quantity: 1,
-              total: 0,
-            },
-          ],
-          dueDate: "",
-          coupon: "",
-          agentName: "",
-          totalPrice: 0,
-        });
-        setProductSearchStates({});
-        setPriceOptions({});
-        setIsLoadingPrices({});
-        setCouponOptions([]);
       } else {
         throw new Error(
           result.error || result.message || "Failed to create invoice"

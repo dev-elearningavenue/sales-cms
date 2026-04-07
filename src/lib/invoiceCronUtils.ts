@@ -33,7 +33,7 @@ interface InvoiceStatusResult {
 }
 
 // ⚠️ DEV BYPASS – remove this block when done testing
-const DEV_BYPASS_INVOICE = "PXDOGTUJ-0001";
+const DEV_BYPASS_INVOICE = "RZVJLQMM-0001";
 
 const fetchInvoiceStatus = async (
   invoice: InvoiceType
@@ -140,21 +140,59 @@ async function handleInvoicePaidProcessing(
 
     if (user.userType === 2) {
       const now = new Date();
-      const coursesToAdd = orderItems.map((item: any) => {
+      const existingPurchased = (user.purchased_courses ?? []) as any[];
+
+      const toPush: any[] = [];
+      for (const item of orderItems) {
         const rawCourseId = item.course_id?.$oid ?? item.course_id;
-        return {
-          assignCount: 0,
-          _id: new ObjectId(),
-          courseId: rawCourseId ? new ObjectId(rawCourseId) : null,
-          quantity: typeof item.quantity === "number" ? item.quantity : 1,
-          createdAt: now,
-          updatedAt: now,
-        };
-      });
-      await usersCol.updateOne(
-        { _id: user._id },
-        { $push: { purchased_courses: { $each: coursesToAdd } } as any }
-      );
+        const courseId = rawCourseId ? new ObjectId(rawCourseId) : null;
+        const itemQty = typeof item.quantity === "number" ? item.quantity : 1;
+        console.log("courseId: ", courseId);
+        console.log("itemQty: ", itemQty);
+        if (!courseId) {
+          toPush.push({
+            assignCount: 0,
+            _id: new ObjectId(),
+            courseId: null,
+            quantity: itemQty,
+            createdAt: now,
+            updatedAt: now,
+          });
+          continue;
+        }
+        const existing = existingPurchased.find(
+          (pc: any) =>
+            pc.courseId &&
+            (pc.courseId.toString?.() ?? String(pc.courseId)) === courseId.toString()
+        );
+        if (existing) {
+          console.log("existing: ", existing);
+          await usersCol.updateOne(
+            { _id: user._id, "purchased_courses.courseId": courseId },
+            {
+              $inc: { "purchased_courses.$.quantity": itemQty },
+              $set: { "purchased_courses.$.updatedAt": now },
+            }
+          );
+        } else {
+          console.log("else: ", itemQty);
+          toPush.push({
+            assignCount: 0,
+            _id: new ObjectId(),
+            courseId,
+            quantity: itemQty,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+      }
+      console.log("toPush: ", toPush);
+      if (toPush.length > 0) {
+        await usersCol.updateOne(
+          { _id: user._id },
+          { $push: { purchased_courses: { $each: toPush } } as any }
+        );
+      }
     } else if (user.userType === 4) {
       const now = new Date();
       const coursesToAdd = orderItems.map((item: any) => {
@@ -201,12 +239,12 @@ export const updateInvoiceStatus = async () => {
     await connectDB();
     // Fetch all invoices
     console.log("Fetching all unpaid invoices to update status...", new Date().toLocaleString('en-US'));
-    const invoices = await Invoice.find({ status: "unpaid", deletedAt: null });
+    // const invoices = await Invoice.find({ status: "unpaid", deletedAt: null });
 
-    for (const inv of invoices) {
+    // for (const inv of invoices) {
       // const { status, paidAt } = await fetchInvoiceStatus(inv);
-      // const invoices = await Invoice.find({ invoiceNumber: "PXDOGTUJ-0001", status: "unpaid", deletedAt: null });
-      // const inv = invoices[0];
+      const invoices = await Invoice.find({ invoiceNumber: "RZVJLQMM-0001", status: "unpaid", deletedAt: null });
+      const inv = invoices[0];
       const { status, paidAt, paymentResult } = await fetchInvoiceStatus(inv);
       // Update invoice in DB if status has changed
       if (inv.status === "unpaid" && status === "paid") {
@@ -257,7 +295,7 @@ export const updateInvoiceStatus = async () => {
 
         console.log("Invoice status synced successfully", new Date().toLocaleString('en-US'));
       }
-    } // have to comment this for test 
+    // } // have to comment this for test 
   } catch (error) {
     console.error("Error updating invoice statuses:", error);
   }

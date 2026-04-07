@@ -353,6 +353,7 @@ export const checkCustomerExists = async (
         return {
           exists: true,
           customer: {
+            userId: (user as any)._id?.toString?.() ?? (user as any)._id,
             fullName: fullName.trim(),
             contactNo: contactNo,
             email: user.email,

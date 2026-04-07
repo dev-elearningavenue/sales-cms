@@ -4,6 +4,7 @@ import {
   fetchStatusUpdateItems,
   createOrderViaAPI,
   updateLocalInvoiceAfterOrder,
+  getSiteCode,
 } from "@/lib/invoicePostCreate";
 export const dynamic = "force-dynamic";
 
@@ -42,9 +43,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const siteCode = ["001", "002", "003", "004"].includes(siteName) ? siteName : getSiteCode(siteName);
     const steps: { step: string; success: boolean; message?: string }[] = [];
 
-    const statusResult = await fetchStatusUpdateItems(invoiceNumber, siteName);
+    const statusResult = await fetchStatusUpdateItems(invoiceNumber, siteCode);
 
     if (!statusResult.success || !statusResult.items?.length) {
       steps.push({
@@ -68,7 +70,7 @@ export async function POST(request: NextRequest) {
       statusResult.items,
       userId,
       invoiceNumber,
-      siteName,
+      siteCode,
       email,
       firstName != null || lastName != null ? { firstName, lastName } : undefined,
       { contactNo, address, city, state, country, zipCode }

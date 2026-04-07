@@ -10,7 +10,7 @@ export interface IInvoiceProduct {
 }
 
 export interface IInvoice extends Document {
-  _id: string;
+  _id: mongoose.Types.ObjectId;
   customerId: string;
   email: string;
   firstName?: string;

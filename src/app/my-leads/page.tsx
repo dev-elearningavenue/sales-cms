@@ -103,6 +103,7 @@ const MyLeads = () => {
     domain: "",
     category: "",
     status: "",
+    followUpDate: "",
   });
   const [sort, setSort] = useState<SortConfig>({
     field: "updatedAt",
@@ -594,6 +595,7 @@ const MyLeads = () => {
       domain: "",
       category: "",
       status: "",
+      followUpDate: "",
     });
   };
 
@@ -839,7 +841,7 @@ const MyLeads = () => {
 
             {/* Filters and Pagination Row */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              {(filters.domain || filters.category || filters.status) && (
+              {(filters.domain || filters.category || filters.status || filters.followUpDate) && (
                 <button
                   onClick={clearFilters}
                   className="flex items-center gap-2 px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"

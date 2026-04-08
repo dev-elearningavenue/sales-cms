@@ -14,6 +14,7 @@ export interface FilterConfig {
   domain: string;
   category: string;
   status: string;
+  followUpDate: string;
 }
 
 export const useLeadsData = () => {
@@ -184,7 +185,20 @@ export const useLeadsData = () => {
         !filters.category || lead.category === filters.category;
       const statusMatch = !filters.status || lead.status === filters.status;
 
-      return domainMatch && categoryMatch && statusMatch;
+      let followUpMatch = true;
+      if (filters.followUpDate) {
+        const targetDate = filters.followUpDate;
+        followUpMatch =
+          Array.isArray(lead.next_follow_up) &&
+          lead.next_follow_up.some((fu) => {
+            if (!fu.date) return false;
+            const fuDate = new Date(fu.date);
+            const fuDateStr = `${fuDate.getFullYear()}-${String(fuDate.getMonth() + 1).padStart(2, "0")}-${String(fuDate.getDate()).padStart(2, "0")}`;
+            return fuDateStr === targetDate;
+          });
+      }
+
+      return domainMatch && categoryMatch && statusMatch && followUpMatch;
     });
   };
 

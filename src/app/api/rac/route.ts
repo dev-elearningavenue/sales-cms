@@ -3,6 +3,7 @@ import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { createRac } from "@/controllers/racController";
+export const dynamic = "force-dynamic";
 
 // Website configurations
 const WEBSITES = [

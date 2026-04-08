@@ -977,8 +977,9 @@ const Invoice = () => {
                 showToast(orderResult?.error || "Order creation failed", "error");
               }
             })
-            .catch(() => {
-              showToast("Order creation failed", "error");
+            .catch((error) => {
+              console.error("Error creating order:", error);
+              // showToast("Order creation failed", "error");
             });
         } catch (err) {
           console.error("Error creating invoice lead:", err);
@@ -1835,7 +1836,7 @@ const Invoice = () => {
                     <div className="flex flex-col md:flex-row gap-3 items-end">
                       <div className="flex-1">
                         <label className="block text-gray-700 font-medium mb-2 text-sm">
-                          Due Date:
+                          Due Date <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="date"

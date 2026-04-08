@@ -407,7 +407,8 @@ function setupOrderCollectionWatch(
                 pendingInfo.processed = true;
 
                 await syncToTargetCollection(
-                  newOrder,
+                  // newOrder,
+                  orderStatus,
                   `${domain} (Unpaid)`,
                   abandonedCartsCollection,
                   "Abandoned Cart"

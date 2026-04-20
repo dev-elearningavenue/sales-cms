@@ -76,6 +76,7 @@ const YourInvoicesPage = () => {
   // ============ SEARCH STATE ============
   const [searchQuery, setSearchQuery] = useState("");
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
+  const [markPaidConfirmInvoiceId, setMarkPaidConfirmInvoiceId] = useState<string | null>(null);
   const [deleteConfirmInvoiceId, setDeleteConfirmInvoiceId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -231,10 +232,6 @@ const YourInvoicesPage = () => {
 
   // Handle mark as paid
   const handleMarkAsPaid = async (invoiceId: string) => {
-    if (!confirm("Are you sure you want to mark this invoice as paid?")) {
-      return;
-    }
-
     setMarkingPaid(invoiceId);
     try {
       const response = await fetch("/api/invoice", {
@@ -262,16 +259,27 @@ const YourInvoicesPage = () => {
             ? { ...inv, status: "paid", paidAt: new Date().toISOString() }
             : inv
         );
-        alert("Invoice marked as paid successfully");
+        showToast("Invoice marked as paid successfully", "success");
       } else {
-        alert(result.error || "Failed to mark invoice as paid");
+        showToast(result.error || "Failed to mark invoice as paid", "error");
       }
     } catch (error) {
       console.error("Error marking invoice as paid:", error);
-      alert("Failed to mark invoice as paid. Please try again.");
+      showToast("Failed to mark invoice as paid. Please try again.", "error");
     } finally {
       setMarkingPaid(null);
     }
+  };
+
+  const handleOpenMarkAsPaidConfirm = (invoiceId: string) => {
+    setMarkPaidConfirmInvoiceId(invoiceId);
+  };
+
+  const confirmMarkAsPaid = async () => {
+    if (!markPaidConfirmInvoiceId) return;
+    const invoiceId = markPaidConfirmInvoiceId;
+    setMarkPaidConfirmInvoiceId(null);
+    await handleMarkAsPaid(invoiceId);
   };
 
   // Sort invoices (client-side sorting on current page data)
@@ -923,7 +931,7 @@ const YourInvoicesPage = () => {
                               <button
                                 type="button"
                                 className="flex items-center px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md text-sm disabled:opacity-50"
-                                onClick={() => handleMarkAsPaid(inv._id)}
+                                onClick={() => handleOpenMarkAsPaidConfirm(inv._id)}
                                 disabled={markingPaid === inv._id}
                               >
                                 {markingPaid === inv._id ? (
@@ -1053,6 +1061,16 @@ const YourInvoicesPage = () => {
           onCancel={() => setDeleteConfirmInvoiceId(null)}
           onConfirm={confirmDeleteInvoice}
           confirmText="Delete"
+        />
+      )}
+
+      {markPaidConfirmInvoiceId && (
+        <ConfirmationModal
+          title="Mark invoice as paid"
+          message="Are you sure you want to mark this invoice as paid?"
+          onCancel={() => setMarkPaidConfirmInvoiceId(null)}
+          onConfirm={confirmMarkAsPaid}
+          confirmText="Mark as paid"
         />
       )}
     </div>

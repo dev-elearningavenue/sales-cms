@@ -428,7 +428,7 @@ function setupOrderCollectionWatch(
                 pendingOrders.delete(orderId);
               }
             })();
-          }, 5 * 60 * 1000);
+          }, 3 * 60 * 1000);
         }
       } else if (change.operationType === "update") {
         const updatedOrder = await collection.findOne({

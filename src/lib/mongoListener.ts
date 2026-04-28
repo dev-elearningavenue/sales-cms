@@ -376,6 +376,7 @@ function setupOrderCollectionWatch(
   activeChangeStreams.push(changeStream);
 
   changeStream.on("change", async (change) => {
+    console.log("Change detected in orders collection: ", new Date().toLocaleString('en-US'));
     try {
       if (change.operationType === "insert") {
         const newOrder = change.fullDocument;

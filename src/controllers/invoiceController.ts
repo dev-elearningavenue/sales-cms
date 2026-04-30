@@ -165,7 +165,7 @@ export const getInvoiceById = async (
   }
 };
 
-// Get all invoices created by a specific agent (excluding only unpaid invoices with past due dates)
+// Get all invoices created by a specific agent
 export const getInvoicesByAgent = async (agentId: string, options?: {
   page?: number;
   pageSize?: number;
@@ -183,14 +183,19 @@ export const getInvoicesByAgent = async (agentId: string, options?: {
     
     // Format the date for comparison (YYYY-MM-DD)
     const currentDate = usEasternTime.toISOString().split('T')[0];
-    
-    // Get total count first (for valid invoices)
-    const allInvoices = await Invoice.find({
+
+    const filter = {
       agentId: new mongoose.Types.ObjectId(agentId),
       deletedAt: null,
-    })
+    };
+
+    const totalCount = await Invoice.countDocuments(filter);
+
+    const invoices = await Invoice.find(filter)
       .populate('agentId', 'full_name')
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(pageSize)
       .lean();
     
     // Filter invoices based on due date (only exclude unpaid invoices with past due dates)
@@ -227,11 +232,11 @@ export const getInvoicesByAgent = async (agentId: string, options?: {
     });
     
     // Paginate the filtered results
-    const totalCount = filteredInvoices.length;
+    // const totalCount = filteredInvoices.length;
     const paginatedInvoices = filteredInvoices.slice(skip, skip + pageSize);
     
     return {
-      invoices: paginatedInvoices,
+      // invoices: paginatedInvoices,
       total: totalCount,
       page,
       pageSize,

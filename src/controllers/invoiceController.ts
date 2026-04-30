@@ -199,7 +199,7 @@ export const getInvoicesByAgent = async (agentId: string, options?: {
       .lean();
     
     // Filter invoices based on due date (only exclude unpaid invoices with past due dates)
-    const filteredInvoices = allInvoices.filter((invoice: any) => {
+    const filteredInvoices = invoices.filter((invoice: any) => {
       // If invoice is paid, include it regardless of due date
       if (invoice.status === 'paid') {
         return true;

@@ -237,6 +237,7 @@ export const getInvoicesByAgent = async (agentId: string, options?: {
     
     return {
       // invoices: paginatedInvoices,
+      invoices,
       total: totalCount,
       page,
       pageSize,

@@ -43,6 +43,7 @@ export default function StatusUpdateModal({
         emailData: {
             from: "",
             to: "",
+            cc: "",
             subject: "",
             body: "",
             send: false
@@ -67,8 +68,9 @@ export default function StatusUpdateModal({
                 followUp: false,
                 followUpDate: undefined,
                 emailData: {
-                    from: userEmail || "",
+                    from: userEmail || domainEmail || "",
                     to: currentLead.contactPersonEmail || currentLead.companyEmail || "",
+                    cc: "",
                     subject: `Regarding ${currentLead.companyName} - ${resolveStatus}`,
                     body: "",
                     send: false
@@ -218,6 +220,22 @@ export default function StatusUpdateModal({
                                                     required
                                                 />
                                             </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                CC (optional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={formData.emailData.cc || ""}
+                                                onChange={(e) => handleEmailDataChange("cc", e.target.value)}
+                                                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="cc1@company.com, cc2@company.com"
+                                            />
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                Comma-separated. Added on top of the configured CC.
+                                            </p>
                                         </div>
 
                                         <div>

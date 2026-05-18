@@ -83,6 +83,7 @@ export interface StatusUpdateData {
   emailData?: {
     from: string;
     to: string;
+    cc?: string;
     subject: string;
     body: string;
     send: boolean;

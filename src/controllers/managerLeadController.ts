@@ -1,7 +1,7 @@
 import ManagerLead from "@/models/managerLead";
 import EmailLog from "@/models/email";
 import User from "@/models/user";
-import { getUserSMTPConfig } from "@/utils/helper";
+import { getUserSMTPConfig, getDomainSMTPConfig } from "@/utils/helper";
 import * as XLSX from "xlsx";
 import nodemailer from "nodemailer";
 
@@ -357,6 +357,7 @@ export async function updateManagerLeadStatus(
     emailData?: {
       from: string;
       to: string;
+      cc?: string;
       subject: string;
       body: string;
       send: boolean;
@@ -448,10 +449,22 @@ export async function updateManagerLeadStatus(
               auth: { user: smtpConfig.user, pass: smtpConfig.password },
             });
 
+            // Build CC list: configured CC (user-specific, falling back to domain) + any user-supplied extras
+            const configuredCc = smtpConfig.cc || getDomainSMTPConfig(domain)?.cc || "";
+            const extraCc = (statusData.emailData.cc || "")
+              .split(",")
+              .map(s => s.trim())
+              .filter(Boolean);
+            const ccList = [
+              ...(configuredCc ? [configuredCc] : []),
+              ...extraCc,
+            ];
+            const ccAddress = ccList.length > 0 ? ccList.join(", ") : undefined;
+
             const mailOptions = {
               from: `${smtpConfig.name} <${smtpConfig.from}>`,
               to: statusData.emailData.to,
-              cc: smtpConfig.cc || undefined,
+              cc: ccAddress,
               subject: statusData.emailData.subject,
               html: statusData.emailData.body,
             };

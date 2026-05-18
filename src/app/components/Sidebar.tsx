@@ -12,6 +12,7 @@ import {
   PinOff,
   Receipt,
   Building,
+  Briefcase,
 } from "lucide-react";
 import Link from "next/link";
 import { useApp } from "@/contexts/AppContext";
@@ -204,6 +205,18 @@ const Sidebar = () => {
           icon={<Building size={20} />}
           text="My OutBound Leads"
           href="/my-assigned-leads"
+          isExpanded={isExpanded}
+        />
+        <NavItem
+          icon={<Briefcase size={20} />}
+          text="Manager Leads"
+          href="/manager-leads"
+          isExpanded={isExpanded}
+        />
+        <NavItem
+          icon={<Briefcase size={20} />}
+          text="My Manager Leads"
+          href="/my-assigned-manager-leads"
           isExpanded={isExpanded}
         />
         {/* <NavItem

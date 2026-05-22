@@ -25,6 +25,7 @@ interface Invoice {
   _id: string;
   invoiceNumber: string;
   email: string;
+  contactNo?: string;
   totalPrice: number;
   dueDate: string;
   status: string;
@@ -835,9 +836,25 @@ const YourInvoicesPage = () => {
                         <td className="px-3 py-4 text-gray-800 dark:text-white w-48">
                           <div
                             className="max-w-full font-bold truncate"
-                            title={inv.firstName}
+                            title={`${inv.firstName} ${inv.lastName}`.trim()}
                           >
-                            {inv.firstName} {inv.lastName}
+                            <a
+                              href={`/invoice/customer?${new URLSearchParams({
+                                ...(inv.email ? { email: inv.email } : {}),
+                                ...(inv.contactNo ? { contact: inv.contactNo } : {}),
+                              }).toString()}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 dark:text-blue-300 hover:underline cursor-pointer"
+                            >
+                              {inv.firstName} {inv.lastName}
+                            </a>
+                          </div>
+                          <div
+                            className="max-w-full font-bold text-xs truncate"
+                            title={inv.siteName}
+                          >
+                            {inv.siteName}
                           </div>
                           <div
                             className="max-w-full text-sm truncate"
@@ -845,6 +862,14 @@ const YourInvoicesPage = () => {
                           >
                             {inv.email}
                           </div>
+                          {inv.contactNo && (
+                            <div
+                              className="max-w-full text-xs text-gray-500 dark:text-gray-300 truncate"
+                              title={inv.contactNo}
+                            >
+                              📞 {inv.contactNo}
+                            </div>
+                          )}
                         </td>
                         {/* CREATED AT | AGENT NAME */}
                         {session && session.user_type === 3 ? (
@@ -885,11 +910,11 @@ const YourInvoicesPage = () => {
                                 Paid At:
                               </span>{" "}
                               <span className="text-sm ">
-                                {new Date(inv.paidAt!).toLocaleDateString()}
+                                {new Date(inv.paidAt!).toLocaleString()}
                               </span>{" "}
                             </span>
                           ) : (
-                            new Date(inv.dueDate).toLocaleDateString()
+                            new Date(inv.dueDate).toLocaleString()
                           )}
                         </td>
                         {/* STATUS */}

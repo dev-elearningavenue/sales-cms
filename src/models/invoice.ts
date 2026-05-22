@@ -13,6 +13,7 @@ export interface IInvoice extends Document {
   _id: mongoose.Types.ObjectId;
   customerId: string;
   email: string;
+  contactNo?: string;
   firstName?: string;
   lastName?: string;
   siteName: string;
@@ -48,6 +49,7 @@ const InvoiceProductSchema = new Schema({
 const InvoiceSchema = new Schema({
   customerId: { type: String, required: true },
   email: { type: String, required: true },
+  contactNo: { type: String, default: '' },
   firstName: { type: String, default: '' },
   lastName: { type: String, default: '' },
   siteName: { type: String, required: true },

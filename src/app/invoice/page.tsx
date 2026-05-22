@@ -850,6 +850,7 @@ const Invoice = () => {
       const invoiceApiData: CreateInvoiceApiRequest = {
         customerId: invoiceData.customerId,
         customerEmail: formData.email,
+        contactNo: formData.contactNo || "",
         firstName: firstName,
         lastName: lastName,
         siteName: formData.siteName,

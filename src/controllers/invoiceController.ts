@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 export interface CreateInvoiceRequest {
   customerId: string;
   customerEmail: string;
+  contactNo?: string;
   firstName?: string;
   lastName?: string;
   siteName: string;
@@ -88,6 +89,7 @@ export const createInvoice = async (
     const newInvoice = new Invoice({
       customerId: invoiceData.customerId,
       email: invoiceData.customerEmail,
+      contactNo: invoiceData.contactNo || "",
       firstName: invoiceData.firstName || "",
       lastName: invoiceData.lastName || "",
       siteName: invoiceData.siteName,

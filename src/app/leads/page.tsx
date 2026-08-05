@@ -53,15 +53,17 @@ const Leads = () => {
   const [assignedToFilter, setAssignedToFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [tableFilters, setTableFilters] = useState<{
-    type: string;
-    domain: string;
-    status: string;
+    type: string[];
+    domain: string[];
+    status: string[];
+    userType: string[];
     startDate: string;
     endDate: string;
   }>({
-    type: "",
-    domain: "",
-    status: "",
+    type: [],
+    domain: [],
+    status: [],
+    userType: [],
     startDate: "",
     endDate: "",
   });
@@ -181,21 +183,6 @@ const Leads = () => {
     }
   };
 
-  // Helper: Filter out Contact Us with form=2
-  const filterLeads = (leadsToFilter: ILead[]) => {
-    return leadsToFilter.filter((lead: ILead) => {
-      if (
-        lead.category === "Contact Us" &&
-        lead.contact_us &&
-        typeof lead.contact_us === "object" &&
-        (lead.contact_us as any).form === 2
-      ) {
-        return false;
-      }
-      return true;
-    });
-  };
-
   const fetchLeads = async (
     isRefresh: boolean = false,
     page: number = currentPage,
@@ -260,14 +247,17 @@ const Leads = () => {
       if (search) {
         params.set("search", search);
       }
-      if (extraFilters?.type) {
-        params.set("type", extraFilters.type);
+      if (extraFilters?.type?.length) {
+        params.set("type", extraFilters.type.join(","));
       }
-      if (extraFilters?.domain) {
-        params.set("domain", extraFilters.domain);
+      if (extraFilters?.domain?.length) {
+        params.set("domain", extraFilters.domain.join(","));
       }
-      if (extraFilters?.status) {
-        params.set("status", extraFilters.status);
+      if (extraFilters?.status?.length) {
+        params.set("status", extraFilters.status.join(","));
+      }
+      if (extraFilters?.userType?.length) {
+        params.set("userType", extraFilters.userType.join(","));
       }
       if (extraFilters?.startDate) {
         params.set("startDate", extraFilters.startDate);
@@ -285,16 +275,14 @@ const Leads = () => {
         return;
       }
 
-      const filteredLeads = filterLeads(data.leads);
-
       // ============ UPDATE CACHE ============
       if (shouldClearCache || page === 1) {
         // Fresh cache
-        cache.leads = filteredLeads;
+        cache.leads = data.leads;
         cache.highestPage = 1;
       } else if (page > cache.highestPage) {
         // Append to cache (forward navigation)
-        cache.leads = [...cache.leads, ...filteredLeads];
+        cache.leads = [...cache.leads, ...data.leads];
         cache.highestPage = page;
       }
 
@@ -304,7 +292,7 @@ const Leads = () => {
       cache.search = search;
       cache.tableFiltersKey = nextFiltersKey;
 
-      setLeads(filteredLeads);
+      setLeads(data.leads);
       setTotalCount(data.total || 0);
       setTotalPages(data.totalPages || 1);
       setCurrentPage(page);

@@ -69,6 +69,33 @@ export const getDomainLabel = (domain: string): string => {
   }
 };
 
+// Map the external LMS user account type to a readable label.
+// Known values: 2 = Manager, 4 = Learner (student / individual).
+export const getUserTypeLabel = (userType: unknown): string | null => {
+  if (userType === undefined || userType === null || userType === "") return null;
+  switch (Number(userType)) {
+    case 2:
+      return "Manager";
+    case 4:
+      return "Learner";
+    default:
+      return `Type ${userType}`;
+  }
+};
+
+// True only for the manager account type (2)
+export const isManagerUserType = (userType: unknown): boolean =>
+  Number(userType) === 2;
+
+// Pull the userType off a lead's populated order_creation, if present
+export const getLeadUserType = (lead: ILead): number | undefined => {
+  const order = lead.order_creation as any;
+  if (order && typeof order === "object" && order.userType !== undefined && order.userType !== null) {
+    return Number(order.userType);
+  }
+  return undefined;
+};
+
 // Category colors mapping
 export const categoryColors: Record<string, string> = {
   "Contact Us": "bg-blue-500",

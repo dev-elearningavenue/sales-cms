@@ -47,6 +47,7 @@ export async function GET(req: Request) {
     const search = url.searchParams.get("search");
     const domain = url.searchParams.get("domain");
     const status = url.searchParams.get("status");
+    const userType = url.searchParams.get("userType");
     const startDate = url.searchParams.get("startDate");
     const endDate = url.searchParams.get("endDate");
 
@@ -54,19 +55,29 @@ export async function GET(req: Request) {
     const parsedPage = page ? parseInt(page, 10) : 1;
     const skip = (parsedPage - 1) * parsedPageSize;
 
-    // Map type to category if provided
-    const category = type ? (TYPE_MAP[type] || type) : undefined;
+    // Filters may arrive as comma-separated lists (multi-select).
+    const splitList = (val: string | null) =>
+      val
+        ? val.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+
+    // Map each selected type (e.g. "order_creation") to its category label.
+    const categories = splitList(type).map((t) => TYPE_MAP[t] || t);
+    const domains = splitList(domain);
+    const statuses = splitList(status);
+    const userTypes = splitList(userType);
 
     // Prepare options for the controller
     const options = {
       limit: parsedPageSize,
       skip: skip,
       latest: true,
-      category: category,
+      category: categories.length ? categories : undefined,
       assignedTo: assignedTo || undefined,
       search: search || undefined,
-      domain: domain || undefined,
-      status: status || undefined,
+      domain: domains.length ? domains : undefined,
+      status: statuses.length ? statuses : undefined,
+      userType: userTypes.length ? userTypes : undefined,
       startDate: startDate || undefined,
       endDate: endDate || undefined,
     };

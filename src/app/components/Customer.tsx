@@ -4,6 +4,7 @@ import { ICustomer } from "@/types/customer";
 import { OrderCreation } from "@/types/customer";
 import { IInvoice } from "@/models/invoice";
 import { getStateName } from "@/utils/stateMapping";
+import { getUserTypeLabel } from "@/components/LeadUtils";
 
 interface ContactUs {
   name?: string;
@@ -57,6 +58,7 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
   selectedLead,
 }) => {
   const [externalUserName, setExternalUserName] = React.useState<string | null>(null);
+  const [externalUserType, setExternalUserType] = React.useState<number | null>(null);
   const [isFetchingExternal, setIsFetchingExternal] = React.useState<boolean>(false);
   // Identify the populated object dynamically
   const populatedKey = [
@@ -77,29 +79,60 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
   // console.log("Customer Component - Lead Data:", leadData);
   // console.log("Customer Component - Populated Key:", populatedKey);
 
-  // When order_creation exists and contains a user with _id but missing userName, fetch from external DB
+  // When order_creation exists and contains a user with _id but missing userName/userType,
+  // fetch them from the external DB and persist back onto the order so we skip the call next time.
   React.useEffect(() => {
     const orderData = (selectedLead?.order_creation as any) || null;
+    const orderId = orderData?._id;
     const userRef = orderData?.user;
     const userId = typeof userRef === "string" ? userRef : userRef?._id || userRef?.id;
-    const existingUserName = typeof userRef === "object" ? (userRef?.userName || userRef?.full_name) : undefined;
+    const existingUserName =
+      (typeof userRef === "object" ? (userRef?.userName || userRef?.full_name) : undefined) ||
+      orderData?.userName;
+    const existingUserType =
+      orderData?.userType !== undefined && orderData?.userType !== null
+        ? orderData.userType
+        : undefined;
     const domainCode = selectedLead?.domain;
 
-    if (!externalUserName && !existingUserName && userId && domainCode) {
+    const needsName = !externalUserName && !existingUserName;
+    const needsType = externalUserType === null && existingUserType === undefined;
+
+    if ((needsName || needsType) && userId && domainCode) {
       setIsFetchingExternal(true);
       fetch(`/api/external-user?userId=${encodeURIComponent(String(userId))}&domain=${encodeURIComponent(String(domainCode))}`)
         .then(async (res) => {
           if (!res.ok) return null;
           const json = await res.json();
-          return json?.success ? (json.user?.userName || json.user?.full_name || null) : null;
+          return json?.success ? json.user : null;
         })
-        .then((name) => {
-          if (name) setExternalUserName(name);
+        .then((user) => {
+          if (!user) return;
+          const name = user.userName || user.full_name || null;
+          const type =
+            user.userType !== undefined && user.userType !== null ? user.userType : null;
+          if (name) {
+            setExternalUserName(name);
+            if (orderData) orderData.userName = name; // cache in-memory so reopening the modal won't refetch
+          }
+          if (type !== null) {
+            setExternalUserType(type);
+            if (orderData) orderData.userType = type;
+          }
+
+          // Cache onto the synced order document for future views
+          if (orderId && (name || type !== null)) {
+            fetch(`/api/external-user`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId, userName: name, userType: type }),
+            }).catch(() => { });
+          }
         })
         .catch(() => { })
         .finally(() => setIsFetchingExternal(false));
     }
-  }, [selectedLead?.order_creation, selectedLead?.domain, externalUserName]);
+  }, [selectedLead?.order_creation, selectedLead?.domain, externalUserName, externalUserType]);
 
   return (
     <div className="mb-6">
@@ -169,9 +202,19 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
                     label="User Name"
                     value={
                       (isOrderCreation(leadData) && leadData.user && (leadData.user.userName || leadData.user.full_name)) ||
+                      (leadData as any)?.userName ||
                       externalUserName ||
                       (isFetchingExternal ? "Loading..." : "N/A")
                     }
+                  />
+                )}
+                {populatedKey === "order_creation" && (
+                  <Field
+                    label="User Type"
+                    value={(() => {
+                      const t = (leadData as any)?.userType ?? externalUserType;
+                      return getUserTypeLabel(t) ?? (isFetchingExternal ? "Loading..." : "N/A");
+                    })()}
                   />
                 )}
                 <Field label="Address" value={leadData?.address} />

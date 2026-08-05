@@ -117,6 +117,9 @@ export const Navbar = () => {
     markAllDbNotificationsAsRead();
   };
 
+  // Hide the top navbar on the login screen for a clean full-bleed layout
+  if (pathname === "/login") return null;
+
   return (
     <nav className="flex justify-between p-2 bg-white dark:bg-gray-800 transition-colors">
       <div

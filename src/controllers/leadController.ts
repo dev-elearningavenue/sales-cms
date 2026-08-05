@@ -1,6 +1,8 @@
 import Lead from "@/models/lead";
 import { ILead } from "@/types/leads";
 import CustomLead, { ICustomLead } from "@/models/customLead";
+import OrderCreation from "@/models/orders";
+import Contact from "@/models/contact";
 import mongoose from "mongoose";
 import {
   createNewLeadNotification,
@@ -62,11 +64,12 @@ export const getAllLeads = async (options?: {
   limit?: number;
   skip?: number;
   latest?: boolean;
-  category?: string;
+  category?: string | string[];
   assignedTo?: string;
   search?: string;
-  domain?: string;
-  status?: string;
+  domain?: string | string[];
+  status?: string | string[];
+  userType?: (string | number)[];
   startDate?: string;
   endDate?: string;
 }) => {
@@ -75,18 +78,63 @@ export const getAllLeads = async (options?: {
     const limit = options?.limit ?? 50;
     const skip = options?.skip ?? 0;
 
+    // Normalize a filter value that may be a single value or an array into
+    // either a plain value (exact match) or a { $in: [...] } clause.
+    const toFilterClause = (value?: string | string[]) => {
+      if (value === undefined || value === null) return undefined;
+      const arr = (Array.isArray(value) ? value : [value]).filter(
+        (v) => v !== undefined && v !== null && v !== ""
+      );
+      if (arr.length === 0) return undefined;
+      return arr.length === 1 ? arr[0] : { $in: arr };
+    };
+
     // Build query filter
     const filter: any = {};
-    if (options?.category) {
-      filter.category = options.category;
+
+    const categoryClause = toFilterClause(options?.category);
+    if (categoryClause !== undefined) {
+      filter.category = categoryClause;
     }
-    
-    if (options?.domain) {
-      filter.domain = options.domain;
+
+    const domainClause = toFilterClause(options?.domain);
+    if (domainClause !== undefined) {
+      filter.domain = domainClause;
     }
-    
-    if (options?.status) {
-      filter.status = options.status;
+
+    const statusClause = toFilterClause(options?.status);
+    if (statusClause !== undefined) {
+      filter.status = statusClause;
+    }
+
+    // User type filter lives on the populated order document (paidorders),
+    // so resolve matching order ids first, then constrain leads by them.
+    if (options?.userType && options.userType.length > 0) {
+      const userTypeNumbers = options.userType
+        .map((v) => Number(v))
+        .filter((n) => !isNaN(n));
+      if (userTypeNumbers.length > 0) {
+        const matchingOrders = await OrderCreation.find(
+          { userType: { $in: userTypeNumbers } },
+          { _id: 1 }
+        ).lean();
+        const orderIds = matchingOrders.map((o: any) => o._id);
+        // No matching orders => no leads can match this filter
+        filter.order_creation = { $in: orderIds };
+      }
+    }
+
+    // Exclude Contact Us leads tied to form=2 contacts.
+    // Done in the query (not after pagination) so page size / totals stay correct.
+    const form2Contacts = await Contact.find({ form: 2 }, { _id: 1 }).lean();
+    const form2ContactIds = form2Contacts.map((c: any) => c._id);
+    if (form2ContactIds.length > 0) {
+      filter.$nor = [
+        {
+          category: "Contact Us",
+          contact_us: { $in: form2ContactIds },
+        },
+      ];
     }
 
     // Created date range filter (expects YYYY-MM-DD from UI)

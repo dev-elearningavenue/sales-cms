@@ -20,7 +20,7 @@ import {
 import { ILead } from "@/types/leads";
 import { useApp } from "@/contexts/AppContext";
 import { isResolvedStatus } from "@/lib/leadUtils";
-import { getDomainLabel, categoryColors } from "@/components/LeadUtils";
+import { getDomainLabel, categoryColors, getLeadUserType, getUserTypeLabel, isManagerUserType } from "@/components/LeadUtils";
 import LeadDetailsModal from "@/components/LeadDetailsModal";
 import ConfirmationModal from "@/app/components/ConfirmationModal";
 
@@ -45,9 +45,10 @@ interface ServerPaginationProps {
   onAssignedToChange?: (assignedTo: string) => void;
   onSearchChange?: (search: string) => void;
   onFiltersChange?: (filters: {
-    type: string;
-    domain: string;
-    status: string;
+    type: string[];
+    domain: string[];
+    status: string[];
+    userType: string[];
     startDate: string;
     endDate: string;
   }) => void;
@@ -119,9 +120,10 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     startDate: "",
     endDate: "",
     category: [] as string[],
-    type: "",
-    domain: "",
-    status: "",
+    type: [] as string[],
+    domain: [] as string[],
+    status: [] as string[],
+    userType: [] as string[],
     assignedTo: "",
   });
   const [searchQuery, setSearchQuery] = useState("");
@@ -315,9 +317,13 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     // Apply other filters (client-side only when NOT server-paginated)
     // For server pagination, these filters must come from backend query params
     if (!isServerPaginated) {
-      if (filters.type && lead.category !== filters.type) return false;
-      if (filters.domain && lead.domain !== filters.domain) return false;
-      if (filters.status && lead.status !== filters.status) return false;
+      if (filters.type.length && !filters.type.includes(lead.category ?? "")) return false;
+      if (filters.domain.length && !filters.domain.includes(lead.domain ?? "")) return false;
+      if (filters.status.length && !filters.status.includes(lead.status ?? "")) return false;
+      if (filters.userType.length) {
+        const ut = getLeadUserType(lead);
+        if (ut === undefined || !filters.userType.includes(String(ut))) return false;
+      }
     }
 
     // Assignment filter (only for client-side pagination, server handles it otherwise)
@@ -363,17 +369,26 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     ? Math.min(currentPage * itemsPerPage, totalCount)
     : endIndex;
 
+  // Toggle a value inside one of the multi-select filter arrays.
+  // An empty value ("") means the "All" option -> clear that filter.
+  const toggleInArray = (arr: string[], value: string): string[] => {
+    if (value === "") return [];
+    return arr.includes(value)
+      ? arr.filter((v) => v !== value)
+      : [...arr, value];
+  };
+
   const handleFilterChange = (category: string, value: string) => {
     const newFilters = { ...filters };
 
     if (category === "category") {
-      if (newFilters.category.includes(value)) {
-        newFilters.category = newFilters.category.filter((cat) => cat !== value);
-      } else {
-        newFilters.category = [...newFilters.category, value];
-      }
+      newFilters.category = toggleInArray(newFilters.category, value);
     } else if (category === "type") {
-      newFilters.type = value;
+      newFilters.type = toggleInArray(newFilters.type, value);
+    } else if (category === "status") {
+      newFilters.status = toggleInArray(newFilters.status, value);
+    } else if (category === "userType") {
+      newFilters.userType = toggleInArray(newFilters.userType, value);
     } else if (category === "domain") {
       // Convert domain label back to domain code
       const domainCode =
@@ -388,7 +403,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                         : value === "NY Osha 30" ? "NY30"
                           : value === "Osha 360" ? "Osha360"
                             : "";
-      newFilters.domain = domainCode;
+      newFilters.domain = toggleInArray(newFilters.domain, domainCode);
     } else {
       (newFilters as any)[category] = value;
     }
@@ -402,6 +417,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
         type: newFilters.type,
         domain: newFilters.domain,
         status: newFilters.status,
+        userType: newFilters.userType,
         startDate: newFilters.startDate,
         endDate: newFilters.endDate,
       });
@@ -862,7 +878,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
               </button>
             </div>
 
-            <div className="grid text-sm md:grid-cols-3 gap-6">
+            <div className="grid text-sm md:grid-cols-4 gap-6">
               <div>
                 <h4 className="font-medium mb-3">Domain</h4>
                 <div className="space-y-2">
@@ -880,10 +896,9 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   ].map((domain) => (
                     <label key={domain} className="flex items-center space-x-2">
                       <input
-                        type="radio"
-                        checked={
-                          filters.domain ===
-                          (domain === "Osha Outreach" ? "OOR"
+                        type="checkbox"
+                        checked={filters.domain.includes(
+                          domain === "Osha Outreach" ? "OOR"
                             : domain === "Osha Online Center" ? "OOC"
                               : domain === "Osha Education School" ? "OES"
                                 : domain === "Free Osha Courses" ? "FOC"
@@ -903,8 +918,8 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   ))}
                   <label className="flex items-center space-x-2">
                     <input
-                      type="radio"
-                      checked={filters.domain === ""}
+                      type="checkbox"
+                      checked={filters.domain.length === 0}
                       onChange={() => handleFilterChange("domain", "")}
                       className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
@@ -929,8 +944,8 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   ].map((type) => (
                     <label key={type} className="flex items-center space-x-2">
                       <input
-                        type="radio"
-                        checked={filters.type === type}
+                        type="checkbox"
+                        checked={filters.type.includes(type)}
                         onChange={() => handleFilterChange("type", type)}
                         className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
@@ -939,8 +954,8 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   ))}
                   <label className="flex items-center space-x-2">
                     <input
-                      type="radio"
-                      checked={filters.type === ""}
+                      type="checkbox"
+                      checked={filters.type.length === 0}
                       onChange={() => handleFilterChange("type", "")}
                       className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
@@ -963,8 +978,8 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   ].map((status) => (
                     <label key={status} className="flex items-center space-x-2">
                       <input
-                        type="radio"
-                        checked={filters.status === status}
+                        type="checkbox"
+                        checked={filters.status.includes(status)}
                         onChange={() => handleFilterChange("status", status)}
                         className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
@@ -973,12 +988,42 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   ))}
                   <label className="flex items-center space-x-2">
                     <input
-                      type="radio"
-                      checked={filters.status === ""}
+                      type="checkbox"
+                      checked={filters.status.length === 0}
                       onChange={() => handleFilterChange("status", "")}
                       className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <span>All Statuses</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-3">User Type</h4>
+                <p className="text-xs text-gray-400 mb-2">Order Creation leads only</p>
+                <div className="space-y-2">
+                  {[
+                    { label: "Manager", value: "2" },
+                    { label: "Learner", value: "4" },
+                  ].map((opt) => (
+                    <label key={opt.value} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={filters.userType.includes(opt.value)}
+                        onChange={() => handleFilterChange("userType", opt.value)}
+                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>{opt.label}</span>
+                    </label>
+                  ))}
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={filters.userType.length === 0}
+                      onChange={() => handleFilterChange("userType", "")}
+                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>All User Types</span>
                   </label>
                 </div>
               </div>
@@ -1037,9 +1082,11 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                       <button
                         key={option}
                         onClick={() => handleFilterChange("type", option)}
-                        className="w-full text-left px-2 py-1 hover:bg-gray-100 text-sm"
+                        className={`w-full text-left px-2 py-1 hover:bg-gray-100 text-sm flex items-center justify-between ${filters.type.includes(option) ? "bg-blue-50 font-medium" : ""
+                          }`}
                       >
-                        {option}
+                        <span>{option}</span>
+                        {filters.type.includes(option) && <span className="text-blue-600">✓</span>}
                       </button>
                     ))}
                   </div>
@@ -1089,7 +1136,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                       {/* Show status for users other than usertype 3, but not for Invoice leads */}
                       {session?.user_type !== 3 && lead?.category !== "Invoice" && (
                         <div className="text-xs text-gray-500 font-medium">
-                          Status: {lead.status || "Pending"}
+                          Status: {lead.resolve_status || "Pending"}
                         </div>
                       )}
                     </div>
@@ -1120,6 +1167,19 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                           .filter(Boolean)[0] ||
                         "No Data Available"}
                     </div>
+                    {/* User Type indicator for Order Creation leads (only shown once known) */}
+                    {lead.category === "Order Creation" &&
+                      getLeadUserType(lead) !== undefined && (
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold ${isManagerUserType(getLeadUserType(lead))
+                            ? "bg-indigo-100 text-indigo-700 border border-indigo-200"
+                            : "bg-blue-600 text-white border border-blue-200"
+                            }`}
+                          title="Account type of the order's user"
+                        >
+                          {getUserTypeLabel(getLeadUserType(lead))}
+                        </span>
+                      )}
                   </td>
                   {/* DOMAIN (LEAD SOURCE) */}
                   <td className="px-4 py-4 text-sm">

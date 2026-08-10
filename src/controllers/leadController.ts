@@ -72,6 +72,8 @@ export const getAllLeads = async (options?: {
   userType?: (string | number)[];
   startDate?: string;
   endDate?: string;
+  /** When set, only return leads created by this user (Pre Sale / userType 5) */
+  createdBy?: string;
 }) => {
   try {
     // Default pagination: 50 records (smallest option from UI)
@@ -172,6 +174,11 @@ export const getAllLeads = async (options?: {
         // Specific user ID
         filter.assigned_to = options.assignedTo;
       }
+    }
+
+    // Creator filter (Pre Sale users: only their own created leads)
+    if (options?.createdBy) {
+      filter.created_by = options.createdBy;
     }
 
     // Search filter - search across multiple fields
@@ -559,7 +566,8 @@ export const updateLeadStatus = async (
 
 export const createCustomLead = async (
   customLeadData: Partial<ICustomLead>,
-  createdById?: string
+  createdById?: string,
+  options?: { autoAssignToCreator?: boolean }
 ) => {
   try {
     // First, create the CustomLead document
@@ -576,6 +584,8 @@ export const createCustomLead = async (
 
     await customLead.save();
 
+    const autoAssign = Boolean(options?.autoAssignToCreator && createdById);
+
     // Then, create the Lead document with reference to the CustomLead
     const lead = new Lead({
       category: "Custom Lead",
@@ -590,8 +600,8 @@ export const createCustomLead = async (
       contactNo: customLeadData.contactNo,
       status: "Follow Up",
       resolve_status: "Pending",
-      assigned: false,
-      assigned_to: null,
+      assigned: autoAssign,
+      assigned_to: autoAssign ? createdById : null,
       created_by: createdById,
       domain: customLeadData.domain,
       next_follow_up: null,
@@ -636,7 +646,7 @@ export const assignLeadToUser = async (leadId: string, userId: string, userType?
       };
     }
 
-    // Check if lead is already assigned - only block reassignment for regular users (type 3)
+    // Check if lead is already assigned - only block reassignment for sales agents (type 3)
     if (lead.assigned && userType === 3) {
       return {
         success: false,

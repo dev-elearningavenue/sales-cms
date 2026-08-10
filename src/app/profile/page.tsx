@@ -20,6 +20,8 @@ const ProfilePage = () => {
         return "Manager";
       case 3:
         return "Sales Agent";
+      case 5:
+        return "Pre Sale";
       default:
         return "Unknown";
     }
@@ -33,6 +35,8 @@ const ProfilePage = () => {
         return "bg-blue-100 text-blue-800 border-blue-200";
       case 3:
         return "bg-green-100 text-green-800 border-green-200";
+      case 5:
+        return "bg-amber-100 text-amber-800 border-amber-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }

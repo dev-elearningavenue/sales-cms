@@ -18,6 +18,11 @@ import {
   getFollowUpDisplayStatus,
   getStatusOptionsForCategory,
 } from "@/components/LeadUtils";
+import {
+  isAdminOrManager,
+  isPreSale,
+  isRestrictedAgent,
+} from "@/utils/userTypes";
 
 const Leads = () => {
   const [leads, setLeads] = useState<ILead[]>([]);
@@ -25,6 +30,17 @@ const Leads = () => {
   const [backgroundLoading, setBackgroundLoading] = useState(false);
   const { session, addNotification } = useApp();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const isCreatedByCurrentUser = (lead: ILead) => {
+    if (!session?._id) return false;
+    const createdBy = lead.created_by as any;
+    if (!createdBy) return false;
+    const createdById =
+      typeof createdBy === "object" && createdBy._id
+        ? String(createdBy._id)
+        : String(createdBy);
+    return createdById === String(session._id);
+  };
 
   // ============ PAGINATION STATE ============
   const [currentPage, setCurrentPage] = useState(1);
@@ -104,6 +120,10 @@ const Leads = () => {
   const { isConnected } = useSocket({
     onNewLead: (data) => {
       const newLead = data.lead;
+      // Pre Sale: only surface leads they created
+      if (isPreSale(session?.user_type) && !isCreatedByCurrentUser(newLead)) {
+        return;
+      }
       // Check if this lead already exists in our list
       if (!leads.some((lead) => lead._id === newLead._id)) {
         setLeads((prevLeads) => [newLead, ...prevLeads]);
@@ -120,6 +140,10 @@ const Leads = () => {
     },
     onLeadAssigned: (data) => {
       const updatedLead = data.lead;
+      // Pre Sale: ignore assignment events for leads they didn't create
+      if (isPreSale(session?.user_type) && !isCreatedByCurrentUser(updatedLead)) {
+        return;
+      }
       // Update lead assignment status
       const updateLead = (lead: ILead) => {
         if (lead._id === updatedLead._id) {
@@ -335,9 +359,20 @@ const Leads = () => {
         setLeads((prevLeads) => {
           // Filter out any duplicates by ID
           const existingIds = new Set(prevLeads.map((lead) => lead._id));
-          const uniqueNewLeads = data.newLeads.filter(
+          let uniqueNewLeads = data.newLeads.filter(
             (lead: ILead) => !existingIds.has(lead._id)
           );
+
+          // Pre Sale: only keep leads they created
+          if (isPreSale(session?.user_type)) {
+            uniqueNewLeads = uniqueNewLeads.filter((lead: ILead) =>
+              isCreatedByCurrentUser(lead)
+            );
+          }
+
+          if (uniqueNewLeads.length === 0) {
+            return prevLeads;
+          }
 
           // Notify for each new lead
           uniqueNewLeads.forEach((lead: ILead) => {
@@ -1036,7 +1071,7 @@ const Leads = () => {
                   </select>
                 </div>
 
-                {session?.user_type === 1 || session?.user_type === 2 && (
+                {isAdminOrManager(session?.user_type) && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Assigned To
@@ -1233,8 +1268,8 @@ const Leads = () => {
         </div>
       )}
 
-      {/* View Details Modal - Only for user types 1 and 2 */}
-      {selectedLead && session?.user_type !== 3 && (
+      {/* View Details Modal - Only for admin/manager */}
+      {selectedLead && !isRestrictedAgent(session?.user_type) && (
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"

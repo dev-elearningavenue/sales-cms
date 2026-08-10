@@ -10,6 +10,7 @@ import connectDB from "@/lib/db";
 import "@/models/customer";
 import { getDataFromToken } from "@/utils/get_token_data";
 import Lead from "@/models/lead";
+import { isPreSale } from "@/utils/userTypes";
 export const dynamic = 'force-dynamic';
 
 // Type mapping constant - used for filtering
@@ -80,6 +81,10 @@ export async function GET(req: Request) {
       userType: userTypes.length ? userTypes : undefined,
       startDate: startDate || undefined,
       endDate: endDate || undefined,
+      // Pre Sale (userType 5): only leads they created
+      createdBy: isPreSale(Number(tokenData.user_type))
+        ? tokenData._id.toString()
+        : undefined,
     };
 
     const leadsResult = await getAllLeads(options);

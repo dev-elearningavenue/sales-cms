@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDataFromToken } from "@/utils/get_token_data";
 import { getDashboardMetrics, getSalespersonMetrics } from "@/controllers/dashboardController";
+import { isAdminOrManager, isPreSale, isSalesAgent } from "@/utils/userTypes";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,14 @@ export async function GET(req: NextRequest) {
     const userId = tokenData._id.toString();
     const userType = Number(tokenData.user_type);
     
+    // Pre Sale users only see a welcome screen — no metrics payload
+    if (isPreSale(userType)) {
+      return NextResponse.json({
+        success: true,
+        data: { welcomeOnly: true },
+      });
+    }
+
     // Extract date parameters from URL
     const url = new URL(req.url);
     const startDateParam = url.searchParams.get('startDate');
@@ -40,12 +49,17 @@ export async function GET(req: NextRequest) {
     let response;
     
     // Fetch appropriate data based on user type
-    if (userType === 3) { // Salesperson
+    if (isSalesAgent(userType)) {
       response = await getSalespersonMetrics(userId, 
         startDateParam || endDateParam ? dateFilter : undefined);
-    } else { // Admin or Manager
+    } else if (isAdminOrManager(userType)) {
       response = await getDashboardMetrics(
         startDateParam || endDateParam ? dateFilter : undefined);
+    } else {
+      return NextResponse.json({
+        success: false,
+        message: "Unauthorized user type",
+      }, { status: 403 });
     }
     
     return NextResponse.json(response);
@@ -57,4 +71,4 @@ export async function GET(req: NextRequest) {
       error: error instanceof Error ? error.message : "Unknown error",
     }, { status: 500 });
   }
-} 
+}

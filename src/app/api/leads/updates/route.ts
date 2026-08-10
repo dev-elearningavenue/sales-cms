@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Lead from "@/models/lead";
+import { getDataFromToken } from "@/utils/get_token_data";
+import { isPreSale } from "@/utils/userTypes";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
+
+    const tokenData = await getDataFromToken();
+    if (!tokenData || typeof tokenData !== "object" || !tokenData._id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
     
     // Get timestamp from query params
     const searchParams = request.nextUrl.searchParams;
@@ -20,11 +30,18 @@ export async function GET(request: NextRequest) {
     
     // Convert string timestamp to Date object
     const sinceDate = new Date(since);
+
+    const filter: Record<string, unknown> = {
+      createdAt: { $gt: sinceDate },
+    };
+
+    // Pre Sale: only their own created leads
+    if (isPreSale(Number(tokenData.user_type))) {
+      filter.created_by = tokenData._id.toString();
+    }
     
     // Query for leads created after the specified timestamp
-    const newLeads = await Lead.find({
-      createdAt: { $gt: sinceDate }
-    })
+    const newLeads = await Lead.find(filter)
     .populate([
       { path: "free_signup", model: "Customer" },
       { path: "contact_us", model: "Contact" },
@@ -47,4 +64,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

@@ -18,6 +18,11 @@ import {
 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import ConfirmationModal from "@/app/components/ConfirmationModal";
+import {
+  canManageInvoices,
+  isOwnInvoicesOnly,
+  isPreSale,
+} from "@/utils/userTypes";
 
 interface Invoice {
   firstName: string;
@@ -96,7 +101,7 @@ const YourInvoicesPage = () => {
 
   // Fetch agents sales for admin users
   const fetchAgentsSales = async () => {
-    if (!session || (session.user_type !== 1 && session.user_type !== 2))
+    if (!session || !canManageInvoices(session.user_type))
       return;
 
     setAgentsLoading(true);
@@ -161,7 +166,7 @@ const YourInvoicesPage = () => {
         pageSize: size.toString(),
       });
 
-      if (session && (session.user_type === 1 || session.user_type === 2)) {
+      if (session && canManageInvoices(session.user_type)) {
         endpoint = "/api/invoice";
         // Add filters for admin
         if (filterAgent) params.set("agentName", filterAgent);
@@ -209,14 +214,14 @@ const YourInvoicesPage = () => {
 
   // Refetch when filters change (admin only) - excluding search
   useEffect(() => {
-    if (session && (session.user_type === 1 || session.user_type === 2)) {
+    if (session && canManageInvoices(session.user_type)) {
       fetchInvoices(1, pageSize, true);
     }
   }, [filterAgent, filterStatus, filterDate]);
 
   // Debounced search - triggers API call 500ms after user stops typing
   useEffect(() => {
-    if (!session || (session.user_type !== 1 && session.user_type !== 2)) return;
+    if (!session || !canManageInvoices(session.user_type)) return;
 
     const debounceTimer = setTimeout(() => {
       fetchInvoices(1, pageSize, true);
@@ -354,8 +359,10 @@ const YourInvoicesPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-full mx-auto">
-        {/* Agents Sales Section - Only for Admin Users */}
-        {session && (session.user_type === 1 || session.user_type === 2) && (
+        {/* Agents Sales Section - Only for Admin/Manager (hidden for Pre Sale) */}
+        {session &&
+          canManageInvoices(session.user_type) &&
+          !isPreSale(session.user_type) && (
           <div className="mb-8">
             {/* <div className="text-center mb-6">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white mb-2 flex items-center justify-center gap-3">
@@ -497,7 +504,7 @@ const YourInvoicesPage = () => {
           </div>
         )}
 
-        {session && session.user_type === 3 && (
+        {session && isOwnInvoicesOnly(session.user_type) && (
           <div className="text-center mb-6">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white mb-2">
               Your Invoices
@@ -509,7 +516,7 @@ const YourInvoicesPage = () => {
         )}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-4 md:p-8">
           {/* Stats for non-admin users */}
-          {session && session.user_type === 3 && invoices.length > 0 && (
+          {session && isOwnInvoicesOnly(session.user_type) && invoices.length > 0 && (
             <div className="bg-blue-50 dark:bg-gray-900 rounded-xl mb-4 py-4 px-4 flex flex-col md:flex-row justify-center items-center gap-4 w-full">
               <span className="text-2xl md:text-2xl font-bold text-blue-700 dark:text-blue-300 md:border-r md:border-gray-300 dark:md:border-gray-600 md:pr-6">
                 Total: {totalCount}
@@ -542,7 +549,7 @@ const YourInvoicesPage = () => {
           )}
 
           {/* Filters and Search - Always visible for admin */}
-          {session && (session.user_type === 1 || session.user_type === 2) && (
+          {session && canManageInvoices(session.user_type) && (
             <div className="mb-6 flex flex-col md:flex-row gap-4 items-center justify-center flex-wrap">
               <select
                 value={filterAgent}
@@ -872,7 +879,7 @@ const YourInvoicesPage = () => {
                           )}
                         </td>
                         {/* CREATED AT | AGENT NAME */}
-                        {session && session.user_type === 3 ? (
+                        {session && isOwnInvoicesOnly(session.user_type) ? (
                           <td className="px-3 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider whitespace-nowrap">
                             {new Date(inv.createdAt).toLocaleString()}
                             <div
@@ -951,7 +958,7 @@ const YourInvoicesPage = () => {
                               </button>
                             )}
                             {/* Mark as Paid button - only for admin/manager and unpaid invoices */}
-                            {session && session.user_type !== 3 && inv.status !== "paid" && (
+                            {session && !isOwnInvoicesOnly(session.user_type) && inv.status !== "paid" && (
                               <button
                                 type="button"
                                 className="flex items-center px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md text-sm disabled:opacity-50"
@@ -966,7 +973,7 @@ const YourInvoicesPage = () => {
                                 Paid
                               </button>
                             )}
-                            {(session && session.user_type !== 3) && (
+                            {(session && !isOwnInvoicesOnly(session.user_type)) && (
                               <button
                                 type="button"
                                 className="flex items-center px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm"

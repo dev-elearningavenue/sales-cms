@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 
 import { ErrorDisplay } from "@/components/ErrorDisplay";
+import { isPreSale } from "@/utils/userTypes";
 
 const useThemeFromContext = () => {
   const { theme, toggleTheme } = useApp();
@@ -36,9 +37,9 @@ const useThemeFromContext = () => {
 };
 
 // Custom hook for API data fetching with date filtering
-const useLeadsData = () => {
+const useLeadsData = (enabled: boolean) => {
   const [data, setData] = useState<ApiResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<{
     startDate: Date | null;
@@ -81,8 +82,14 @@ const useLeadsData = () => {
   };
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      setData(null);
+      setError(null);
+      return;
+    }
     fetchData(dateRange.startDate || undefined, dateRange.endDate || undefined);
-  }, [dateRange]);
+  }, [dateRange, enabled]);
 
   const refreshData = async () => {
     setLoading(true);
@@ -158,6 +165,7 @@ export default function DashboardPage() {
     loading: sessionLoading,
   } = useApp();
   const { darkMode } = useThemeFromContext();
+  const isPreSaleUser = isPreSale(session?.user_type);
   const {
     data,
     loading: dataLoading,
@@ -166,9 +174,9 @@ export default function DashboardPage() {
     updateDateRange,
     clearDateRange,
     dateRange,
-  } = useLeadsData();
+  } = useLeadsData(!sessionLoading && !!session && !isPreSaleUser);
 
-  const isLoading = sessionLoading || dataLoading;
+  const isLoading = sessionLoading || (!isPreSaleUser && dataLoading);
 
   useEffect(() => {
     // Check session status when component mounts
@@ -186,10 +194,6 @@ export default function DashboardPage() {
     return <ErrorDisplay message={sessionError} type="session" />;
   }
 
-  if (dataError) {
-    return <ErrorDisplay message={dataError} type="data" />;
-  }
-
   // If no session & not loading, redirect to login
   if (!session) {
     // console.log("Session unavailable in dashboard.");
@@ -200,6 +204,30 @@ export default function DashboardPage() {
   const bgClass = darkMode
     ? "bg-gradient-to-br from-gray-900 to-gray-800 text-white"
     : "bg-gradient-to-br from-gray-50 to-white";
+
+  // Pre Sale (userType 5): welcome only — no metrics
+  if (isPreSale(session.user_type)) {
+    return (
+      <div className={`min-h-screen ${bgClass} transition-colors duration-300`}>
+        <div className="p-6 max-w-7xl mx-auto flex items-center justify-center min-h-[70vh]">
+          <div className="text-center">
+            <h1 className="text-3xl md:text-4xl font-semibold text-gray-800 dark:text-white">
+              Welcome To Pre Sale
+            </h1>
+            {session.full_name && (
+              <p className={`mt-3 text-lg ${darkMode ? "text-gray-300" : "text-gray-500"}`}>
+                {session.full_name}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (dataError) {
+    return <ErrorDisplay message={dataError} type="data" />;
+  }
 
   // Sales Boy view
   if (session?.user_type === 3) {

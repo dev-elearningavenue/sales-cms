@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { createCustomLead } from "@/controllers/leadController";
 import { getDataFromToken } from "@/utils/get_token_data";
+import { isPreSale } from "@/utils/userTypes";
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
@@ -24,8 +25,12 @@ export async function POST(req: NextRequest) {
       );
     }
     const createdById = tokenData._id ? tokenData._id.toString() : undefined;
+    const userType = Number(tokenData.user_type);
     // Use the controller function to create the custom lead
-    const result = await createCustomLead(customLeadData, createdById);
+    const result = await createCustomLead(customLeadData, createdById, {
+      // Pre Sale: auto-assign created leads to themselves
+      autoAssignToCreator: isPreSale(userType),
+    });
 
     if (!result.success) {
       return NextResponse.json(

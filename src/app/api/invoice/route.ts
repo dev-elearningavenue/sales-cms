@@ -11,6 +11,7 @@ import { verifyToken } from "@/utils/auth";
 import { cookies } from "next/headers";
 import { TokenPayload } from "@/types/auth";
 import { getDataFromToken } from "@/utils/get_token_data";
+import { canManageInvoices } from "@/utils/userTypes";
 
 export const dynamic = "force-dynamic";
 
@@ -184,6 +185,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: "Invalid authentication" },
         { status: 401 }
+      );
+    }
+
+    const userType = Number((tokenResult.data as unknown as TokenPayload).user_type);
+    if (!canManageInvoices(userType)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 }
       );
     }
 

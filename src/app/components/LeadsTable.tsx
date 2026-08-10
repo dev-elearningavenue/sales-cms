@@ -23,6 +23,7 @@ import { isResolvedStatus } from "@/lib/leadUtils";
 import { getDomainLabel, categoryColors, getLeadUserType, getUserTypeLabel, isManagerUserType } from "@/components/LeadUtils";
 import LeadDetailsModal from "@/components/LeadDetailsModal";
 import ConfirmationModal from "@/app/components/ConfirmationModal";
+import { isAdminOrManager, isPreSale, isRestrictedAgent } from "@/utils/userTypes";
 
 // User type for the dropdown
 interface User {
@@ -170,7 +171,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   useEffect(() => {
     if (
       session &&
-      (session.user_type === 1 || session.user_type === 2) &&
+      (isAdminOrManager(session.user_type) || isPreSale(session.user_type)) &&
       !usersFetched &&
       !loadingUsers
     ) {
@@ -198,10 +199,11 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
       const data = await response.json();
 
       if (response.ok && data.success && data.users) {
-        // Filter users with lower user_type than current user
-        const filteredUsers = data.users.filter(
-          (user: User) =>
-            user.user_type > session.user_type && user.user_type <= 3
+        // Admin/Manager: lower types up to 3. Pre Sale: type 3 agents.
+        const filteredUsers = data.users.filter((user: User) =>
+          isPreSale(session.user_type)
+            ? user.user_type === 3
+            : user.user_type > session.user_type && user.user_type <= 3
         );
 
         // console.log("Filtered users:", filteredUsers);
@@ -605,12 +607,12 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>Assign All</span>
-                  {session?.user_type !== 3 && (
+                  {!isRestrictedAgent(session?.user_type) && (
                     <ChevronDown className="w-3 h-3 ml-1" />
                   )}
                 </button>
               )}
-              {onDelete && session?.user_type !== 3 && (
+              {onDelete && !isRestrictedAgent(session?.user_type) && (
                 <button
                   onClick={handleBatchDelete}
                   className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm flex items-center gap-1"
@@ -735,7 +737,9 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
             </form>
 
             {/* Assignment Dropdown */}
-            {session && (session.user_type === 1 || session.user_type === 2) && (
+            {session &&
+              (isAdminOrManager(session.user_type) ||
+                isPreSale(session.user_type)) && (
               <div className="relative">
                 <select
                   value={isServerPaginated ? (serverPagination.assignedToFilter || "") : filters.assignedTo}
@@ -1134,7 +1138,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                         {lead?.category}
                       </p>
                       {/* Show status for users other than usertype 3, but not for Invoice leads */}
-                      {session?.user_type !== 3 && lead?.category !== "Invoice" && (
+                      {!isRestrictedAgent(session?.user_type) && lead?.category !== "Invoice" && (
                         <div className="text-xs text-gray-500 font-medium">
                           Status: {lead.resolve_status || "Pending"}
                         </div>
@@ -1210,7 +1214,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                     {lead.assigned ? (
                       // Case 2: Lead is assigned → two vertical stacks side-by-side
                       <div className="flex items-start gap-2">
-                        {session?.user_type !== 3 && (
+                        {!isRestrictedAgent(session?.user_type) && (
                           <div className="flex flex-col gap-2">
                             <button
                               className="flex items-center px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm"
@@ -1247,7 +1251,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                             </span>
                           </div>
 
-                          {session?.user_type !== 3 && selectedLeads.length === 0 && (
+                          {!isRestrictedAgent(session?.user_type) && selectedLeads.length === 0 && (
                             <div className="dropdown relative">
                               <button
                                 className="flex items-center justify-center px-4 py-2 border border-orange-300 rounded-md text-orange-600 hover:bg-orange-50 min-w-[140px]"
@@ -1294,7 +1298,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                     ) : (
                       // Case 1: Lead is not assigned → all actions in one row (admin)
                       <div className="flex flex-row flex-wrap items-center gap-2">
-                        {session?.user_type !== 3 && (
+                        {!isRestrictedAgent(session?.user_type) && (
                           <>
                             <button
                               className="flex items-center px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm"
@@ -1365,7 +1369,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                           </>
                         )}
 
-                        {session?.user_type == 3 && (
+                        {isRestrictedAgent(session?.user_type) && (
                           // Agent view (type 3)
                           <button
                             className="flex items-center px-4 py-2 border border-green-300 rounded-md text-blue-600 hover:bg-blue-50"
@@ -1416,7 +1420,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
               Assign {selectedLeads.length} Leads
             </h2>
 
-            {session?.user_type === 3 ? (
+            {isRestrictedAgent(session?.user_type) ? (
               // Simple confirmation for user type 3
               <p className="text-gray-600 mb-6">
                 Are you sure you want to assign {selectedLeads.length} leads to
@@ -1469,7 +1473,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
               </button>
 
               {/* Show Confirm button only for type 3 users */}
-              {session?.user_type === 3 && (
+              {isRestrictedAgent(session?.user_type) && (
                 <button
                   onClick={() => confirmBatchAssign()}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"

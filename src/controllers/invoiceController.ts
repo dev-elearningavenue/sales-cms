@@ -379,6 +379,15 @@ export const deleteInvoice = async (
 ): Promise<{ success: boolean; message: string; error?: string }> => {
   try {
     await connectDB();
+
+    // Sales agent (3) and Pre Sale (5): view-only — cannot delete
+    if (userType === 3 || userType === 5) {
+      return {
+        success: false,
+        message: "You don't have permission to delete invoices",
+        error: "Forbidden",
+      };
+    }
     
     // Check if invoice exists (and not already soft-deleted)
     const invoice = await Invoice.findOne({

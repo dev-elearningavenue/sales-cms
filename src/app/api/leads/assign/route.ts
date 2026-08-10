@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     
     // If assigning to another user, verify permissions
     if (targetUserId && targetUserId !== userId) {
-      // Only user types 1 and 2 can assign to other users
+      // Sales agents (type 3) cannot assign to other users
       if (currentUserType === 3) {
         return NextResponse.json({ 
           error: "You don't have permission to assign leads to other users" 
@@ -36,8 +36,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Target user not found" }, { status: 404 });
       }
       
-      // Type 1 can assign to types 2 and 3, Type 2 can only assign to type 3
-      if (currentUserType === 2 && targetUser.user_type && targetUser.user_type !== 3) {
+      // Type 1 can assign to types 2 and 3; Type 2 / 5 can only assign to type 3
+      if (
+        (currentUserType === 2 || currentUserType === 5) &&
+        targetUser.user_type &&
+        targetUser.user_type !== 3
+      ) {
         return NextResponse.json({ 
           error: "You can only assign leads to type 3 users" 
         }, { 
@@ -45,7 +49,12 @@ export async function POST(req: NextRequest) {
         });
       }
       
-      if (targetUser.user_type && targetUser.user_type <= currentUserType) {
+      // Skip "lower type number" rule for Pre Sale (5) — they assign to type 3 agents
+      if (
+        currentUserType !== 5 &&
+        targetUser.user_type &&
+        targetUser.user_type <= currentUserType
+      ) {
         return NextResponse.json({ 
           error: "You can only assign leads to users with lower type numbers" 
         }, { 

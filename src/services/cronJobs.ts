@@ -1,5 +1,9 @@
 import cron from "node-cron";
-import { updateInvoiceStatus, syncRacData } from "../lib/invoiceCronUtils";
+import {
+  updateInvoiceStatus,
+  syncRacData,
+  syncStickySignupData,
+} from "../lib/invoiceCronUtils";
 import connectDB from "../lib/db";
 
 (async () => {
@@ -15,6 +19,12 @@ import connectDB from "../lib/db";
   cron.schedule("*/15 * * * *", async () => {
     console.log("Syncing RAC data...", new Date().toLocaleString('en-US'));
     await syncRacData();
+  });
+
+  // Sticky SignUp sync (OOR/OES/OOC) - every 15 minutes
+  cron.schedule("*/15 * * * *", async () => {
+    console.log("Syncing Sticky SignUp data...", new Date().toLocaleString("en-US"));
+    await syncStickySignupData();
   });
   
 })();

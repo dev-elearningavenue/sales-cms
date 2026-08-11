@@ -343,4 +343,48 @@ export const syncRacData = async () => {
       console.error("Response data:", error.response.data);
     }
   }
-}
+};
+
+/**
+ * Polls stickySignUp APIs (OOR/OES/OOC) via GET /api/sticky-signup.
+ * Disable with DISABLE_STICKY_SYNC=true.
+ */
+export const syncStickySignupData = async () => {
+  try {
+    if (process.env.DISABLE_STICKY_SYNC === "true") {
+      console.log(
+        "[syncStickySignupData] Skipped — DISABLE_STICKY_SYNC=true",
+        new Date().toLocaleString("en-US")
+      );
+      return;
+    }
+
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      (process.env.NODE_ENV === "production"
+        ? "https://presale.oshanewsletter.com"
+        : "http://localhost:3000");
+
+    const apiUrl = `${baseUrl}/api/sticky-signup`;
+    const axios = (await import("axios")).default;
+    const res = await axios.get(apiUrl, {
+      timeout: 180000,
+      headers: {
+        "User-Agent": "StickySignup-Cron-Job",
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log(
+      "Sticky signup synced:",
+      res.data?.message || "ok",
+      new Date().toLocaleString("en-US")
+    );
+  } catch (error: any) {
+    console.error("❌ Sticky signup sync failed:", error.message || error);
+    if (error.response) {
+      console.error("Response status:", error.response.status);
+      console.error("Response data:", error.response.data);
+    }
+  }
+};

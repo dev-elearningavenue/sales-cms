@@ -941,6 +941,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                     "Contact Us",
                     "Free SignUp",
                     "Free Study Guide",
+                    "Sticky SignUp",
                     "Custom Lead",
                     "Scholarship",
                     "Invoice",
@@ -1080,6 +1081,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                       "Contact Us",
                       "Free SignUp",
                       "Free Study Guide",
+                      "Sticky SignUp",
                       "Custom Lead",
                       "Scholarship",
                     ].map((option) => (
@@ -1169,6 +1171,13 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                               : null
                           )
                           .filter(Boolean)[0] ||
+                        (lead.sticky_signup &&
+                        typeof lead.sticky_signup === "object" &&
+                        "email" in (lead.sticky_signup as object)
+                          ? (lead.sticky_signup as any).email
+                          : null) ||
+                        lead.fullname ||
+                        lead.email ||
                         "No Data Available"}
                     </div>
                     {/* User Type indicator for Order Creation leads (only shown once known) */}

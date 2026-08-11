@@ -63,6 +63,7 @@ const LeadFilterPanel: React.FC<LeadFilterPanelProps> = ({
           <option value="Abandoned Cart">Abandoned Cart</option>
           <option value="Free SignUp">Free SignUp</option>
           <option value="Free Study Guide">Free Study Guide</option>
+          <option value="Sticky SignUp">Sticky SignUp</option>
           <option value="Custom Lead">Custom Lead</option>
           <option value="Contact Us">Contact Us</option>
           <option value="Scholarship">Scholarship</option>

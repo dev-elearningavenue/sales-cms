@@ -69,7 +69,8 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
     "scholarship",
     "custom_lead",
     "invoice",
-    "shortcourse_discount"
+    "shortcourse_discount",
+    "sticky_signup",
   ].find((key) => selectedLead[key as keyof ILead]);
 
   const leadData: LeadData = populatedKey
@@ -149,6 +150,16 @@ export const Customer: React.FC<{ selectedLead: ILead }> = ({
                 <Field label="Last Name" value={leadData?.lastName} />
                 <Field label="Email" value={leadData?.email} />
                 <Field label="Contact No" value={leadData?.contactNo} />
+              </>
+            )}
+
+          {populatedKey === "sticky_signup" && leadData && (
+              <>
+                <Field label="Email" value={(leadData as any)?.email} />
+                <Field label="Phone" value={(leadData as any)?.phone} />
+                <Field label="OSHA 10" value={(leadData as any)?.OSHA_10} />
+                <Field label="OSHA 30" value={(leadData as any)?.OSHA_30} />
+                <Field label="Promo URL" value={(leadData as any)?.promoUrl} />
               </>
             )}
 

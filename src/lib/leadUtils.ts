@@ -60,6 +60,7 @@ export const getValidNextStatuses = (
     case "Scholarship":
     case "Free SignUp":
     case "Free Study Guide":
+    case "Sticky SignUp":
       return [LEAD_STATUS.PENDING, RESOLVE_STATUS.RESOLVED];
       
     case "Abandoned Cart":

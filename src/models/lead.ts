@@ -13,6 +13,7 @@ const lead_category_enum = [
   "Short Course Discount",
   "SC Group Discount",
   "Invoice",
+  "Sticky SignUp",
   "Unknown"
 ] as const;
 
@@ -92,6 +93,11 @@ const leadSchema = new Schema<ILead>(
     invoice: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Invoice",
+      required: false,
+    },
+    sticky_signup: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "StickySignup",
       required: false,
     },
     status: {

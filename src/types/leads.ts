@@ -23,6 +23,7 @@ export interface ILead extends Document {
   shortcourse_discount?: mongoose.Types.ObjectId;
   custom_lead?: mongoose.Types.ObjectId | ICustomLead;
   invoice?: mongoose.Types.ObjectId;
+  sticky_signup?: mongoose.Types.ObjectId;
   status?: string;
   assigned?: Boolean;
   assignedAt?: Date;

@@ -21,6 +21,7 @@ const TYPE_MAP: { [key: string]: string } = {
   order_creation: "Order Creation",
   scholarship: "Scholarship",
   invoice: "Invoice",
+  sticky_signup: "Sticky SignUp",
 };
 
 // GET method for fetching all leads

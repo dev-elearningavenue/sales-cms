@@ -107,6 +107,7 @@ export const categoryColors: Record<string, string> = {
   "Unpaid Training": "bg-teal-500",
   "Scholarship": "bg-amber-500",
   "Invoice": "bg-orange-500",
+  "Sticky SignUp": "bg-pink-500",
 };
 
 // Get the follow-up level for display purposes
@@ -165,6 +166,7 @@ export const getStatusOptionsForCategory = (category: string, lead?: ILead): str
     case "Scholarship":
     case "Free SignUp":
     case "Free Study Guide":
+    case "Sticky SignUp":
       if (lead?.resolve_status && lead.resolve_status !== "Pending") {
         return [lead.resolve_status];
       }

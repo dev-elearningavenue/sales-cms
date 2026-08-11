@@ -3,6 +3,7 @@ import { ILead } from "@/types/leads";
 import CustomLead, { ICustomLead } from "@/models/customLead";
 import OrderCreation from "@/models/orders";
 import Contact from "@/models/contact";
+import "@/models/stickySignup";
 import mongoose from "mongoose";
 import {
   createNewLeadNotification,
@@ -57,6 +58,7 @@ const LEAD_POPULATIONS = [
   { path: "custom_lead", model: "CustomLead" },
   { path: "shortcourse_discount", model: "ShortCourseDiscount" },
   { path: "invoice", model: "Invoice" },
+  { path: "sticky_signup", model: "StickySignup" },
   { path: "assigned_to", model: "User", select: "full_name user_name" },
 ];
 
@@ -727,6 +729,7 @@ export const deleteLead = async (
     const { default: CustomLead } = await import("@/models/customLead");
     const { default: Scholarship } = await import("@/models/scholarship");
     const { default: Invoice } = await import("@/models/invoice");
+    const { default: StickySignup } = await import("@/models/stickySignup");
 
     // Delete associated records based on lead type
     const deletionPromises = [];
@@ -755,6 +758,10 @@ export const deleteLead = async (
 
     if (lead.scholarship) {
       deletionPromises.push(Scholarship.findByIdAndDelete(lead.scholarship));
+    }
+
+    if (lead.sticky_signup) {
+      deletionPromises.push(StickySignup.findByIdAndDelete(lead.sticky_signup));
     }
 
     if (lead.invoice) {
@@ -837,6 +844,7 @@ export const batchDeleteLeads = async (
     const { default: OrderCreation } = await import("@/models/orders");
     const { default: CustomLead } = await import("@/models/customLead");
     const { default: Scholarship } = await import("@/models/scholarship");
+    const { default: StickySignup } = await import("@/models/stickySignup");
 
     // Collect all associated record IDs for bulk deletion
     const contactIds: string[] = [];
@@ -845,6 +853,7 @@ export const batchDeleteLeads = async (
     const orderIds: string[] = [];
     const customLeadIds: string[] = [];
     const scholarshipIds: string[] = [];
+    const stickySignupIds: string[] = [];
 
     leads.forEach(lead => {
       if (lead.contact_us) contactIds.push(lead.contact_us.toString());
@@ -853,6 +862,7 @@ export const batchDeleteLeads = async (
       if (lead.order_creation) orderIds.push(lead.order_creation.toString());
       if (lead.custom_lead) customLeadIds.push(lead.custom_lead.toString());
       if (lead.scholarship) scholarshipIds.push(lead.scholarship.toString());
+      if (lead.sticky_signup) stickySignupIds.push(lead.sticky_signup.toString());
     });
 
     // Execute bulk deletions in parallel
@@ -881,6 +891,10 @@ export const batchDeleteLeads = async (
 
     if (scholarshipIds.length > 0) {
       deletionPromises.push(Scholarship.deleteMany({ _id: { $in: scholarshipIds } }));
+    }
+
+    if (stickySignupIds.length > 0) {
+      deletionPromises.push(StickySignup.deleteMany({ _id: { $in: stickySignupIds } }));
     }
 
     // Execute all associated record deletions

@@ -681,6 +681,7 @@ export function getLeadDetails(
     case "Scholarship":
     case "Unpaid Training":
     case "SC Group Discount":
+    case "Sticky SignUp":
       category = type;
       break;
     default:
@@ -694,6 +695,7 @@ export function getLeadDetails(
     abandoned_cart: type === "Abandoned Cart" ? insertedId : null,
     shortcourse_discount: type === "SC Group Discount" ? insertedId : null,
     custom_lead: type === "Custom Lead" ? insertedId : null,
+    sticky_signup: type === "Sticky SignUp" ? insertedId : null,
     order_creation:
       type === "Order Creation" || type === "Unpaid Training"
         ? insertedId

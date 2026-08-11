@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Lead from "@/models/lead";
+import "@/models/stickySignup";
 import { getDataFromToken } from "@/utils/get_token_data";
 import { isPreSale } from "@/utils/userTypes";
 export const dynamic = "force-dynamic";
@@ -49,6 +50,7 @@ export async function GET(request: NextRequest) {
       { path: "scholarship", model: "Scholarship" },
       { path: "order_creation", model: "OrderCreation" },
       { path: "custom_lead", model: "CustomLead" },
+      { path: "sticky_signup", model: "StickySignup" },
       { path: "assigned_to", model: "User", select: "full_name user_name" },
     ])
     .sort({ createdAt: -1 });

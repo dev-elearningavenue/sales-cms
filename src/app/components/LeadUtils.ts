@@ -18,6 +18,15 @@ export const getLeadName = (lead: ILead): string => {
     return (lead.shortcourse_discount as any).name;
   }
 
+  // Sticky SignUp API has email/phone only (no first/last name)
+  if (
+    lead.sticky_signup &&
+    typeof lead.sticky_signup === "object" &&
+    (lead.sticky_signup as any).email
+  ) {
+    return String((lead.sticky_signup as any).email);
+  }
+
   const dataObjects = [
     lead.free_signup,
     lead.order_creation,
@@ -34,9 +43,12 @@ export const getLeadName = (lead: ILead): string => {
       "firstName" in obj &&
       "lastName" in obj
     ) {
-      return `${(obj as any).firstName} ${(obj as any).lastName || ""}`;
+      return `${(obj as any).firstName} ${(obj as any).lastName || ""}`.trim();
     }
   }
+
+  if (lead.fullname?.trim()) return lead.fullname.trim();
+  if (lead.email?.trim()) return lead.email.trim();
 
   return "Distinct Lead";
 };

@@ -39,6 +39,7 @@ export default function ManagerLeadsPage() {
     const [selectedResolveStatus, setSelectedResolveStatus] = useState("");
 
     const [fieldsLoading, setFieldsLoading] = useState(false);
+    const [companyAccountLoading, setCompanyAccountLoading] = useState(false);
     const [leadFields, setLeadFields] = useState({
         companyEmail: "",
         contactNo: "",
@@ -119,6 +120,42 @@ export default function ManagerLeadsPage() {
             showToast("Failed to save lead details. Please try again.", "error");
         } finally {
             setFieldsLoading(false);
+        }
+    };
+
+    const handleCreateCompanyAccount = async () => {
+        if (!currentLead) return;
+        const company = String(currentLead.companyName || "").trim();
+        const firstName = leadFields.firstName.trim();
+        const lastName = leadFields.lastName.trim();
+        const email = leadFields.companyEmail.trim();
+        if (!company || !firstName || !lastName || !email) {
+            showToast("Company, first name, last name, and email are required.", "error");
+            return;
+        }
+        try {
+            setCompanyAccountLoading(true);
+            const response = await fetch(
+                `/api/manager-leads/${currentLead._id}/create-company-account`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ company, firstName, lastName, email }),
+                }
+            );
+            const result = await response.json();
+            if (!response.ok || result.success === false) {
+                if (result.lead) setCurrentLead(result.lead);
+                showToast(result.message || result.error || "Manager account creation failed", "error");
+                return;
+            }
+            if (result.lead) setCurrentLead(result.lead);
+            showToast("Manager account created.", "success");
+        } catch (error) {
+            console.error("Create company account error:", error);
+            showToast("Could not reach company account automation.", "error");
+        } finally {
+            setCompanyAccountLoading(false);
         }
     };
 
@@ -431,7 +468,23 @@ export default function ManagerLeadsPage() {
                             />
                         </div>
 
-                        <div className="flex justify-end mb-6">
+                        <div className="flex justify-end items-center gap-3 mb-6">
+                            {currentLead.managerAccountCreatedAt ? (
+                                <div className="px-4 py-2 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm font-medium">
+                                    Manager Account Created
+                                    <span className="ml-2 font-normal text-green-700">
+                                        {new Date(currentLead.managerAccountCreatedAt).toLocaleString()}
+                                    </span>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={handleCreateCompanyAccount}
+                                    disabled={companyAccountLoading || !leadFields.companyEmail.trim()}
+                                    className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                                >
+                                    {companyAccountLoading ? "Creating..." : "Create Manager Account"}
+                                </button>
+                            )}
                             <button
                                 onClick={handleSaveLeadFields}
                                 disabled={fieldsLoading}

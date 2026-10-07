@@ -43,6 +43,8 @@ export interface IManagerLead extends Document {
   emails?: mongoose.Types.ObjectId[];
   lastContacted?: Date;
   lastStatusChange?: Date;
+  managerAccountCreated?: boolean;
+  managerAccountCreatedAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -104,6 +106,8 @@ const managerLeadSchema = new Schema<IManagerLead>(
     emails: [{ type: Schema.Types.ObjectId, ref: "EmailLog" }],
     lastContacted: { type: Date },
     lastStatusChange: { type: Date },
+    managerAccountCreated: { type: Boolean, default: false },
+    managerAccountCreatedAt: { type: Date },
   },
   { timestamps: true }
 );

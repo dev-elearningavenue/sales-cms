@@ -45,6 +45,8 @@ export interface IManagerLead extends Document {
   lastStatusChange?: Date;
   managerAccountCreated?: boolean;
   managerAccountCreatedAt?: Date;
+  managerAccountUsername?: string;
+  managerAccountPassword?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -108,6 +110,8 @@ const managerLeadSchema = new Schema<IManagerLead>(
     lastStatusChange: { type: Date },
     managerAccountCreated: { type: Boolean, default: false },
     managerAccountCreatedAt: { type: Date },
+    managerAccountUsername: { type: String, trim: true, default: "" },
+    managerAccountPassword: { type: String, default: "" },
   },
   { timestamps: true }
 );

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { IManagerLead } from "@/types/managerLead";
 import { useApp } from "@/contexts/AppContext";
@@ -40,6 +40,8 @@ export default function ManagerLeadsPage() {
 
     const [fieldsLoading, setFieldsLoading] = useState(false);
     const [companyAccountLoading, setCompanyAccountLoading] = useState(false);
+    const [companyProgress, setCompanyProgress] = useState<string[]>([]);
+    const companyPollRef = useRef(0);
     const [leadFields, setLeadFields] = useState({
         companyEmail: "",
         contactNo: "",
@@ -124,7 +126,7 @@ export default function ManagerLeadsPage() {
     };
 
     const handleCreateCompanyAccount = async () => {
-        if (!currentLead) return;
+        if (!currentLead || companyAccountLoading) return;
         const company = String(currentLead.companyName || "").trim();
         const firstName = leadFields.firstName.trim();
         const lastName = leadFields.lastName.trim();
@@ -133,10 +135,23 @@ export default function ManagerLeadsPage() {
             showToast("Company, first name, last name, and email are required.", "error");
             return;
         }
+
+        const leadId = currentLead._id;
+        const pollId = companyPollRef.current + 1;
+        companyPollRef.current = pollId;
+        setCompanyAccountLoading(true);
+        setCompanyProgress(["Starting manager account..."]);
+
+        const stopWithError = (message: string) => {
+            if (pollId !== companyPollRef.current) return;
+            setCompanyAccountLoading(false);
+            setCompanyProgress([]);
+            showToast(message, "error");
+        };
+
         try {
-            setCompanyAccountLoading(true);
             const response = await fetch(
-                `/api/manager-leads/${currentLead._id}/create-company-account`,
+                `/api/manager-leads/${leadId}/create-company-account`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -144,18 +159,49 @@ export default function ManagerLeadsPage() {
                 }
             );
             const result = await response.json();
-            if (!response.ok || result.success === false) {
-                if (result.lead) setCurrentLead(result.lead);
-                showToast(result.message || result.error || "Manager account creation failed", "error");
+            if (result.lead && result.done) {
+                setCurrentLead(result.lead);
+                setCompanyAccountLoading(false);
+                setCompanyProgress([]);
                 return;
             }
-            if (result.lead) setCurrentLead(result.lead);
-            showToast("Manager account created.", "success");
+            if (!response.ok || result.success === false || !result.jobId) {
+                stopWithError(result.message || result.error || "Manager account creation failed");
+                return;
+            }
+
+            const poll = async () => {
+                if (pollId !== companyPollRef.current) return;
+                try {
+                    const statusRes = await fetch(
+                        `/api/manager-leads/${leadId}/create-company-account?jobId=${encodeURIComponent(result.jobId)}`
+                    );
+                    const status = await statusRes.json();
+                    if (pollId !== companyPollRef.current) return;
+                    if (Array.isArray(status.logs) && status.logs.length) {
+                        setCompanyProgress(status.logs.slice(-8));
+                    }
+                    if (status.done && status.lead) {
+                        setCurrentLead(status.lead);
+                        setCompanyAccountLoading(false);
+                        setCompanyProgress([]);
+                        showToast("Manager account created.", "success");
+                        return;
+                    }
+                    if (status.done && status.status === "error") {
+                        stopWithError(status.message || "Manager account creation failed");
+                        return;
+                    }
+                    window.setTimeout(poll, 2000);
+                } catch (error) {
+                    console.error("Manager account progress error:", error);
+                    stopWithError("Could not read manager account progress.");
+                }
+            };
+            window.setTimeout(poll, 1500);
         } catch (error) {
             console.error("Create company account error:", error);
-            showToast("Could not reach company account automation.", "error");
-        } finally {
-            setCompanyAccountLoading(false);
+            stopWithError("Could not reach company account automation.");
         }
     };
 
@@ -399,6 +445,23 @@ export default function ManagerLeadsPage() {
                                 {currentLead.assignedAt && (
                                     <p className="text-sm text-gray-500">Assigned: {new Date(currentLead.assignedAt).toLocaleDateString()}</p>
                                 )}
+                                {currentLead.managerAccountCreatedAt && (
+                                    <div className="mt-2 space-y-1 text-sm text-gray-700">
+                                        <p><span className="font-medium">Username:</span> {currentLead.managerAccountUsername || currentLead.companyEmail}</p>
+                                        <p><span className="font-medium">Password:</span> {currentLead.managerAccountPassword || "Apple123#"}</p>
+                                        <p><span className="font-medium">Created:</span> {new Date(currentLead.managerAccountCreatedAt).toLocaleString()}</p>
+                                    </div>
+                                )}
+                                {companyAccountLoading && companyProgress.length > 0 && (
+                                    <div className="mt-3 rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">
+                                        <p className="font-medium mb-2">Creating manager account...</p>
+                                        <ul className="space-y-1 max-h-36 overflow-auto">
+                                            {companyProgress.map((line, index) => (
+                                                <li key={`${index}-${line.slice(0, 24)}`}>{line}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </div>
                             <div className="flex flex-wrap gap-2 items-center md:justify-end">
                                 <div className="min-w-[200px]">
@@ -469,20 +532,13 @@ export default function ManagerLeadsPage() {
                         </div>
 
                         <div className="flex justify-end items-center gap-3 mb-6">
-                            {currentLead.managerAccountCreatedAt ? (
-                                <div className="px-4 py-2 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm font-medium">
-                                    Manager Account Created
-                                    <span className="ml-2 font-normal text-green-700">
-                                        {new Date(currentLead.managerAccountCreatedAt).toLocaleString()}
-                                    </span>
-                                </div>
-                            ) : (
+                            {!currentLead.managerAccountCreatedAt && !companyAccountLoading && (
                                 <button
                                     onClick={handleCreateCompanyAccount}
-                                    disabled={companyAccountLoading || !leadFields.companyEmail.trim()}
+                                    disabled={!leadFields.companyEmail.trim()}
                                     className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                                 >
-                                    {companyAccountLoading ? "Creating..." : "Create Manager Account"}
+                                    Create Manager Account
                                 </button>
                             )}
                             <button

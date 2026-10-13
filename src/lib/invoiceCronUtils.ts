@@ -31,29 +31,9 @@ interface InvoiceStatusResult {
   paymentResult: Record<string, unknown> | null;
 }
 
-// ⚠️ DEV BYPASS – remove this block when done testing
-const DEV_BYPASS_INVOICE = "RZVJLQMM-0001";
-
 const fetchInvoiceStatus = async (
   invoice: InvoiceType
 ): Promise<InvoiceStatusResult> => {
-  // ⚠️ DEV BYPASS – hardcoded paid response for testing
-  if (invoice.invoiceNumber === DEV_BYPASS_INVOICE) {
-    console.log(`[DEV] Bypassing Stripe for invoice ${invoice.invoiceNumber}`);
-    return {
-      status: "paid",
-      paidAt: new Date("2026-02-25T14:32:00.000Z"),
-
-      paymentResult: {
-        id: "pi_3SGnTiLNq3N1ezuf1QEUzgfA",
-        status: "succeeded",
-        payment_method: "pm_1SGnVGLNq3N1ezufo6W5uR7b",
-        client_secret: "pi_3SGnTiLNq3N1ezuf1QEUzgfA_secret_qIROfAqup9ociEskwxTFAUW7P",
-        receipt_email: "office@1sourcewater.com",
-      },
-    };
-  }
-
   try {
     const params = new URLSearchParams({
       customer_id: invoice.customerId || "",
@@ -62,12 +42,12 @@ const fetchInvoiceStatus = async (
     });
     const url = `${BASE_API}?${params.toString()}`;
     const res = await fetch(url);
-    const data = await res.json();
+    const data = await safeParseJson(res);
     if (data?.status && data?.data && typeof data.data === "object") {
       const d = data.data as Record<string, unknown>;
       if (d.status) {
         return {
-          status: d.status as string,
+          status: String(d.status),
           paidAt: (d.paidAt as Date) ?? null,
           paymentResult: (d.paymentResult as Record<string, unknown>) ?? null,
         };
@@ -236,65 +216,51 @@ async function handleInvoicePaidProcessing(
 export const updateInvoiceStatus = async () => {
   try {
     await connectDB();
-    // Fetch all invoices
-    console.log("Fetching all unpaid invoices to update status...", new Date().toLocaleString('en-US'));
-    // const invoices = await Invoice.find({ status: "unpaid", deletedAt: null });
+    console.log(
+      "Fetching all unpaid invoices to update status...",
+      new Date().toLocaleString("en-US"),
+    );
 
-    // for (const inv of invoices) {
-      // const { status, paidAt } = await fetchInvoiceStatus(inv);
-      const invoices = await Invoice.find({ invoiceNumber: "RZVJLQMM-0001", status: "unpaid", deletedAt: null });
-      const inv = invoices[0];
+    const invoices = await Invoice.find({ status: "unpaid", deletedAt: null });
+
+    for (const inv of invoices) {
       const { status, paidAt, paymentResult } = await fetchInvoiceStatus(inv);
-      // Update invoice in DB if status has changed
+
+      // Strict: only mark paid when local is unpaid AND payment API returns paid
       if (inv.status === "unpaid" && status === "paid") {
-        // if (inv.invoiceNumber == "PXDOGTUJ-0001" && inv.status === "unpaid" && status === "paid") {
-        //   console.log(
-        //     `Updating invoice ${inv.invoiceNumber} status from ${inv.status} to ${status}`
-        //   );
-        // console.log(
-        //   `Updating invoice ${inv.invoiceNumber} status from ${inv.status} to ${status}`
-        // );
+        console.log(
+          `Updating invoice ${inv.invoiceNumber} status from ${inv.status} to ${status}`,
+        );
         inv.status = status;
         inv.paidAt = paidAt;
         await inv.save();
 
-        // Create notification for invoice payment
         try {
           await createInvoicePaymentNotification(inv);
         } catch (error) {
           console.error(
             `Error creating notification for invoice ${inv.invoiceNumber}:`,
-            error
+            error,
           );
         }
 
-        // Post-payment: update order + user in legacy site DB
         try {
           console.log("calling handleInvoicePaidProcessing");
           await handleInvoicePaidProcessing(inv, paymentResult);
         } catch (error) {
           console.error(
             `[post-paid] Failed for invoice ${inv.invoiceNumber}:`,
-            error
+            error,
           );
         }
 
-        // Play notification sound (client-side)
-        if (typeof window !== "undefined") {
-          try {
-            const audio = new Audio("/notification.mp3");
-            audio.volume = 0.5;
-            audio.play().catch((err) => {
-              console.log("Audio autoplay was blocked:", err);
-            });
-          } catch (err) {
-            console.error("Error playing notification sound:", err);
-          }
-        }
-
-        console.log("Invoice status synced successfully", new Date().toLocaleString('en-US'));
+        console.log(
+          "Invoice status synced successfully",
+          inv.invoiceNumber,
+          new Date().toLocaleString("en-US"),
+        );
       }
-    // } // have to comment this for test 
+    }
   } catch (error) {
     console.error("Error updating invoice statuses:", error);
   }

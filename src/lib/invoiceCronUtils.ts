@@ -31,6 +31,49 @@ interface InvoiceStatusResult {
   paymentResult: Record<string, unknown> | null;
 }
 
+const FETCH_TIMEOUT_MS = 15000;
+const SYNC_CONCURRENCY = 10;
+
+let invoiceStatusSyncRunning = false;
+
+export function isInvoiceStatusSyncRunning() {
+  return invoiceStatusSyncRunning;
+}
+
+/** Kick off sync in the background so HTTP callers do not hit gateway timeouts. */
+export function startInvoiceStatusSync() {
+  if (invoiceStatusSyncRunning) {
+    return { started: false as const, alreadyRunning: true as const };
+  }
+
+  invoiceStatusSyncRunning = true;
+  updateInvoiceStatus()
+    .catch((error) => {
+      console.error("Background invoice status sync failed:", error);
+    })
+    .finally(() => {
+      invoiceStatusSyncRunning = false;
+    });
+
+  return { started: true as const, alreadyRunning: false as const };
+}
+
+async function runPool<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<void>,
+) {
+  let index = 0;
+  const size = Math.max(1, Math.min(concurrency, items.length || 1));
+  const runners = Array.from({ length: size }, async () => {
+    while (index < items.length) {
+      const current = items[index++];
+      await worker(current);
+    }
+  });
+  await Promise.all(runners);
+}
+
 const fetchInvoiceStatus = async (
   invoice: InvoiceType
 ): Promise<InvoiceStatusResult> => {
@@ -41,7 +84,7 @@ const fetchInvoiceStatus = async (
       site_name: invoice.siteName,
     });
     const url = `${BASE_API}?${params.toString()}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     const data = await safeParseJson(res);
     if (data?.status && data?.data && typeof data.data === "object") {
       const d = data.data as Record<string, unknown>;
@@ -55,7 +98,11 @@ const fetchInvoiceStatus = async (
     }
     return { status: "unpaid", paidAt: null, paymentResult: null };
   } catch (error: unknown) {
-    console.error("Error fetching invoice status:", error);
+    console.error(
+      "Error fetching invoice status:",
+      invoice.invoiceNumber,
+      error instanceof Error ? error.message : error,
+    );
     return { status: "unpaid", paidAt: null, paymentResult: null };
   }
 };
@@ -222,9 +269,16 @@ export const updateInvoiceStatus = async () => {
     );
 
     const invoices = await Invoice.find({ status: "unpaid", deletedAt: null });
+    console.log(
+      `Invoice status sync: ${invoices.length} unpaid invoices, concurrency=${SYNC_CONCURRENCY}`,
+    );
 
-    for (const inv of invoices) {
+    let checked = 0;
+    let markedPaid = 0;
+
+    await runPool(invoices, SYNC_CONCURRENCY, async (inv) => {
       const { status, paidAt, paymentResult } = await fetchInvoiceStatus(inv);
+      checked += 1;
 
       // Strict: only mark paid when local is unpaid AND payment API returns paid
       if (inv.status === "unpaid" && status === "paid") {
@@ -234,6 +288,7 @@ export const updateInvoiceStatus = async () => {
         inv.status = status;
         inv.paidAt = paidAt;
         await inv.save();
+        markedPaid += 1;
 
         try {
           await createInvoicePaymentNotification(inv);
@@ -260,7 +315,18 @@ export const updateInvoiceStatus = async () => {
           new Date().toLocaleString("en-US"),
         );
       }
-    }
+
+      if (checked % 50 === 0 || checked === invoices.length) {
+        console.log(
+          `Invoice status sync progress: ${checked}/${invoices.length}, markedPaid=${markedPaid}`,
+        );
+      }
+    });
+
+    console.log(
+      `Invoice status sync finished: checked=${checked}, markedPaid=${markedPaid}`,
+      new Date().toLocaleString("en-US"),
+    );
   } catch (error) {
     console.error("Error updating invoice statuses:", error);
   }

@@ -22,19 +22,26 @@ interface InvoiceProduct {
   total: number;
 }
 
-const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
-  //   const orderLead =
-  //     selectedLead.order_creation &&
-  //     typeof selectedLead.order_creation === "object"
-  //       ? (selectedLead.order_creation as OrderCreation)
-  //       : null;
-  // console.log("CourseInfo - Selected Lead: ", selectedLead);
+const getPromoCode = (source: any): string => {
+  if (!source || typeof source !== "object") return "";
+  const raw =
+    source.promo_code ?? source.promoCode ?? source.coupon_code ?? source.coupon;
+  if (!raw) return "";
+  if (typeof raw === "string") return raw.trim();
+  if (typeof raw === "object") {
+    const code = raw.code || raw.promo_code || raw.name || "";
+    return typeof code === "string" ? code.trim() : "";
+  }
+  return "";
+};
 
+const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
   // Check for order_creation, abandoned_cart, or invoice data
   let orderLead: OrderCreation | null = null;
   let invoiceData: any = null;
   let products: any[] = [];
   let totalPrice: number = 0;
+  let promoCode = "";
 
   if (selectedLead.category === "Invoice" && selectedLead.invoice) {
     // Handle Invoice data
@@ -44,6 +51,7 @@ const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
       products = invoiceData.products;
       totalPrice = Number(invoiceData.totalPrice) || 0;
     }
+    promoCode = getPromoCode(invoiceData);
   } else {
     // Handle Order data (Order Creation, Abandoned Cart, Unpaid Training)
     orderLead = (selectedLead.order_creation ||
@@ -63,6 +71,7 @@ const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
         }, 0);
       }
     }
+    promoCode = getPromoCode(orderLead);
   }
 
   if (!products || products.length === 0) {
@@ -72,15 +81,23 @@ const CourseInfo: React.FC<CourseInfoProps> = ({ selectedLead }) => {
   return (
     <>
       <div className="mt-4 mb-4">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
           <h4 className="text-sm font-medium text-gray-800">Courses</h4>
           {products.length > 0 && (
-            <span className="text-sm font-semibold text-gray-700">
-              Total Price: {totalPrice.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </span>
+            <div className="flex items-center gap-3 text-sm font-semibold text-gray-700">
+              {promoCode ? (
+                <span>
+                  Promo Code: <span className="font-bold">{promoCode}</span>
+                </span>
+              ) : null}
+              <span>
+                Total Price:{" "}
+                {totalPrice.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
           )}
         </div>
         {products.length > 0 ? (

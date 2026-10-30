@@ -48,6 +48,7 @@ export interface OrderCreation extends ICustomer {
   price: string;
   transaction_id?: string;
   order_id?: string;
+  promo_code?: string | { code?: string; promo_code?: string; name?: string };
   items: OrderItem[];
   user?: {
     _id: string;
